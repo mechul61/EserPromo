@@ -1,0 +1,9 @@
+.env
+.env.*
+!.env.example
+*.log
+node_modules/
+vendor/
+wp-content/uploads/
+.DS_Store
+Thumbs.db
