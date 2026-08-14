@@ -1,21 +1,21 @@
 import Link from "next/link";
 import { Check, ChevronDown, ChevronRight, Mail, MapPin, Menu, Phone } from "lucide-react";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
-import {
-  CATEGORIES,
-  CATEGORY_CHILDREN,
-  SITE_CONTACT,
-} from "@/data/catalog-page";
+import { SITE_CONTACT } from "@/data/catalog-page";
+import { getCategoryTree } from "@/lib/catalog";
+import { categoryPath } from "@/lib/seo/urls";
 
-export function CatalogSidebar({
-  activeSlug,
+export async function CatalogSidebar({
+  activeSlug = "",
   heading = "KATEGORİLER",
   showPromo = true,
 }: {
-  activeSlug: string;
+  activeSlug?: string;
   heading?: string;
   showPromo?: boolean;
 }) {
+  const tree = await getCategoryTree();
+
   return (
     <aside id="katalog-kategoriler" className="w-full shrink-0 scroll-mt-24 lg:w-[270px]">
       <div className="overflow-hidden rounded-md border border-line bg-white shadow-md">
@@ -27,29 +27,21 @@ export function CatalogSidebar({
           {heading}
         </div>
         <ul>
-          {CATEGORIES.filter((c) => !c.highlight).map((cat) => {
-            const Icon = cat.icon;
-            const children = CATEGORY_CHILDREN[cat.slug];
-            const childActive = children?.some(
-              (c) => activeSlug === c.slug || activeSlug.includes(c.slug),
-            );
-            const expanded =
-              cat.slug === activeSlug ||
-              activeSlug.includes(cat.slug) ||
-              Boolean(childActive);
+          {tree.map((cat) => {
+            const childActive = cat.children.some((c) => activeSlug === c.slug);
+            const expanded = activeSlug === cat.slug || childActive;
             return (
               <li key={cat.slug} className="border-b border-[#f0f1f3] last:border-b-0">
                 <Link
-                  href={`/product-category/${cat.slug}/`}
+                  href={categoryPath(cat.slug)}
                   className={`flex items-center gap-2.5 px-3 py-[9px] text-[13px] ${
-                    cat.slug === activeSlug && !children
+                    cat.slug === activeSlug && cat.children.length === 0
                       ? "font-bold text-brand-red"
                       : "font-medium text-[#222] hover:bg-[#fafafa]"
                   }`}
                 >
-                  <Icon className="size-[16px] shrink-0 text-brand-red" strokeWidth={1.75} />
                   <span className="min-w-0 flex-1">{cat.name}</span>
-                  {children ? (
+                  {cat.children.length > 0 ? (
                     expanded ? (
                       <ChevronDown className="size-3.5 text-[#c8c8c8]" />
                     ) : (
@@ -59,14 +51,14 @@ export function CatalogSidebar({
                     <ChevronRight className="size-3.5 text-[#c8c8c8]" />
                   )}
                 </Link>
-                {expanded && children ? (
+                {expanded && cat.children.length > 0 ? (
                   <ul className="bg-[#fafafa] pb-1">
-                    {children.map((child) => (
+                    {cat.children.map((child) => (
                       <li key={child.slug}>
                         <Link
-                          href={`/product-category/${child.slug}/`}
+                          href={categoryPath(child.slug)}
                           className={`flex items-center gap-2 py-1.5 pr-3 pl-8 text-[12.5px] ${
-                            activeSlug === child.slug || activeSlug.includes(child.slug)
+                            activeSlug === child.slug
                               ? "font-bold text-brand-red"
                               : "text-[#444] hover:text-navy"
                           }`}
@@ -136,14 +128,6 @@ export function CatalogSidebar({
           KURUMSAL AJANDA VE DEFTERLER
           <br />
           / LOGO BASKILI
-        </div>
-        <div className="relative h-[140px] bg-[#ececec]">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="https://images.unsplash.com/photo-1531346680769-a1d79b57de5f?w=540&h=280&fit=crop"
-            alt=""
-            className="h-full w-full object-cover"
-          />
         </div>
         <ul className="space-y-1 px-4 pt-3 text-[12px] text-[#333]">
           {["Özel Tasarım", "Kaliteli Baskı", "Uygun Fiyat"].map((item) => (

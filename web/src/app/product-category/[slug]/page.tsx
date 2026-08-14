@@ -14,12 +14,12 @@ import {
   asParamList,
   catalogBreadcrumb,
   catalogTitleForSlug,
-  demoNotebooks,
   filterListing,
-  isNotebookDemoSlug,
+  listingFilterOptions,
   knownCatalogSlug,
   type ListingProduct,
 } from "@/data/catalog-page";
+import { categoryIdsWithChildren, resolveCategory } from "@/lib/catalog";
 import { prisma } from "@/lib/db";
 import { mediaUrl } from "@/lib/media";
 import { canonicalPath, categoryPath, productPath } from "@/lib/seo/urls";
@@ -34,6 +34,7 @@ type PageProps = {
 const EXTRA_TITLES: Record<string, string> = {
   "yeni-urunler": "Yeni Ürünler",
   "cok-satanlar": "Çok Satanlar",
+  kampanyali: "Kampanyalı Ürünler",
 };
 
 function isKnownSlug(slug: string) {
@@ -56,7 +57,7 @@ export async function generateMetadata({ params }: PageProps) {
 
 async function findCategory(slug: string) {
   try {
-    return await prisma.category.findUnique({ where: { slug } });
+    return await resolveCategory(slug);
   } catch {
     return null;
   }
@@ -92,8 +93,9 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
     }
 
     try {
+      const categoryIds = await categoryIdsWithChildren(category.id);
       const rows = await prisma.product.findMany({
-        where: { categoryId: category.id, isActive: true },
+        where: { categoryId: { in: categoryIds }, isActive: true },
         include: { images: { orderBy: { sortOrder: "asc" }, take: 1 } },
         orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
       });
@@ -112,11 +114,39 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
     } catch {
       products = [];
     }
+  } else if (slug === "yeni-urunler" || slug === "cok-satanlar" || slug === "kampanyali") {
+    try {
+      const rows = await prisma.product.findMany({
+        where: {
+          isActive: true,
+          isGroupPrimary: true,
+          ...(slug === "kampanyali" ? { discountLocked: true } : {}),
+        },
+        include: { images: { orderBy: { sortOrder: "asc" }, take: 1 } },
+        orderBy:
+          slug === "yeni-urunler"
+            ? { createdAt: "desc" }
+            : [{ stockTotal: "desc" }, { id: "desc" }],
+        take: 48,
+      });
+      products = rows.map((product) => ({
+        id: product.id,
+        href: productPath(product.slug),
+        code: product.sku,
+        name: product.title || product.name,
+        image: mediaUrl(product.images[0]?.localPath) ?? "/brand/logo.png",
+        price: grossPrice(product.price, product.vatRate),
+        size: product.size ?? undefined,
+        color: product.color ?? undefined,
+        stock: product.stockTotal,
+        isNew: Date.now() - product.createdAt.getTime() < 1000 * 60 * 60 * 24 * 30,
+      }));
+    } catch {
+      products = [];
+    }
   }
 
-  if (products.length === 0 && isNotebookDemoSlug(slug)) {
-    products = demoNotebooks();
-  }
+  const { colors, sizes } = listingFilterOptions(products);
 
   const filtered = filterListing(products, {
     renk: asParamList(query.renk),
@@ -190,7 +220,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
             </div>
 
             <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
-              <CatalogFilters basePath={basePath} query={query} />
+              <CatalogFilters basePath={basePath} query={query} colors={colors} sizes={sizes} />
 
               <section className="min-w-0 flex-1">
                 {pageItems.length > 0 ? (

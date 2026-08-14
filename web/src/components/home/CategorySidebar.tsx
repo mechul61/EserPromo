@@ -1,9 +1,13 @@
 import Link from "next/link";
 import { Check, ChevronRight, Menu } from "lucide-react";
-import { CATEGORIES, TEXTILE_PERKS } from "@/data/home";
+import { TEXTILE_PERKS } from "@/data/home";
+import { getCategoryTree } from "@/lib/catalog";
+import { categoryPath } from "@/lib/seo/urls";
 
-/** Sol kategori paneli — KATEGORİLER + liste tek parça (referans 1) */
-export function CategorySidebar() {
+export async function CategorySidebar() {
+  const tree = await getCategoryTree();
+  const textile = tree.find((c) => c.slug.startsWith("tekstil"));
+
   return (
     <aside id="kategoriler" className="w-full shrink-0 scroll-mt-24 lg:w-[270px]">
       <div className="overflow-hidden rounded-md border border-line bg-white shadow-md">
@@ -16,28 +20,26 @@ export function CategorySidebar() {
         </div>
 
         <ul>
-          {CATEGORIES.map((cat) => {
-            const Icon = cat.icon;
-            return (
-              <li key={cat.slug} className="border-b border-[#ececec] last:border-b-0">
-                <Link
-                  href={`/product-category/${cat.slug}`}
-                  className={`group flex items-center gap-3 px-3.5 py-[11px] text-[13px] transition hover:bg-[#fafafa] ${
-                    cat.highlight
-                      ? "font-extrabold tracking-wide text-brand-red"
-                      : "font-medium text-[#222]"
-                  }`}
-                >
-                  <Icon
-                    className={`size-[18px] shrink-0 ${cat.iconClassName ?? "text-[#222]"}`}
-                    strokeWidth={1.75}
-                  />
-                  <span className="min-w-0 flex-1 leading-snug">{cat.name}</span>
-                  <ChevronRight className="size-4 shrink-0 text-[#cfcfcf] group-hover:text-[#999]" />
-                </Link>
-              </li>
-            );
-          })}
+          {tree.map((cat) => (
+            <li key={cat.slug} className="border-b border-[#ececec] last:border-b-0">
+              <Link
+                href={categoryPath(cat.slug)}
+                className="group flex items-center gap-3 px-3.5 py-[11px] text-[13px] font-medium text-[#222] transition hover:bg-[#fafafa]"
+              >
+                <span className="min-w-0 flex-1 leading-snug">{cat.name}</span>
+                <ChevronRight className="size-4 shrink-0 text-[#cfcfcf] group-hover:text-[#999]" />
+              </Link>
+            </li>
+          ))}
+          <li className="border-b border-[#ececec] last:border-b-0">
+            <Link
+              href="/product-category/kampanyali/"
+              className="group flex items-center gap-3 px-3.5 py-[11px] text-[13px] font-extrabold tracking-wide text-brand-red transition hover:bg-[#fafafa]"
+            >
+              <span className="min-w-0 flex-1 leading-snug">KAMPANYALI ÜRÜNLER</span>
+              <ChevronRight className="size-4 shrink-0 text-[#cfcfcf] group-hover:text-[#999]" />
+            </Link>
+          </li>
         </ul>
       </div>
 
@@ -61,7 +63,7 @@ export function CategorySidebar() {
             ))}
           </ul>
           <Link
-            href="/product-category/tekstil"
+            href={textile ? categoryPath(textile.slug) : "/product-category/kampanyali/"}
             className="mt-4 inline-flex rounded bg-[#f5a623] px-3 py-2 text-[12px] font-bold text-[#111] hover:bg-orange-hover"
           >
             Ürünleri İncele

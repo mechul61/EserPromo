@@ -1,6 +1,12 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { addToCart, getOrCreateCart, setCartItemQuantity } from "@/lib/commerce/cart";
+import {
+  addToCart,
+  clearCart,
+  getOrCreateCart,
+  setCartItemQuantity,
+  setCartQuantities,
+} from "@/lib/commerce/cart";
 import { formatPriceTry, mediaUrl } from "@/lib/media";
 import { productPath } from "@/lib/seo/urls";
 import { assertSameOrigin, jsonError } from "@/lib/security/origin";
@@ -66,5 +72,44 @@ export async function PATCH(req: NextRequest) {
     return Response.json(serializeCart(cart));
   } catch (error) {
     return jsonError(error instanceof Error ? error.message : "Güncellenemedi");
+  }
+}
+
+const putSchema = z.object({
+  items: z.array(
+    z.object({
+      productId: z.number().int().positive(),
+      quantity: z.number().int().min(0).max(100000),
+    }),
+  ),
+});
+
+export async function PUT(req: NextRequest) {
+  try {
+    assertSameOrigin(req);
+  } catch {
+    return jsonError("Geçersiz istek", 403);
+  }
+  const body = putSchema.safeParse(await req.json().catch(() => null));
+  if (!body.success) return jsonError("Geçersiz istek");
+  try {
+    const cart = await setCartQuantities(body.data.items);
+    return Response.json(serializeCart(cart));
+  } catch (error) {
+    return jsonError(error instanceof Error ? error.message : "Güncellenemedi");
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    assertSameOrigin(req);
+  } catch {
+    return jsonError("Geçersiz istek", 403);
+  }
+  try {
+    const cart = await clearCart();
+    return Response.json(serializeCart(cart));
+  } catch (error) {
+    return jsonError(error instanceof Error ? error.message : "Sepet temizlenemedi");
   }
 }

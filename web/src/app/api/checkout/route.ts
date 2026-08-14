@@ -7,10 +7,15 @@ import { clientKey, rateLimit } from "@/lib/security/rate-limit";
 
 const schema = z.object({
   fullName: z.string().trim().min(2).max(80),
+  email: z.string().trim().email().optional().or(z.literal("")),
   phone: z.string().trim().min(10).max(20),
   city: z.string().trim().min(2).max(40),
   district: z.string().trim().min(2).max(40),
   line: z.string().trim().min(6).max(200),
+  postalCode: z.string().trim().max(10).optional(),
+  deliveryMethod: z.enum(["address", "office"]).default("address"),
+  invoiceType: z.enum(["individual", "corporate"]).default("individual"),
+  paymentMethod: z.enum(["card", "transfer"]).default("card"),
 });
 
 export async function POST(req: NextRequest) {

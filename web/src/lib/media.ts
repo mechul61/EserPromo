@@ -13,3 +13,8 @@ export function formatPriceTry(value: { toString(): string } | number | string):
     maximumFractionDigits: 2,
   });
 }
+
+export function formatStock(value: number) {
+  const n = Number.isFinite(value) ? Math.max(0, Math.trunc(value)) : 0;
+  return `${n.toLocaleString("tr-TR")} Adet`;
+}

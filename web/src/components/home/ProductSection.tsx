@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Check, Heart } from "lucide-react";
-import { DEMO_PRODUCTS } from "@/data/home";
 
 const tabs = [
   "Çok Satanlar",
@@ -19,26 +18,35 @@ const badgeClass = {
   Kampanyalı: "bg-[#e31b23]",
 } as const;
 
-export function ProductSection() {
+export type HomeProduct = {
+  id: number;
+  href: string;
+  code: string;
+  name: string;
+  image: string;
+  price: string;
+  inStock: boolean;
+  stock: number;
+  badge: keyof typeof badgeClass;
+};
+
+export function ProductSection({ products }: { products: HomeProduct[] }) {
   const [active, setActive] = useState<(typeof tabs)[number]>("Çok Satanlar");
 
-  const products = useMemo(() => {
+  const visible = useMemo(() => {
     if (active === "Yeni Ürünler") {
-      return DEMO_PRODUCTS.filter((p) => p.badge === "Yeni");
+      return products.filter((p) => p.badge === "Yeni").slice(0, 6);
     }
     if (active === "Kampanyalı Ürünler") {
-      return DEMO_PRODUCTS.filter((p) => p.badge === "Kampanyalı");
+      return products.filter((p) => p.badge === "Kampanyalı").slice(0, 6);
     }
     if (active === "Çok Satanlar") {
-      return DEMO_PRODUCTS.filter((p) => p.badge === "Çok Satan").length
-        ? [
-            ...DEMO_PRODUCTS.filter((p) => p.badge === "Çok Satan"),
-            ...DEMO_PRODUCTS.filter((p) => p.badge !== "Çok Satan"),
-          ].slice(0, 6)
-        : DEMO_PRODUCTS;
+      return products.filter((p) => p.badge === "Çok Satan").slice(0, 6);
     }
-    return DEMO_PRODUCTS;
-  }, [active]);
+    return products.slice(0, 6);
+  }, [active, products]);
+
+  if (products.length === 0) return null;
 
   return (
     <section className="mt-8">
@@ -60,7 +68,7 @@ export function ProductSection() {
           ))}
         </div>
         <Link
-          href="/urunler"
+          href="/product-category/yeni-urunler/"
           className="pb-3 text-[13px] font-medium text-[#6b7280] hover:text-navy"
         >
           Tüm Ürünleri Gör →
@@ -68,7 +76,7 @@ export function ProductSection() {
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-        {products.map((product, i) => (
+        {visible.map((product, i) => (
           <article
             key={`${active}-${product.id}`}
             className="animate-fade-up group overflow-hidden rounded-xl border border-[#e8eaee] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)] transition hover:-translate-y-0.5 hover:shadow-md"
@@ -108,20 +116,27 @@ export function ProductSection() {
                 <p className="text-[16px] font-extrabold text-[#1a1a1a]">
                   ₺{product.price}
                 </p>
-                <p className="flex items-center gap-1 text-[12px] font-semibold text-[#1f9d55]">
-                  <Check className="size-3.5" strokeWidth={3} />
-                  Stokta
-                </p>
+                {product.inStock ? (
+                  <p className="flex flex-col items-end text-[11px] font-semibold leading-tight text-[#1f9d55]">
+                    <span className="inline-flex items-center gap-1">
+                      <Check className="size-3.5" strokeWidth={3} />
+                      Stokta
+                    </span>
+                    <span>{product.stock.toLocaleString("tr-TR")} Adet</span>
+                  </p>
+                ) : (
+                  <p className="text-[11px] font-semibold text-brand-red">Stok yok</p>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-2 pt-1">
                 <Link
-                  href={`/urun/${product.id}`}
+                  href={product.href}
                   className="rounded-md bg-[#eef0f3] px-2 py-2 text-center text-[12px] font-semibold text-[#333] hover:bg-[#e4e7eb]"
                 >
                   Detay
                 </Link>
                 <Link
-                  href={`/teklif?urun=${product.id}`}
+                  href={product.href}
                   className="rounded-md bg-[#f5a623] px-2 py-2 text-center text-[12px] font-bold text-[#111] hover:bg-orange-hover"
                 >
                   Teklif Al

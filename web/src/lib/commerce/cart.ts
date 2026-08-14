@@ -106,12 +106,22 @@ export async function addToCart(productId: number, quantity: number) {
   }
   const product = await prisma.product.findUnique({ where: { id: productId } });
   if (!product || !product.isActive) throw new Error("Ürün bulunamadı");
-  if (product.stockTotal < quantity) throw new Error("Yetersiz stok");
+  if (product.stockTotal < 1) throw new Error("Bu ürün stokta yok");
+  if (quantity > product.stockTotal) {
+    throw new Error(`Stokta ${product.stockTotal} adet var`);
+  }
 
   const cart = await getOrCreateCart();
   const existing = cart.items.find((i) => i.productId === productId);
   const nextQty = (existing?.quantity ?? 0) + quantity;
-  if (nextQty > product.stockTotal) throw new Error("Yetersiz stok");
+  if (nextQty > product.stockTotal) {
+    const remaining = product.stockTotal - (existing?.quantity ?? 0);
+    throw new Error(
+      remaining <= 0
+        ? "Bu ürün sepetinizde stok adedine ulaştı"
+        : `Stokta ${product.stockTotal} adet var. En fazla ${remaining} adet ekleyebilirsiniz`,
+    );
+  }
 
   await prisma.cartItem.upsert({
     where: { cartId_productId: { cartId: cart.id, productId } },
@@ -131,12 +141,57 @@ export async function setCartItemQuantity(productId: number, quantity: number) {
     await prisma.cartItem.deleteMany({ where: { cartId: cart.id, productId } });
   } else {
     const product = await prisma.product.findUnique({ where: { id: productId } });
-    if (!product || quantity > product.stockTotal) throw new Error("Yetersiz stok");
+    if (!product || quantity > product.stockTotal) {
+      throw new Error(
+        !product ? "Ürün bulunamadı" : `Stokta ${product.stockTotal} adet var`,
+      );
+    }
     await prisma.cartItem.update({
       where: { cartId_productId: { cartId: cart.id, productId } },
       data: { quantity },
     });
   }
+  return prisma.cart.findUniqueOrThrow({
+    where: { id: cart.id },
+    include: cartInclude,
+  });
+}
+
+export async function setCartQuantities(
+  items: Array<{ productId: number; quantity: number }>,
+) {
+  const cart = await getOrCreateCart();
+  for (const item of items) {
+    if (item.quantity < 1) {
+      await prisma.cartItem.deleteMany({
+        where: { cartId: cart.id, productId: item.productId },
+      });
+      continue;
+    }
+    const product = await prisma.product.findUnique({ where: { id: item.productId } });
+    if (!product || item.quantity > product.stockTotal) {
+      throw new Error(
+        !product ? "Ürün bulunamadı" : `Stokta ${product.stockTotal} adet var`,
+      );
+    }
+    const existing = await prisma.cartItem.findUnique({
+      where: { cartId_productId: { cartId: cart.id, productId: item.productId } },
+    });
+    if (!existing) continue;
+    await prisma.cartItem.update({
+      where: { cartId_productId: { cartId: cart.id, productId: item.productId } },
+      data: { quantity: item.quantity },
+    });
+  }
+  return prisma.cart.findUniqueOrThrow({
+    where: { id: cart.id },
+    include: cartInclude,
+  });
+}
+
+export async function clearCart() {
+  const cart = await getOrCreateCart();
+  await prisma.cartItem.deleteMany({ where: { cartId: cart.id } });
   return prisma.cart.findUniqueOrThrow({
     where: { id: cart.id },
     include: cartInclude,

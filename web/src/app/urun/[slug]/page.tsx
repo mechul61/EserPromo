@@ -8,8 +8,8 @@ import { ProductTabs } from "@/components/product/ProductTabs";
 import { ProductTrustBar } from "@/components/product/ProductTrustBar";
 import { MainNav } from "@/components/layout/MainNav";
 import { getVariantSiblings, resolveProduct } from "@/lib/catalog";
-import { mediaUrl, formatPriceTry } from "@/lib/media";
-import { colorToHex, grossPrice, stripHtml } from "@/lib/product-detail";
+import { mediaUrl, formatPriceTry, formatStock } from "@/lib/media";
+import { colorToHex, grossPrice, parseProductCopy, stripHtml } from "@/lib/product-detail";
 import { canonicalPath, categoryPath, productPath } from "@/lib/seo/urls";
 import { siteUrl } from "@/lib/env";
 import { prisma } from "@/lib/db";
@@ -38,15 +38,6 @@ export async function generateMetadata({ params }: PageProps) {
   };
 }
 
-function featureList(raw: string | null | undefined) {
-  const text = stripHtml(raw);
-  if (!text) return [] as string[];
-  return text
-    .split(/[•\n|;]+/)
-    .map((item) => item.trim())
-    .filter((item) => item.length > 2);
-}
-
 export default async function ProductPage({ params }: PageProps) {
   const { slug } = await params;
   const resolved = await resolveProduct(slug);
@@ -65,15 +56,7 @@ export default async function ProductPage({ params }: PageProps) {
   const vat = Number(product.vatRate);
   const unitGross = grossPrice(Number(product.price), vat);
   const isNew = Date.now() - product.createdAt.getTime() < 1000 * 60 * 60 * 24 * 30;
-  const features = featureList(product.features || product.description);
-  const fallbackFeatures = [
-    "Basmalı mekanizma",
-    "Mavi renk mürekkep",
-    "Hafif ve ergonomik tasarım",
-    "UV baskı ve tampon baskıya uygundur",
-    "Promosyon ve kurumsal kullanım için idealdir",
-  ];
-  const displayFeatures = features.length > 0 ? features : fallbackFeatures;
+  const copy = parseProductCopy(product.description, product.features);
 
   let parentName: string | null = null;
   if (product.category.parentId) {
@@ -88,14 +71,10 @@ export default async function ProductPage({ params }: PageProps) {
   }
 
   const specs = [
-    { label: "Renk", value: product.color || "—" },
-    { label: "Ebat", value: product.size || "13.7 cm" },
-    { label: "Baskı Alanı", value: "5 x 0.6 cm" },
-    { label: "Baskı Türü", value: "UV Baskı, Tampon Baskı" },
-    { label: "Malzeme", value: "Plastik" },
-    { label: "Mekanizma", value: "Basmalı" },
-    { label: "Min. Sipariş", value: "100 Adet" },
-  ];
+    { label: "Renk", value: product.color },
+    { label: "Ebat", value: product.size },
+    { label: "Stok", value: formatStock(product.stockTotal) },
+  ].filter((row) => row.value) as Array<{ label: string; value: string }>;
 
   const colors = (variants.length > 0 ? variants : [product]).map((item) => ({
     name: item.color || item.sku,
@@ -184,9 +163,10 @@ export default async function ProductPage({ params }: PageProps) {
 
             <ProductTabs
               sku={product.sku}
-              description={stripHtml(product.description)}
-              features={displayFeatures}
-              printArea="5 x 0.6 cm"
+              heading={heading}
+              description={copy.prose}
+              features={copy.features}
+              printArea={copy.printNotes.join("\n")}
               others={others.map((item) => ({
                 href: productPath(item.slug),
                 image: mediaUrl(item.images[0]?.localPath) ?? "/brand/logo.png",

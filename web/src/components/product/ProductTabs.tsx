@@ -27,12 +27,14 @@ function withBoldSku(text: string, sku?: string) {
 
 export function ProductTabs({
   sku,
+  heading,
   description,
   features,
   printArea,
   others,
 }: {
   sku?: string;
+  heading?: string;
   description: string;
   features: string[];
   printArea?: string;
@@ -46,11 +48,11 @@ export function ProductTabs({
     { id: "yorum", label: "YORUMLAR (0)" },
   ];
 
-  const intro =
-    description ||
-    (sku
-      ? `${sku} plastik kalem, basmalı mekanizması ve şık tasarımı ile günlük kullanıma uygundur. UV ve tampon baskıya uygundur.`
-      : "");
+  const intro = description;
+  const printLines = (printArea ?? "")
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean);
 
   return (
     <div className="mt-8">
@@ -75,21 +77,15 @@ export function ProductTabs({
 
           <div className="pt-5 text-[14px] leading-relaxed text-[#333]">
             {tab === "aciklama" ? (
-              <>
-                {intro ? <p className="mb-4">{withBoldSku(intro, sku)}</p> : null}
-                {features.length > 0 ? (
-                  <ul className="space-y-2.5">
-                    {features.map((item) => (
-                      <li key={item} className="flex items-start gap-2">
-                        <Check className="mt-0.5 size-4 shrink-0 text-[#111]" strokeWidth={3} />
-                        <span>{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : !intro ? (
-                  <p>Bu ürün için henüz açıklama eklenmedi.</p>
-                ) : null}
-              </>
+              intro ? (
+                <p>{withBoldSku(intro, sku)}</p>
+              ) : (
+                <p>
+                  {heading
+                    ? `${heading} logolu / baskılı promosyon ürünüdür. Teknik detaylar Ürün Özellikleri sekmesinde yer alır.`
+                    : "Bu ürün için henüz açıklama eklenmedi."}
+                </p>
+              )
             ) : null}
             {tab === "ozellik" ? (
               features.length > 0 ? (
@@ -106,7 +102,18 @@ export function ProductTabs({
               )
             ) : null}
             {tab === "baski" ? (
-              <p>{printArea || "Baskı alanı bilgisi ürün özelliklerinde yer alır."}</p>
+              printLines.length > 0 ? (
+                <ul className="space-y-2.5">
+                  {printLines.map((item) => (
+                    <li key={item} className="flex items-start gap-2">
+                      <Check className="mt-0.5 size-4 shrink-0 text-[#111]" strokeWidth={3} />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>Baskı alanı bilgisi ürün özelliklerinde yer alır.</p>
+              )
             ) : null}
             {tab === "yorum" ? <p>Bu ürüne henüz yorum yapılmadı.</p> : null}
           </div>

@@ -4,8 +4,12 @@ import Link from "next/link";
 import { Check, Heart } from "lucide-react";
 import { ProductBuyBox } from "@/components/product/ProductBuyBox";
 import { ProductGallery } from "@/components/product/ProductGallery";
-import { formatPriceTry } from "@/lib/media";
-import { bulkTiers, unitForQty } from "@/lib/product-detail";
+import { formatPriceTry, formatStock } from "@/lib/media";
+import {
+  bulkTiers,
+  unitForQty,
+  type PrintKind,
+} from "@/lib/product-detail";
 import { useMemo, useState } from "react";
 
 export type ProductColorOption = {
@@ -24,7 +28,6 @@ export function ProductStage({
   inStock,
   stock,
   unitPrice,
-  minQty = 100,
   specs,
   colors,
 }: {
@@ -36,14 +39,14 @@ export function ProductStage({
   inStock: boolean;
   stock: number;
   unitPrice: number;
-  minQty?: number;
   specs: Array<{ label: string; value: string }>;
   colors: ProductColorOption[];
 }) {
-  const tiers = useMemo(() => bulkTiers(unitPrice), [unitPrice]);
-  const [qty, setQty] = useState(5000);
-  const [printType, setPrintType] = useState("UV Baskı");
-  const unit = unitForQty(tiers, qty);
+  const [qty, setQty] = useState(1);
+  const [printType, setPrintType] = useState<PrintKind | null>(null);
+  const [pickedPrintTier, setPickedPrintTier] = useState(false);
+  const tiers = useMemo(() => bulkTiers(unitPrice, printType), [unitPrice, printType]);
+  const unit = printType && pickedPrintTier ? unitForQty(tiers, qty) : unitPrice;
 
   return (
     <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,45%)_minmax(0,55%)] lg:items-stretch lg:gap-8">
@@ -64,7 +67,7 @@ export function ProductStage({
         <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px]">
           <span className={`inline-flex items-center gap-1.5 font-bold ${inStock ? "text-brand-green" : "text-brand-red"}`}>
             <Check className="size-4" strokeWidth={3} />
-            {inStock ? "Stokta" : "Stok yok"}
+            {inStock ? `Stokta · ${formatStock(stock)}` : "Stok yok"}
           </span>
           <span className="text-[#6b7280]">
             Stok Kodu: <span className="font-semibold text-[#111]">{sku}</span>
@@ -109,14 +112,24 @@ export function ProductStage({
 
         <div className="mt-4">
           <p className="text-[12px] font-extrabold tracking-wide text-[#111]">BASKI TÜRÜ</p>
+          <p className="mt-1 text-[12px] text-[#8b919a]">İsteğe bağlı — baskısız da sipariş verebilirsiniz.</p>
           <div className="mt-2 flex flex-wrap gap-2">
-            {["UV Baskı", "Tampon Baskı"].map((item) => {
+            {(["UV Baskı", "Tampon Baskı"] as const).map((item) => {
               const selected = printType === item;
               return (
                 <button
                   key={item}
                   type="button"
-                  onClick={() => setPrintType(item)}
+                  aria-pressed={selected}
+                  onClick={() => {
+                    if (selected) {
+                      setPrintType(null);
+                      setPickedPrintTier(false);
+                    } else {
+                      setPrintType(item);
+                      setPickedPrintTier(false);
+                    }
+                  }}
                   className={`h-9 min-w-[108px] rounded-md bg-white px-3 text-[12px] font-bold ${
                     selected
                       ? "border-2 border-orange text-orange"
@@ -130,55 +143,65 @@ export function ProductStage({
           </div>
         </div>
 
-        <div className="mt-4 grid items-start gap-4 md:grid-cols-[minmax(0,1fr)_minmax(220px,248px)]">
-          <div>
-            <p className="mb-2 text-[12px] font-extrabold tracking-wide text-[#111]">
-              ADET SEÇİNİZ - BİRİM FİYAT
-            </p>
-            <div className="border border-[#e6e8ec]">
-              {tiers.map((tier) => {
-                const selected = qty >= tier.min && qty <= tier.max;
-                return (
-                  <label
-                    key={tier.min}
-                    className={`flex cursor-pointer items-center justify-between gap-3 border-b border-[#ececec] px-3 py-2 text-[13px] last:border-b-0 ${
-                      selected ? "bg-[#fff4e5]" : "bg-white"
-                    }`}
-                  >
-                    <span className="flex items-center gap-2.5">
-                      <span
-                        className={`flex size-[15px] items-center justify-center rounded-full border-2 ${
-                          selected ? "border-orange" : "border-[#c5c5c5]"
-                        }`}
-                      >
-                        {selected ? <span className="size-2 rounded-full bg-orange" /> : null}
+        <div
+          className={`mt-4 grid items-start gap-4 ${
+            printType ? "md:grid-cols-[minmax(0,1fr)_minmax(220px,248px)]" : ""
+          }`}
+        >
+          {printType ? (
+            <div>
+              <p className="mb-2 text-[12px] font-extrabold tracking-wide text-[#111]">
+                ADET SEÇİNİZ - BİRİM FİYAT
+              </p>
+              <div className="border border-[#e6e8ec]">
+                {tiers.map((tier) => {
+                  const selected = pickedPrintTier && qty >= tier.min && qty <= tier.max;
+                  return (
+                    <label
+                      key={tier.min}
+                      className={`flex cursor-pointer items-center justify-between gap-3 border-b border-[#ececec] px-3 py-2 text-[13px] last:border-b-0 ${
+                        selected ? "bg-[#fff4e5]" : "bg-white"
+                      }`}
+                    >
+                      <span className="flex items-center gap-2.5">
+                        <span
+                          className={`flex size-[15px] items-center justify-center rounded-full border-2 ${
+                            selected ? "border-orange" : "border-[#c5c5c5]"
+                          }`}
+                        >
+                          {selected ? <span className="size-2 rounded-full bg-orange" /> : null}
+                        </span>
+                        <input
+                          type="radio"
+                          name="adet-dilim"
+                          className="sr-only"
+                          checked={selected}
+                          onChange={() => {
+                            setPickedPrintTier(true);
+                            setQty(tier.min);
+                          }}
+                        />
+                        {tier.min.toLocaleString("tr-TR")} - {tier.max.toLocaleString("tr-TR")} Adet
                       </span>
-                      <input
-                        type="radio"
-                        name="adet-dilim"
-                        className="sr-only"
-                        checked={selected}
-                        onChange={() => setQty(tier.max)}
-                      />
-                      {tier.min.toLocaleString("tr-TR")} - {tier.max.toLocaleString("tr-TR")} Adet
-                    </span>
-                    <span className="font-bold text-[#111]">₺{formatPriceTry(tier.unit)}</span>
-                  </label>
-                );
-              })}
+                      <span className="font-bold text-[#111]">₺{formatPriceTry(tier.unit)}</span>
+                    </label>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          ) : null}
 
-          <ProductBuyBox
-            productId={productId}
-            name={heading}
-            sku={sku}
-            unitPrice={unitPrice}
-            minQty={minQty}
-            stock={stock}
-            qty={qty}
-            onQty={setQty}
-          />
+          <div className={printType ? "" : "md:ml-auto md:w-[248px]"}>
+            <ProductBuyBox
+              productId={productId}
+              name={heading}
+              sku={sku}
+              unit={unit}
+              stock={stock}
+              qty={qty}
+              onQty={setQty}
+            />
+          </div>
         </div>
       </div>
     </div>

@@ -27,7 +27,7 @@ export default async function SearchPage({
           ],
         },
         take: 40,
-        orderBy: { name: "asc" },
+        orderBy: [{ stockTotal: "desc" }, { name: "asc" }],
       })
     : [];
 

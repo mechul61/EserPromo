@@ -9,6 +9,11 @@ export type CheckoutAddress = {
   city: string;
   district: string;
   line: string;
+  email?: string;
+  postalCode?: string;
+  deliveryMethod?: "address" | "office";
+  invoiceType?: "individual" | "corporate";
+  paymentMethod?: "card" | "transfer";
 };
 
 function money(n: number) {
@@ -91,6 +96,15 @@ export async function createOrderFromCart(user: AuthUser, address: CheckoutAddre
         shipCity: address.city.trim(),
         shipDistrict: address.district.trim(),
         shipLine: address.line.trim(),
+        customerNote: [
+          address.deliveryMethod === "office" ? "Teslimat: Ofisten teslim al" : "Teslimat: Adrese gönderim",
+          address.email ? `E-posta: ${address.email.trim()}` : "",
+          address.postalCode ? `Posta kodu: ${address.postalCode.trim()}` : "",
+          address.invoiceType === "corporate" ? "Fatura: Kurumsal" : "Fatura: Bireysel",
+          address.paymentMethod === "transfer" ? "Ödeme: Havale / EFT" : "Ödeme: Kredi kartı",
+        ]
+          .filter(Boolean)
+          .join("\n"),
         items: { create: itemData },
         payments: {
           create: {

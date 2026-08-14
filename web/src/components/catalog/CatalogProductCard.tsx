@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Heart } from "lucide-react";
 import type { ListingProduct } from "@/data/catalog-page";
 import { quoteHref } from "@/data/catalog-page";
-import { formatPriceTry } from "@/lib/media";
+import { formatPriceTry, formatStock } from "@/lib/media";
 
 export function CatalogProductCard({ product }: { product: ListingProduct }) {
   return (
@@ -54,7 +54,7 @@ export function CatalogProductCard({ product }: { product: ListingProduct }) {
               <br />
             </>
           ) : null}
-          Stok: {product.stock.toLocaleString("tr-TR")}
+          Stok: {formatStock(product.stock)}
         </p>
         <p className="mt-3 text-[20px] leading-none font-extrabold text-[#111]">
           ₺{formatPriceTry(product.price)}

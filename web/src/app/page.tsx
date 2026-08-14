@@ -5,10 +5,41 @@ import { CategorySidebar } from "@/components/home/CategorySidebar";
 import { HeroBanner } from "@/components/home/HeroBanner";
 import { FeatureStrip } from "@/components/home/FeatureStrip";
 import { CategoryShowcase } from "@/components/home/CategoryShowcase";
-import { CatalogProductStrip } from "@/components/home/CatalogProductStrip";
-import { ProductSection } from "@/components/home/ProductSection";
+import { ProductSection, type HomeProduct } from "@/components/home/ProductSection";
+import { prisma } from "@/lib/db";
+import { formatPriceTry, mediaUrl } from "@/lib/media";
+import { grossPrice } from "@/lib/product-detail";
+import { productPath } from "@/lib/seo/urls";
 
-export default function HomePage() {
+export default async function HomePage() {
+  const rows = await prisma.product.findMany({
+    where: { isActive: true, isGroupPrimary: true },
+    include: { images: { orderBy: { sortOrder: "asc" }, take: 1 } },
+    orderBy: [{ stockTotal: "desc" }, { createdAt: "desc" }],
+    take: 24,
+  });
+
+  const now = Date.now();
+  const products: HomeProduct[] = rows.map((product) => {
+    const isNew = now - product.createdAt.getTime() < 1000 * 60 * 60 * 24 * 30;
+    const badge: HomeProduct["badge"] = product.discountLocked
+      ? "Kampanyalı"
+      : isNew
+        ? "Yeni"
+        : "Çok Satan";
+    return {
+      id: product.id,
+      href: productPath(product.slug),
+      code: product.sku,
+      name: product.title || product.name,
+      image: mediaUrl(product.images[0]?.localPath) ?? "/brand/logo.png",
+      price: formatPriceTry(grossPrice(Number(product.price), Number(product.vatRate))),
+      inStock: product.stockTotal > 0,
+      stock: product.stockTotal,
+      badge,
+    };
+  });
+
   return (
     <ShopChrome extra={<FloatingActions />} mainClassName="pt-0 pb-5">
       <div className="flex flex-col lg:flex-row lg:items-start lg:gap-4">
@@ -20,8 +51,7 @@ export default function HomePage() {
             <HeroBanner />
             <FeatureStrip />
             <CategoryShowcase />
-            <CatalogProductStrip />
-            <ProductSection />
+            <ProductSection products={products} />
           </div>
         </div>
       </div>

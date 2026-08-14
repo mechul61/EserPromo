@@ -1,16 +1,12 @@
 import Link from "next/link";
-import {
-  COVER_FILTERS,
-  COLOR_FILTERS,
-  PAGE_TYPE_FILTERS,
-  PRINT_FILTERS,
-  SIZE_FILTERS,
-  asParamList,
-} from "@/data/catalog-page";
+import { asParamList, type FilterOption } from "@/data/catalog-page";
+import { colorToHex } from "@/lib/product-detail";
 
 type Props = {
   basePath: string;
   query: Record<string, string | string[] | undefined>;
+  colors: FilterOption[];
+  sizes: FilterOption[];
 };
 
 function hrefWith(basePath: string, query: Props["query"], patch: Record<string, string | string[] | null>) {
@@ -55,12 +51,9 @@ function FilterGroup({
   );
 }
 
-export function CatalogFilters({ basePath, query }: Props) {
+export function CatalogFilters({ basePath, query, colors, sizes }: Props) {
   const renk = asParamList(query.renk);
   const ebat = asParamList(query.ebat);
-  const sayfa = asParamList(query.sayfa);
-  const kapak = asParamList(query.kapak);
-  const baski = asParamList(query.baski);
 
   return (
     <aside className="w-full shrink-0 overflow-hidden rounded-sm border border-[#e6e8ec] bg-white lg:w-[230px]">
@@ -68,92 +61,60 @@ export function CatalogFilters({ basePath, query }: Props) {
         FİLTRELEME
       </div>
 
-      <FilterGroup title="RENK">
-        <div className="mb-3 flex flex-wrap gap-1.5">
-          {COLOR_FILTERS.map((color) => {
-            const active = renk.includes(color.key);
-            return (
-              <Link
-                key={`swatch-${color.key}`}
-                href={toggleHref(basePath, query, "renk", color.key)}
-                aria-label={color.label}
-                className={`size-[22px] rounded-[4px] border ${
-                  active ? "border-navy ring-1 ring-navy" : "border-black/15"
-                }`}
-                style={{ background: color.hex }}
-              />
-            );
-          })}
-        </div>
-        <ul className="space-y-1.5">
-          {COLOR_FILTERS.map((color) => {
-            const active = renk.includes(color.key);
-            return (
-              <li key={color.key}>
+      {colors.length > 0 ? (
+        <FilterGroup title="RENK">
+          <div className="mb-3 flex flex-wrap gap-1.5">
+            {colors.map((color) => {
+              const active = renk.includes(color.key);
+              return (
                 <Link
+                  key={`swatch-${color.key}`}
                   href={toggleHref(basePath, query, "renk", color.key)}
-                  className={`flex items-center gap-2 text-[12px] ${active ? "font-bold text-navy" : "text-[#333]"}`}
-                >
-                  <span
-                    className="size-3.5 shrink-0 rounded-[2px] border border-black/15"
-                    style={{ background: color.hex }}
-                  />
-                  {color.label}
-                  <span className="text-[#8b919a]">({color.count})</span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      </FilterGroup>
+                  aria-label={color.label}
+                  className={`size-[22px] rounded-[4px] border ${
+                    active ? "border-navy ring-1 ring-navy" : "border-black/15"
+                  }`}
+                  style={{ background: color.hex ?? colorToHex(color.label) }}
+                />
+              );
+            })}
+          </div>
+          <ul className="space-y-1.5">
+            {colors.map((color) => {
+              const active = renk.includes(color.key);
+              return (
+                <li key={color.key}>
+                  <Link
+                    href={toggleHref(basePath, query, "renk", color.key)}
+                    className={`flex items-center gap-2 text-[12px] ${active ? "font-bold text-navy" : "text-[#333]"}`}
+                  >
+                    <span
+                      className="size-3.5 shrink-0 rounded-[2px] border border-black/15"
+                      style={{ background: color.hex ?? colorToHex(color.label) }}
+                    />
+                    {color.label}
+                    <span className="text-[#8b919a]">({color.count})</span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </FilterGroup>
+      ) : null}
 
-      <FilterGroup title="EBAT">
-        {SIZE_FILTERS.map((item) => (
-          <CheckRow
-            key={item.key}
-            href={toggleHref(basePath, query, "ebat", item.key)}
-            label={item.key}
-            count={item.count}
-            checked={ebat.includes(item.key)}
-          />
-        ))}
-      </FilterGroup>
-
-      <FilterGroup title="SAYFA TİPİ">
-        {PAGE_TYPE_FILTERS.map((item) => (
-          <CheckRow
-            key={item.key}
-            href={toggleHref(basePath, query, "sayfa", item.key)}
-            label={item.key}
-            count={item.count}
-            checked={sayfa.includes(item.key)}
-          />
-        ))}
-      </FilterGroup>
-
-      <FilterGroup title="KAPAK TÜRÜ">
-        {COVER_FILTERS.map((item) => (
-          <CheckRow
-            key={item.key}
-            href={toggleHref(basePath, query, "kapak", item.key)}
-            label={item.key}
-            count={item.count}
-            checked={kapak.includes(item.key)}
-          />
-        ))}
-      </FilterGroup>
-
-      <FilterGroup title="BASKI SEÇENEĞİ">
-        {PRINT_FILTERS.map((item) => (
-          <CheckRow
-            key={item.key}
-            href={toggleHref(basePath, query, "baski", item.key)}
-            label={item.key}
-            count={item.count}
-            checked={baski.includes(item.key)}
-          />
-        ))}
-      </FilterGroup>
+      {sizes.length > 0 ? (
+        <FilterGroup title="EBAT">
+          {sizes.map((item) => (
+            <CheckRow
+              key={item.key}
+              href={toggleHref(basePath, query, "ebat", item.key)}
+              label={item.label}
+              count={item.count}
+              checked={ebat.includes(item.key)}
+            />
+          ))}
+        </FilterGroup>
+      ) : null}
 
       <div className="p-3.5">
         <Link
