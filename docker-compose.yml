@@ -1,0 +1,39 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: eserpromo
+      POSTGRES_PASSWORD: eserpromo
+      POSTGRES_DB: eserpromo
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U eserpromo -d eserpromo"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://eserpromo:eserpromo@db:5432/eserpromo
+      NODE_ENV: production
+    volumes:
+      - product_images:/app/storage/products
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  product_images:

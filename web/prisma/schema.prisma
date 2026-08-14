@@ -1,0 +1,280 @@
+// EserPromo katalog + e-ticaret
+//
+// Katalog: her Etkin urun_id = Product (renk/ebat). Aynı skuGroup = ProductGroup.
+// Vitrin URL'si grubun slug'ıdır; sepet/sipariş her zaman Product (varyant) id kullanır.
+// Kart verisi asla saklanmaz — ödeme Iyzico'da.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  customer
+  admin
+}
+
+enum OrderStatus {
+  draft
+  pending_payment
+  paid
+  preparing
+  shipped
+  completed
+  cancelled
+  failed
+}
+
+enum PaymentStatus {
+  pending
+  success
+  failure
+  refunded
+}
+
+model Category {
+  id             Int            @id
+  parentId       Int?
+  name           String
+  slug           String         @unique
+  description    String?        @db.Text
+  imageUrl       String?
+  imageLocalPath String?
+  iconUrl        String?
+  sortOrder      Int            @default(0)
+  showOnHomepage Boolean        @default(false)
+  homepageOrder  Int            @default(0)
+  sourceMd5      String?
+  products       Product[]
+  groups         ProductGroup[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([parentId])
+  @@index([showOnHomepage, homepageOrder])
+}
+
+/// Varyant ailesi — Google'daki tek kanonik ürün sayfası.
+model ProductGroup {
+  skuGroup    String    @id
+  slug        String    @unique
+  name        String
+  description String?   @db.Text
+  categoryId  Int
+  category    Category  @relation(fields: [categoryId], references: [id])
+  products    Product[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([categoryId])
+}
+
+/// Etkin tekil ürün / varyant. Stok, fiyat, sepet satırı buradan.
+model Product {
+  id             Int      @id
+  categoryId     Int
+  category       Category @relation(fields: [categoryId], references: [id])
+  sku            String
+  skuGroup       String
+  group          ProductGroup @relation(fields: [skuGroup], references: [skuGroup])
+  name           String
+  title          String?
+  description    String?  @db.Text
+  color          String?
+  size           String?
+  features       String?  @db.Text
+  sortOrder      Int      @default(0)
+  catalogPage    Int?
+  isManufactured Boolean  @default(false)
+  discountLocked Boolean  @default(false)
+  price          Decimal  @db.Decimal(12, 3)
+  vatRate        Decimal  @db.Decimal(5, 2) @default(20)
+  stockTotal     Int      @default(0)
+  stockCenter    Int      @default(0)
+  stockIstanbul  Int      @default(0)
+  stockTopkapi   Int      @default(0)
+  traseUrl       String?
+  traseFileName  String?
+  traseFileSize  Int?
+  sourceMd5      String?
+  isGroupPrimary Boolean  @default(false)
+  /// Eski/varyant slug; 301 ile grup URL'sine yönlenir.
+  slug           String   @unique
+  isActive       Boolean  @default(true)
+  images         ProductImage[]
+  cartItems      CartItem[]
+  orderItems     OrderItem[]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([categoryId])
+  @@index([sku])
+  @@index([skuGroup, isGroupPrimary])
+  @@index([isActive, sortOrder])
+}
+
+model ProductImage {
+  id        Int      @id @default(autoincrement())
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sortOrder Int      @default(0)
+  sourceUrl String
+  localPath String
+  byteSize  Int?
+  createdAt DateTime @default(now())
+
+  @@unique([productId, sortOrder])
+  @@index([productId])
+}
+
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  passwordHash    String
+  name            String
+  phone           String?
+  role            UserRole  @default(customer)
+  isActive        Boolean   @default(true)
+  emailVerifiedAt DateTime?
+  sessions        Session[]
+  addresses       Address[]
+  carts           Cart[]
+  orders          Order[]
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Address {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String   @default("Teslimat")
+  fullName    String
+  phone       String
+  city        String
+  district    String
+  line        String
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model Cart {
+  id         String     @id @default(cuid())
+  userId     String?    @unique
+  user       User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  guestToken String?    @unique
+  items      CartItem[]
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+}
+
+model CartItem {
+  id        String   @id @default(cuid())
+  cartId    String
+  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id])
+  quantity  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([cartId, productId])
+  @@index([productId])
+}
+
+model Order {
+  id               String      @id @default(cuid())
+  publicNumber     String      @unique
+  userId           String
+  user             User        @relation(fields: [userId], references: [id])
+  status           OrderStatus @default(pending_payment)
+  /// KDV hariç
+  subtotal         Decimal     @db.Decimal(12, 2)
+  vatTotal         Decimal     @db.Decimal(12, 2)
+  shippingTotal    Decimal     @db.Decimal(12, 2) @default(0)
+  /// Ödenecek tutar (KDV dahil)
+  grandTotal       Decimal     @db.Decimal(12, 2)
+  currency         String      @default("TRY")
+  /// Sipariş anı teslimat kopyası (adres silinse de fatura kalır)
+  shipFullName     String
+  shipPhone        String
+  shipCity         String
+  shipDistrict     String
+  shipLine         String
+  customerNote     String?     @db.Text
+  items            OrderItem[]
+  payments         Payment[]
+  paidAt           DateTime?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([status])
+}
+
+model OrderItem {
+  id          String  @id @default(cuid())
+  orderId     String
+  order       Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId   Int
+  product     Product @relation(fields: [productId], references: [id])
+  sku         String
+  name        String
+  color       String?
+  quantity    Int
+  unitPrice   Decimal @db.Decimal(12, 3)
+  vatRate     Decimal @db.Decimal(5, 2)
+  lineTotal   Decimal @db.Decimal(12, 2)
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+/// Iyzico sonuçları. Kart PAN/CVV asla yazılmaz.
+model Payment {
+  id                     String        @id @default(cuid())
+  orderId                String
+  order                  Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  provider               String        @default("iyzico")
+  status                 PaymentStatus @default(pending)
+  amount                 Decimal       @db.Decimal(12, 2)
+  currency               String        @default("TRY")
+  conversationId         String?       @unique
+  providerPaymentId      String?
+  errorMessage           String?
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+
+  @@index([orderId])
+}
+
+model SyncRun {
+  id               Int       @id @default(autoincrement())
+  startedAt        DateTime  @default(now())
+  finishedAt       DateTime?
+  status           String    @default("running")
+  requestCount     Int       @default(0)
+  categoriesUpsert Int       @default(0)
+  productsUpserted Int       @default(0)
+  imagesDownloaded Int       @default(0)
+  errorMessage     String?   @db.Text
+}

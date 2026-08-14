@@ -1,0 +1,91 @@
+@import "tailwindcss";
+
+:root {
+  --navy: #0b2c5f;
+  --navy-deep: #071f45;
+  --orange: #f5a623;
+  --orange-hover: #e09410;
+  --red: #e31b23;
+  --green: #1f9d55;
+  --muted: #6b7280;
+  --line: #e5e7eb;
+  --page: #ffffff;
+  --soft: #f7f8fa;
+}
+
+@theme inline {
+  --color-navy: var(--navy);
+  --color-navy-deep: var(--navy-deep);
+  --color-orange: var(--orange);
+  --color-orange-hover: var(--orange-hover);
+  --color-brand-red: var(--red);
+  --color-brand-green: var(--green);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-soft: var(--soft);
+  --font-sans: var(--font-montserrat);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--page);
+  color: #111827;
+  font-family: var(--font-montserrat), system-ui, sans-serif;
+}
+
+a {
+  text-decoration: none;
+}
+
+button {
+  font: inherit;
+}
+
+.container-ep {
+  width: min(1680px, calc(100% - 24px));
+  margin-inline: auto;
+}
+
+@media (min-width: 1800px) {
+  .container-ep {
+    width: min(1760px, calc(100% - 40px));
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.55s ease both;
+}
+
+.animate-slide-in {
+  animation: slide-in 0.45s ease both;
+}
