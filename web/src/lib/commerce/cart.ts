@@ -101,7 +101,7 @@ const cartInclude = {
 };
 
 export async function addToCart(productId: number, quantity: number) {
-  if (!Number.isInteger(quantity) || quantity < 1 || quantity > 999) {
+  if (!Number.isInteger(quantity) || quantity < 1 || quantity > 100000) {
     throw new Error("Geçersiz adet");
   }
   const product = await prisma.product.findUnique({ where: { id: productId } });

@@ -54,6 +54,11 @@ button {
   margin-inline: auto;
 }
 
+.container-catalog {
+  width: min(1680px, calc(100% - 32px));
+  margin-inline: auto;
+}
+
 @media (min-width: 1800px) {
   .container-ep {
     width: min(1760px, calc(100% - 40px));

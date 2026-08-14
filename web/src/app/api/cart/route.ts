@@ -29,7 +29,7 @@ export async function GET() {
 
 const addSchema = z.object({
   productId: z.number().int().positive(),
-  quantity: z.number().int().min(1).max(999).default(1),
+  quantity: z.number().int().min(1).max(100000).default(1),
 });
 
 export async function POST(req: NextRequest) {
@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
 
 const patchSchema = z.object({
   productId: z.number().int().positive(),
-  quantity: z.number().int().min(0).max(999),
+  quantity: z.number().int().min(0).max(100000),
 });
 
 export async function PATCH(req: NextRequest) {
