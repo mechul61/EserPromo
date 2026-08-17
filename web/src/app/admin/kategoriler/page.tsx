@@ -12,7 +12,10 @@ export default async function AdminCategoriesPage() {
 
   return (
     <div>
-      <AdminHeading title="Kategoriler" subtitle="Anasayfada gösterim ve ürün sayıları." />
+      <AdminHeading
+        title="Kategoriler"
+        subtitle="Gizli kategoriler ana sayfa vitrininden kalkar. Sol menüde tüm kategoriler kalır."
+      />
       <div className="overflow-x-auto rounded-md border border-line bg-white">
         <table className="w-full min-w-[640px] text-left text-[13px]">
           <thead className="border-b border-line bg-soft text-[11px] font-bold tracking-wide text-[#6b7280] uppercase">
@@ -31,7 +34,7 @@ export default async function AdminCategoriesPage() {
                 <td className="px-4 py-2.5">{category._count.products.toLocaleString("tr-TR")}</td>
                 <td className="px-4 py-2.5">
                   <ActiveToggle
-                    href={`/api/admin/categories/${category.id}`}
+                    href={`/api/admin/categories/${category.id}/`}
                     active={category.showOnHomepage}
                     activeLabel="Göster"
                     inactiveLabel="Gizli"

@@ -1,29 +1,59 @@
+"use client";
+
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 
 export function AdminSearch({
   action,
   placeholder,
-  q,
+  q = "",
 }: {
   action: string;
   placeholder: string;
   q?: string;
 }) {
+  const router = useRouter();
+  const [value, setValue] = useState(q);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    setValue(q);
+  }, [q]);
+
+  useEffect(() => {
+    return () => {
+      if (timer.current) clearTimeout(timer.current);
+    };
+  }, []);
+
+  function go(next: string) {
+    const trimmed = next.trim();
+    const href = trimmed ? `${action}?q=${encodeURIComponent(trimmed)}` : action;
+    router.replace(href);
+  }
+
+  function onChange(next: string) {
+    setValue(next);
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => go(next), 180);
+  }
+
   return (
-    <form action={action} method="get" className="flex gap-2">
-      <input
-        name="q"
-        defaultValue={q}
-        placeholder={placeholder}
-        className="h-10 min-w-0 flex-1 rounded-md border border-line bg-white px-3 text-[13px] outline-none focus:border-navy"
-      />
-      <button
-        type="submit"
-        className="h-10 rounded-md bg-navy px-4 text-[12px] font-extrabold tracking-wide text-white hover:bg-navy-deep"
-      >
-        Ara
-      </button>
-    </form>
+    <input
+      name="q"
+      value={value}
+      autoComplete="off"
+      placeholder={placeholder}
+      onChange={(e) => onChange(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          if (timer.current) clearTimeout(timer.current);
+          go(value);
+        }
+      }}
+      className="h-10 w-full rounded-md border border-line bg-white px-3 text-[13px] outline-none focus:border-navy"
+    />
   );
 }
 

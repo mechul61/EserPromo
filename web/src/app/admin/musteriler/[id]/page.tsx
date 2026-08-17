@@ -8,6 +8,7 @@ import { prisma } from "@/lib/db";
 import { formatDateTimeTr } from "@/lib/auth/login-meta";
 import { formatPriceTry } from "@/lib/media";
 import { formatPhoneTR } from "@/lib/phone";
+import { cartMoneySummary } from "@/lib/commerce/cart";
 
 export const metadata = { title: "Müşteri | Yönetim" };
 
@@ -22,10 +23,19 @@ export default async function AdminCustomerDetailPage({
     include: {
       orders: { orderBy: { createdAt: "desc" }, take: 20 },
       addresses: { orderBy: { createdAt: "desc" } },
+      carts: {
+        include: {
+          items: {
+            include: { product: { select: { name: true, price: true, vatRate: true } } },
+          },
+        },
+        take: 1,
+      },
       _count: { select: { orders: true, favorites: true } },
     },
   });
   if (!user) notFound();
+  const cart = user.carts[0] ?? null;
 
   return (
     <div>
@@ -62,6 +72,38 @@ export default async function AdminCustomerDetailPage({
         </section>
 
         <div className="space-y-4">
+          <section className="rounded-md border border-line bg-white p-5">
+            <h2 className="text-[14px] font-extrabold tracking-wide uppercase">Sepet</h2>
+            {!cart || cart.items.length === 0 ? (
+              <p className="mt-3 text-[13px] text-[#6b7280]">Sepet boş.</p>
+            ) : (
+              <div className="mt-3 text-[13px]">
+                <ul className="divide-y divide-line">
+                  {cart.items.map((item) => {
+                    const line = cartMoneySummary([item]);
+                    return (
+                      <li key={item.id} className="flex items-center justify-between gap-3 py-2.5">
+                        <span>
+                          {item.product.name}{" "}
+                          <span className="text-[#6b7280]">×{item.quantity}</span>
+                        </span>
+                        <span className="font-extrabold">₺{formatPriceTry(line.grand)}</span>
+                      </li>
+                    );
+                  })}
+                </ul>
+                <p className="mt-3 text-right font-extrabold text-navy">
+                  Toplam ₺{formatPriceTry(cartMoneySummary(cart.items).grand)}
+                </p>
+                <Link
+                  href={`/admin/sepetler/${cart.id}`}
+                  className="mt-2 inline-block text-[12px] font-bold text-navy hover:text-orange"
+                >
+                  Sepet detayı
+                </Link>
+              </div>
+            )}
+          </section>
           <section className="rounded-md border border-line bg-white p-5">
             <h2 className="text-[14px] font-extrabold tracking-wide uppercase">Siparişler</h2>
             {user.orders.length === 0 ? (

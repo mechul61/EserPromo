@@ -35,15 +35,17 @@ export async function getAllCategories() {
       name: true,
       slug: true,
       imageLocalPath: true,
+      showOnHomepage: true,
     },
   });
 }
 
-export async function getCategoryTree() {
+export async function getCategoryTree(opts?: { homepageOnly?: boolean }) {
   const all = await getAllCategories();
   const childrenOf = (parentId: number) => all.filter((row) => row.parentId === parentId);
   return all
     .filter((row) => !row.parentId)
+    .filter((row) => (opts?.homepageOnly ? row.showOnHomepage : true))
     .map((row) => ({ ...row, children: childrenOf(row.id) }));
 }
 

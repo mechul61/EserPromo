@@ -20,11 +20,13 @@ export function ActiveToggle({
   async function toggle() {
     setPending(true);
     try {
-      await fetch(href, {
+      const url = href.endsWith("/") ? href : `${href}/`;
+      const res = await fetch(url, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isActive: !active }),
       });
+      if (!res.ok) return;
       router.refresh();
     } finally {
       setPending(false);

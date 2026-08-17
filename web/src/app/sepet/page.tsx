@@ -4,7 +4,7 @@ import { CatalogChrome } from "@/components/catalog/CatalogChrome";
 import { CatalogSidebar } from "@/components/catalog/CatalogSidebar";
 import { CartView, type CartLineView } from "@/components/commerce/CartView";
 import { MainNav } from "@/components/layout/MainNav";
-import { getOrCreateCart } from "@/lib/commerce/cart";
+import { getCart } from "@/lib/commerce/cart";
 import { mediaUrl } from "@/lib/media";
 import { productPath } from "@/lib/seo/urls";
 
@@ -14,9 +14,9 @@ export const metadata = {
 };
 
 export default async function CartPage() {
-  const cart = await getOrCreateCart();
+  const cart = await getCart();
 
-  const items: CartLineView[] = cart.items.map((item) => ({
+  const items: CartLineView[] = (cart?.items ?? []).map((item) => ({
     productId: item.productId,
     href: productPath(item.product.slug),
     name: item.product.title || item.product.name,

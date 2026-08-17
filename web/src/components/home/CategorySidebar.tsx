@@ -11,13 +11,14 @@ export async function CategorySidebar() {
   return (
     <aside id="kategoriler" className="w-full shrink-0 scroll-mt-24 lg:w-[270px]">
       <div className="overflow-hidden rounded-md border border-line bg-white shadow-md">
-        <div
-          className="flex h-12 items-center gap-2.5 bg-navy px-4 text-[13px] font-bold tracking-wide text-white"
+        <Link
+          href="/product-category/yeni-urunler/"
+          className="flex h-12 items-center gap-2.5 bg-navy px-4 text-[13px] font-bold tracking-wide text-white hover:bg-navy-deep"
           style={{ color: "#ffffff" }}
         >
           <Menu className="size-5 shrink-0" strokeWidth={2.5} color="#ffffff" />
           KATEGORİLER
-        </div>
+        </Link>
 
         <ul>
           {tree.map((cat) => (

@@ -20,6 +20,26 @@ async function setGuestCookie(token: string) {
   });
 }
 
+/** Sayfa render’ında kullanın — çerez yazmaz, yoksa sepet oluşturmaz. */
+export async function getCart() {
+  const user = await getCurrentUser();
+  const jar = await cookies();
+  const guestToken = jar.get(CART_COOKIE)?.value;
+
+  if (user) {
+    return prisma.cart.findUnique({
+      where: { userId: user.id },
+      include: cartInclude,
+    });
+  }
+
+  if (!guestToken) return null;
+  return prisma.cart.findUnique({
+    where: { guestToken },
+    include: cartInclude,
+  });
+}
+
 export async function getOrCreateCart() {
   const user = await getCurrentUser();
   const jar = await cookies();
@@ -203,6 +223,41 @@ export function cartItemCount(
 ): number {
   if (!cart) return 0;
   return cart.items.reduce((sum, item) => sum + item.quantity, 0);
+}
+
+export function cartMoneySummary(
+  items: Array<{
+    quantity: number;
+    product: { name: string; price: { toString(): string } | number; vatRate: { toString(): string } | number };
+  }>,
+) {
+  let subtotal = 0;
+  let vat = 0;
+  let quantity = 0;
+  for (const item of items) {
+    const net = Number(item.product.price) * item.quantity;
+    const vatRate = Number(item.product.vatRate);
+    subtotal += net;
+    vat += net * ((Number.isFinite(vatRate) ? vatRate : 20) / 100);
+    quantity += item.quantity;
+  }
+  return {
+    quantity,
+    lines: items.length,
+    subtotal,
+    vat,
+    grand: subtotal + vat,
+    preview: items
+      .slice(0, 2)
+      .map((item) => `${item.product.name}${item.quantity > 1 ? ` ×${item.quantity}` : ""}`)
+      .join(", "),
+  };
+}
+
+const ACTIVE_CART_WHERE = { items: { some: {} } };
+
+export async function countActiveCarts() {
+  return prisma.cart.count({ where: ACTIVE_CART_WHERE });
 }
 
 /** Header için — yoksa yeni sepet açmaz (bot/crawler şişmesini önler). */

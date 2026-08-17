@@ -5,6 +5,7 @@ import { verifyPassword } from "@/lib/auth/password";
 import { createSession } from "@/lib/auth/session";
 import { recordLoginEvent } from "@/lib/auth/login-events";
 import { promoteIfListed } from "@/lib/auth/admin";
+import { getOrCreateCart } from "@/lib/commerce/cart";
 import { normalizeEmail } from "@/lib/security/crypto";
 import { clientKey, rateLimit } from "@/lib/security/rate-limit";
 import { assertSameOrigin, jsonError } from "@/lib/security/origin";
@@ -36,6 +37,7 @@ export async function POST(req: NextRequest) {
 
   await createSession(user.id);
   await recordLoginEvent(user.id, email, req, "login");
+  await getOrCreateCart();
   const promoted = await promoteIfListed(user.id, email);
   return Response.json({
     ok: true,

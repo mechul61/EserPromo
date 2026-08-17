@@ -65,7 +65,7 @@ export default async function OrderDetailPage({ params }: PageProps) {
               label="Ödeme"
               value={
                 order.payments[0]
-                  ? `${order.payments[0].provider === "iyzico" ? "Kredi kartı" : order.payments[0].provider} · ${order.payments[0].status}`
+                  ? `${order.payments[0].provider === "iyzico" ? "Kredi kartı" : order.payments[0].provider === "transfer" ? "Havale / EFT" : order.payments[0].provider} · ${order.payments[0].status}`
                   : "—"
               }
             />
@@ -135,7 +135,9 @@ export default async function OrderDetailPage({ params }: PageProps) {
 
         {order.status === "pending_payment" ? (
           <p className="text-[13px] text-[#6b7280]">
-            Ödeme Iyzico anahtarları tanımlanınca bu ekranda açılacak. Kart numarası sitemizde saklanmaz.
+            {order.payments[0]?.provider === "transfer"
+              ? "Yukarıdaki hesap bilgilerine ödemeyi yaptıktan sonra dekontu e-posta veya WhatsApp ile gönderin. Ödemeniz görünince sipariş hazırlığa alınır."
+              : "Ödeme Iyzico anahtarları tanımlanınca bu ekranda açılacak. Kart numarası sitemizde saklanmaz."}
           </p>
         ) : null}
       </div>

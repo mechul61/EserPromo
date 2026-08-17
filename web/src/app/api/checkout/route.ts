@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { createOrderFromCart } from "@/lib/commerce/orders";
 import { assertSameOrigin, jsonError } from "@/lib/security/origin";
 import { clientKey, rateLimit } from "@/lib/security/rate-limit";
+import { findTransferAccount, getEnabledTransferBanks } from "@/lib/commerce/transfer-banks";
 
 const schema = z.object({
   fullName: z.string().trim().min(2).max(80),
@@ -16,6 +17,8 @@ const schema = z.object({
   deliveryMethod: z.enum(["address", "office"]).default("address"),
   invoiceType: z.enum(["individual", "corporate"]).default("individual"),
   paymentMethod: z.enum(["card", "transfer"]).default("card"),
+  transferBank: z.string().trim().max(80).optional(),
+  transferKind: z.enum(["havale", "eft"]).optional(),
   billingDifferent: z.boolean().optional(),
   billingFullName: z.string().trim().max(80).optional(),
   billingPhone: z.string().trim().max(32).optional(),
@@ -45,6 +48,12 @@ export async function POST(req: NextRequest) {
 
   const body = schema.safeParse(await req.json().catch(() => null));
   if (!body.success) return jsonError("Teslimat bilgilerini kontrol edin.");
+  if (body.data.paymentMethod === "transfer") {
+    const enabled = await getEnabledTransferBanks();
+    if (!findTransferAccount(enabled, body.data.transferBank ?? "")) {
+      return jsonError("Listeden banka seçin.");
+    }
+  }
 
   try {
     const { order, iyzicoReady } = await createOrderFromCart(user, body.data);

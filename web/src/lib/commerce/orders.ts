@@ -3,6 +3,7 @@ import { randomToken } from "../security/crypto";
 import type { AuthUser } from "../auth/session";
 import { iyzicoReady } from "../env";
 import { saveUserAddress } from "./addresses";
+import { findTransferAccount, formatIban, getEnabledTransferBanks } from "./transfer-banks";
 
 export const ORDER_STATUS_LABEL: Record<string, string> = {
   draft: "Taslak",
@@ -13,6 +14,13 @@ export const ORDER_STATUS_LABEL: Record<string, string> = {
   completed: "Tamamlandı",
   cancelled: "İptal",
   failed: "Başarısız",
+};
+
+export const PAYMENT_STATUS_LABEL: Record<string, string> = {
+  pending: "Ödeme bekleniyor",
+  success: "Ödeme alındı",
+  failure: "Ödeme başarısız",
+  refunded: "İade edildi",
 };
 
 export type CheckoutAddress = {
@@ -26,6 +34,8 @@ export type CheckoutAddress = {
   deliveryMethod?: "address" | "office";
   invoiceType?: "individual" | "corporate";
   paymentMethod?: "card" | "transfer";
+  transferBank?: string;
+  transferKind?: "havale" | "eft";
   billingDifferent?: boolean;
   billingFullName?: string;
   billingPhone?: string;
@@ -68,6 +78,14 @@ export async function createOrderFromCart(user: AuthUser, address: CheckoutAddre
   });
   if (!cart || cart.items.length === 0) {
     throw new Error("Sepet boş");
+  }
+
+  const transferAccount =
+    address.paymentMethod === "transfer"
+      ? findTransferAccount(await getEnabledTransferBanks(), address.transferBank ?? "")
+      : null;
+  if (address.paymentMethod === "transfer" && !transferAccount) {
+    throw new Error("Listeden banka seçin");
   }
 
   let subtotal = 0;
@@ -153,7 +171,17 @@ export async function createOrderFromCart(user: AuthUser, address: CheckoutAddre
                 .filter(Boolean)
                 .join(" ")
             : "",
-          address.paymentMethod === "transfer" ? "Ödeme: Havale / EFT" : "Ödeme: Kredi kartı",
+          address.paymentMethod === "transfer" && transferAccount
+            ? [
+                `Ödeme: ${address.transferKind === "havale" ? "Havale" : "EFT"}`,
+                `Banka adı: ${transferAccount.name}`,
+                transferAccount.holder ? `Alıcı: ${transferAccount.holder}` : "",
+                `IBAN: ${formatIban(transferAccount.iban)}`,
+                `Hesap türü: ${transferAccount.accountType}`,
+              ]
+                .filter(Boolean)
+                .join("\n")
+            : "Ödeme: Kredi kartı",
         ]
           .filter(Boolean)
           .join("\n"),
@@ -162,6 +190,7 @@ export async function createOrderFromCart(user: AuthUser, address: CheckoutAddre
           create: {
             amount: grandTotal,
             status: "pending",
+            provider: address.paymentMethod === "transfer" ? "transfer" : "iyzico",
             conversationId: randomToken(16),
           },
         },

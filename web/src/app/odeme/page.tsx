@@ -4,8 +4,9 @@ import { ChevronRight, Home } from "lucide-react";
 import { CheckoutView, type CheckoutLine } from "@/components/commerce/CheckoutView";
 import { ShopChrome } from "@/components/layout/ShopChrome";
 import { getCurrentUser } from "@/lib/auth/session";
-import { getOrCreateCart } from "@/lib/commerce/cart";
+import { getCart } from "@/lib/commerce/cart";
 import { lineTotals } from "@/lib/commerce/orders";
+import { getEnabledTransferBanks } from "@/lib/commerce/transfer-banks";
 import { iyzicoReady } from "@/lib/env";
 import { mediaUrl } from "@/lib/media";
 import { grossPrice } from "@/lib/product-detail";
@@ -16,10 +17,13 @@ export const metadata = {
 };
 
 export default async function CheckoutPage() {
-  const user = await getCurrentUser();
-  const cart = await getOrCreateCart();
+  const [user, cart, transferBanks] = await Promise.all([
+    getCurrentUser(),
+    getCart(),
+    getEnabledTransferBanks(),
+  ]);
 
-  if (cart.items.length === 0) redirect("/sepet");
+  if (!cart || cart.items.length === 0) redirect("/sepet");
 
   let subtotal = 0;
   let vat = 0;
@@ -69,6 +73,7 @@ export default async function CheckoutPage() {
         subtotal={subtotal}
         vat={vat}
         vatLabel={vatLabel}
+        transferBanks={transferBanks}
       />
     </ShopChrome>
   );

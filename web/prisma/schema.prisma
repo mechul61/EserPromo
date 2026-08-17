@@ -331,3 +331,13 @@ model SyncRun {
   imagesDownloaded Int       @default(0)
   errorMessage     String?   @db.Text
 }
+
+model TransferBank {
+  id          String   @id
+  enabled     Boolean  @default(false)
+  displayName String   @default("")
+  holderName  String   @default("")
+  iban        String   @default("")
+  accountType String   @default("Vadesiz TL")
+  updatedAt   DateTime @updatedAt
+}

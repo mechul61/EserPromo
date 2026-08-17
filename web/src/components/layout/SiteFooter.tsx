@@ -3,27 +3,7 @@ import { Mail, Phone, ShieldCheck, Smartphone } from "lucide-react";
 import { FooterNewsletter } from "@/components/layout/FooterNewsletter";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { SITE_CONTACT } from "@/data/catalog-page";
-
-const kurumsal = [
-  { href: "/hakkimizda", label: "Hakkımızda" },
-  { href: "/bayilik", label: "Bayilik" },
-  { href: "/kariyer", label: "Kariyer" },
-  { href: "/iletisim", label: "İletişim" },
-];
-
-const hizmetler = [
-  { href: "/sss", label: "Sıkça Sorulan Sorular" },
-  { href: "/kargo-teslimat", label: "Kargo & Teslimat" },
-  { href: "/iade-degisim", label: "İade & Değişim" },
-  { href: "/gizlilik", label: "Gizlilik Politikası" },
-];
-
-const bilgilendirme = [
-  { href: "/kullanim-sartlari", label: "Kullanım Şartları" },
-  { href: "/odeme-yontemleri", label: "Ödeme Yöntemleri" },
-  { href: "/kvkk", label: "KVKK Aydınlatma Metni" },
-  { href: "/site-haritasi", label: "Site Haritası" },
-];
+import { FOOTER_COLS } from "@/data/info-pages";
 
 function FacebookMark() {
   return (
@@ -124,9 +104,9 @@ export function SiteFooter() {
           </div>
         </div>
 
-        <FooterCol title="KURUMSAL" links={kurumsal} />
-        <FooterCol title="MÜŞTERİ HİZMETLERİ" links={hizmetler} />
-        <FooterCol title="BİLGİLENDİRME" links={bilgilendirme} />
+        <FooterCol title="KURUMSAL" links={[...FOOTER_COLS.kurumsal]} />
+        <FooterCol title="MÜŞTERİ HİZMETLERİ" links={[...FOOTER_COLS.hizmetler]} />
+        <FooterCol title="BİLGİLENDİRME" links={[...FOOTER_COLS.bilgilendirme]} />
 
         <div>
           <h4 className="text-[13px] font-extrabold tracking-wide text-white">İLETİŞİM</h4>

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireAdminApi } from "@/lib/auth/admin";
 import { prisma } from "@/lib/db";
 import { assertSameOrigin, jsonError } from "@/lib/security/origin";
+import { revalidatePath } from "next/cache";
 
 const schema = z.object({
   isActive: z.boolean(),
@@ -30,5 +31,7 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
     where: { id },
     data: { showOnHomepage: body.data.isActive },
   });
+  revalidatePath("/");
+  revalidatePath("/admin/kategoriler");
   return Response.json({ ok: true, showOnHomepage: body.data.isActive });
 }

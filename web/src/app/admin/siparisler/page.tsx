@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { AdminHeading } from "@/components/admin/AdminChrome";
 import { AdminPager, AdminSearch } from "@/components/admin/AdminSearch";
+import { OrderRow } from "@/components/admin/OrderRow";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { prisma } from "@/lib/db";
 import { formatDateTimeTr } from "@/lib/auth/login-meta";
@@ -36,7 +36,20 @@ export default async function AdminOrdersPage({
       orderBy: { createdAt: "desc" },
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
-      include: { user: { select: { name: true, email: true } }, _count: { select: { items: true } } },
+      include: {
+        user: { select: { name: true, email: true } },
+        items: {
+          take: 3,
+          select: {
+            id: true,
+            name: true,
+            quantity: true,
+            sku: true,
+            product: { select: { slug: true } },
+          },
+        },
+        _count: { select: { items: true } },
+      },
     }),
   ]);
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -64,12 +77,8 @@ export default async function AdminOrdersPage({
             </thead>
             <tbody>
               {orders.map((order) => (
-                <tr key={order.id} className="border-b border-line last:border-b-0">
-                  <td className="px-4 py-2.5">
-                    <Link href={`/admin/siparisler/${order.publicNumber}`} className="font-extrabold text-navy hover:text-orange">
-                      {order.publicNumber}
-                    </Link>
-                  </td>
+                <OrderRow key={order.id} href={`/admin/siparisler/${order.publicNumber}`}>
+                  <td className="px-4 py-2.5 font-extrabold text-navy">{order.publicNumber}</td>
                   <td className="px-4 py-2.5">
                     <p className="font-semibold">{order.user.name}</p>
                     <p className="text-[12px] text-[#6b7280]">{order.user.email}</p>
@@ -77,10 +86,26 @@ export default async function AdminOrdersPage({
                   <td className="px-4 py-2.5">
                     <StatusBadge status={order.status} />
                   </td>
-                  <td className="px-4 py-2.5">{order._count.items}</td>
+                  <td className="px-4 py-2.5">
+                    <div className="max-w-[280px] space-y-0.5">
+                      {order.items.map((item) => (
+                        <p key={item.id} className="font-semibold text-[#111]">
+                          {item.name}
+                          <span className="ml-1 font-medium text-[#6b7280]">
+                            · {item.quantity.toLocaleString("tr-TR")} adet
+                          </span>
+                        </p>
+                      ))}
+                      {order._count.items > order.items.length ? (
+                        <p className="text-[12px] font-bold text-[#6b7280]">
+                          +{order._count.items - order.items.length} ürün daha
+                        </p>
+                      ) : null}
+                    </div>
+                  </td>
                   <td className="px-4 py-2.5 font-extrabold">₺{formatPriceTry(order.grandTotal)}</td>
                   <td className="px-4 py-2.5 text-[#6b7280]">{formatDateTimeTr(order.createdAt)}</td>
-                </tr>
+                </OrderRow>
               ))}
             </tbody>
           </table>

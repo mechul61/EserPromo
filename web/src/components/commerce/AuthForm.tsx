@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { HoldRevealPassword } from "@/components/commerce/HoldRevealPassword";
 import { PasswordRules } from "@/components/commerce/PasswordRules";
 
 type Mode = "login" | "register";
@@ -74,15 +75,14 @@ export function AuthForm({ mode }: { mode: Mode }) {
       </label>
       <label className="block text-[13px] font-semibold text-navy">
         Şifre
-        <input
+        <HoldRevealPassword
           name="password"
-          type="password"
           required
           minLength={mode === "register" ? 8 : 1}
           autoComplete={mode === "register" ? "new-password" : "current-password"}
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="mt-1 h-11 w-full rounded-md border border-line px-3 text-sm"
+          onChange={setPassword}
+          className="h-11 w-full rounded-md border border-line px-3 text-sm"
         />
       </label>
       {mode === "register" ? <PasswordRules value={password} /> : null}

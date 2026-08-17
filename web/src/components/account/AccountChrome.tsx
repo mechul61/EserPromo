@@ -5,7 +5,6 @@ import { ShopChrome } from "@/components/layout/ShopChrome";
 import { AccountSidebar } from "@/components/account/AccountSidebar";
 import { AccountAside } from "@/components/account/AccountAside";
 import { getCurrentUser } from "@/lib/auth/session";
-import { ensureAdmin } from "@/lib/auth/admin";
 import { getAccountOverview } from "@/lib/account";
 
 export async function AccountChrome({
@@ -21,8 +20,7 @@ export async function AccountChrome({
 }) {
   const user = await getCurrentUser();
   if (!user) redirect("/giris");
-  const resolved = (await ensureAdmin(user)) ?? user;
-  const overview = await getAccountOverview(resolved.id);
+  const overview = await getAccountOverview(user.id);
 
   return (
     <ShopChrome mainClassName="py-6">
@@ -45,7 +43,7 @@ export async function AccountChrome({
       </nav>
 
       <div className="grid w-full grid-cols-1 items-start gap-6 lg:grid-cols-[240px_minmax(0,1fr)] xl:grid-cols-[240px_minmax(0,1fr)_280px]">
-        <AccountSidebar isAdmin={resolved.role === "admin"} />
+        <AccountSidebar isAdmin={user.role === "admin"} />
         <div className="min-w-0">
           <h1 className="text-[22px] font-extrabold tracking-wide text-[#111] uppercase">{title}</h1>
           {subtitle ? <p className="mt-1 text-[13px] text-[#6b7280]">{subtitle}</p> : null}

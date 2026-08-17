@@ -11,6 +11,11 @@ function listedAdminEmails() {
     .filter(Boolean);
 }
 
+export function isAdminUser(user: { role: string } | null | undefined) {
+  return user?.role === "admin";
+}
+
+/** Sadece login/kayıt sırasında, ADMIN_EMAIL listesindeki hesaplar için. */
 export async function promoteIfListed(userId: string, email: string) {
   const listed = listedAdminEmails();
   if (!listed.includes(normalizeEmail(email))) return false;
@@ -18,40 +23,16 @@ export async function promoteIfListed(userId: string, email: string) {
   return true;
 }
 
-export async function ensureAdmin(user: AuthUser): Promise<AuthUser | null> {
-  if (user.role === "admin") return user;
-
-  if (await promoteIfListed(user.id, user.email)) {
-    return { ...user, role: "admin" };
-  }
-
-  if (process.env.NODE_ENV !== "production") {
-    const adminCount = await prisma.user.count({ where: { role: "admin" } });
-    if (adminCount === 0) {
-      await prisma.user.update({ where: { id: user.id }, data: { role: "admin" } });
-      return { ...user, role: "admin" };
-    }
-  }
-
-  return null;
-}
-
 export async function requireAdmin(): Promise<AuthUser> {
   const user = await getCurrentUser();
   if (!user) redirect("/giris");
-  const admin = await ensureAdmin(user);
-  if (!admin) redirect("/hesabim");
-  return admin;
+  if (!isAdminUser(user)) redirect("/hesabim");
+  return user;
 }
 
 export async function requireAdminApi(): Promise<AuthUser | Response> {
   const user = await getCurrentUser();
   if (!user) return jsonError("Giriş yapın.", 401);
-  const admin = await ensureAdmin(user);
-  if (!admin) return jsonError("Yetkisiz.", 403);
-  return admin;
-}
-
-export function isAdminUser(user: { role: string } | null | undefined) {
-  return user?.role === "admin";
+  if (!isAdminUser(user)) return jsonError("Yetkisiz.", 403);
+  return user;
 }

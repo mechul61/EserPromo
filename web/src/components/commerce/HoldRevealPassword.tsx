@@ -10,6 +10,8 @@ export function HoldRevealPassword({
   className,
   placeholder,
   name,
+  required,
+  minLength,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -17,6 +19,8 @@ export function HoldRevealPassword({
   className?: string;
   placeholder?: string;
   name?: string;
+  required?: boolean;
+  minLength?: number;
 }) {
   const [reveal, setReveal] = useState(false);
 
@@ -36,26 +40,26 @@ export function HoldRevealPassword({
         name={name}
         type={reveal ? "text" : "password"}
         autoComplete={autoComplete}
+        required={required}
+        minLength={minLength}
         value={value}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
-        className={`${className ?? ""} ${value ? "pr-11" : ""}`}
+        className={`${className ?? ""} pr-11`}
       />
-      {value ? (
-        <button
-          type="button"
-          tabIndex={-1}
-          aria-label="Şifreyi göster"
-          onPointerDown={show}
-          onPointerUp={hide}
-          onPointerCancel={hide}
-          onLostPointerCapture={hide}
-          onContextMenu={(e) => e.preventDefault()}
-          className="absolute top-1/2 right-2 flex size-8 -translate-y-1/2 items-center justify-center rounded text-[#8b919a] select-none hover:text-navy"
-        >
-          <Eye className="size-4" />
-        </button>
-      ) : null}
+      <button
+        type="button"
+        tabIndex={-1}
+        aria-label="Şifreyi göster"
+        onPointerDown={show}
+        onPointerUp={hide}
+        onPointerCancel={hide}
+        onLostPointerCapture={hide}
+        onContextMenu={(e) => e.preventDefault()}
+        className="absolute top-1/2 right-2 flex size-8 -translate-y-1/2 items-center justify-center rounded text-[#8b919a] select-none hover:text-navy"
+      >
+        <Eye className="size-4" />
+      </button>
     </span>
   );
 }

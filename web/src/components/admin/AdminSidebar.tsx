@@ -4,18 +4,24 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   FolderTree,
+  Landmark,
   LayoutDashboard,
   LogOut,
   Package,
   RefreshCw,
+  ShoppingBag,
   ShoppingCart,
   Users,
+  Wallet,
 } from "lucide-react";
 
 const NAV = [
   { href: "/admin", label: "Özet", icon: LayoutDashboard },
   { href: "/admin/siparisler", label: "Siparişler", icon: ShoppingCart },
+  { href: "/admin/sepetler", label: "Sepetler", icon: ShoppingBag },
+  { href: "/admin/ciro", label: "Ciro", icon: Wallet },
   { href: "/admin/musteriler", label: "Müşteriler", icon: Users },
+  { href: "/admin/bankalar", label: "Bankalar", icon: Landmark },
   { href: "/admin/urunler", label: "Ürünler", icon: Package },
   { href: "/admin/kategoriler", label: "Kategoriler", icon: FolderTree },
   { href: "/admin/senkron", label: "Senkron", icon: RefreshCw },

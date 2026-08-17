@@ -6,7 +6,6 @@ const links = [
   { href: "/hakkimizda", label: "HAKKIMIZDA" },
   { href: "/kurumsal", label: "KURUMSAL", hasDropdown: true },
   { href: "/baski-teknikleri", label: "BASKI TEKNİKLERİ" },
-  { href: "/blog", label: "BLOG" },
   { href: "/iletisim", label: "İLETİŞİM" },
 ];
 

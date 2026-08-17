@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Check, ChevronDown, ChevronRight, Mail, MapPin, Menu, Phone } from "lucide-react";
+import { Check, ChevronRight, Mail, MapPin, Menu, Phone } from "lucide-react";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { SITE_CONTACT } from "@/data/catalog-page";
 import { getCategoryTree } from "@/lib/catalog";
@@ -27,52 +27,21 @@ export async function CatalogSidebar({
           {heading}
         </div>
         <ul>
-          {tree.map((cat) => {
-            const childActive = cat.children.some((c) => activeSlug === c.slug);
-            const expanded = activeSlug === cat.slug || childActive;
-            return (
-              <li key={cat.slug} className="border-b border-[#f0f1f3] last:border-b-0">
-                <Link
-                  href={categoryPath(cat.slug)}
-                  className={`flex items-center gap-2.5 px-3 py-[9px] text-[13px] ${
-                    cat.slug === activeSlug && cat.children.length === 0
-                      ? "font-bold text-brand-red"
-                      : "font-medium text-[#222] hover:bg-[#fafafa]"
-                  }`}
-                >
-                  <span className="min-w-0 flex-1">{cat.name}</span>
-                  {cat.children.length > 0 ? (
-                    expanded ? (
-                      <ChevronDown className="size-3.5 text-[#c8c8c8]" />
-                    ) : (
-                      <ChevronRight className="size-3.5 text-[#c8c8c8]" />
-                    )
-                  ) : (
-                    <ChevronRight className="size-3.5 text-[#c8c8c8]" />
-                  )}
-                </Link>
-                {expanded && cat.children.length > 0 ? (
-                  <ul className="bg-[#fafafa] pb-1">
-                    {cat.children.map((child) => (
-                      <li key={child.slug}>
-                        <Link
-                          href={categoryPath(child.slug)}
-                          className={`flex items-center gap-2 py-1.5 pr-3 pl-8 text-[12.5px] ${
-                            activeSlug === child.slug
-                              ? "font-bold text-brand-red"
-                              : "text-[#444] hover:text-navy"
-                          }`}
-                        >
-                          <ChevronRight className="size-3 text-brand-red" />
-                          {child.name}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-              </li>
-            );
-          })}
+          {tree.map((cat) => (
+            <li key={cat.slug} className="border-b border-[#f0f1f3] last:border-b-0">
+              <Link
+                href={categoryPath(cat.slug)}
+                className={`flex items-center gap-2.5 px-3 py-[9px] text-[13px] ${
+                  activeSlug === cat.slug || cat.children.some((c) => activeSlug === c.slug)
+                    ? "font-bold text-brand-red"
+                    : "font-medium text-[#222] hover:bg-[#fafafa]"
+                }`}
+              >
+                <span className="min-w-0 flex-1">{cat.name}</span>
+                <ChevronRight className="size-3.5 text-[#c8c8c8]" />
+              </Link>
+            </li>
+          ))}
         </ul>
       </div>
 

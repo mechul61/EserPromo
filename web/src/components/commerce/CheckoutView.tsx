@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -9,6 +9,7 @@ import {
   ArrowRight,
   Building2,
   Check,
+  Copy,
   CreditCard,
   Lock,
   RefreshCcw,
@@ -21,6 +22,8 @@ import { formatPhoneTR, isValidTRPhone, phoneDigits } from "@/lib/phone";
 import { passwordPolicyError } from "@/lib/auth/password-policy";
 import { PasswordRules } from "@/components/commerce/PasswordRules";
 import { CityDistrictFields } from "@/components/forms/CityDistrictFields";
+import { BankLogo } from "@/components/banks/BankLogo";
+import { formatIban as formatIbanDisplay } from "@/data/turkey-banks";
 
 export type CheckoutLine = {
   name: string;
@@ -46,6 +49,52 @@ const STEPS = [
 const inputClass =
   "mt-1 block h-11 w-full rounded-md border border-line bg-white px-3 text-[13px] outline-none focus:border-orange";
 
+function CopyField({
+  label,
+  value,
+  copyValue,
+  inputClassName = "",
+}: {
+  label: string;
+  value: string;
+  copyValue?: string;
+  inputClassName?: string;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(copyValue ?? value);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+      setCopied(false);
+    }
+  }
+
+  return (
+    <label className="block min-w-0 text-[12px] font-bold text-[#555] sm:col-span-2">
+      {label}
+      <span className="relative mt-1 block">
+        <input
+          value={value}
+          readOnly
+          className={`${inputClass} mt-0 bg-soft pr-11 ${inputClassName}`}
+        />
+        <button
+          type="button"
+          onClick={() => void copy()}
+          title={copied ? "Kopyalandı" : "Kopyala"}
+          aria-label={copied ? "Kopyalandı" : `${label} kopyala`}
+          className="absolute top-1/2 right-1.5 flex size-8 -translate-y-1/2 items-center justify-center rounded-md text-navy hover:bg-white"
+        >
+          {copied ? <Check className="size-4 text-[#1f9d55]" /> : <Copy className="size-4" />}
+        </button>
+      </span>
+    </label>
+  );
+}
+
 function money(n: number) {
   return `₺${formatPriceTry(n)}`;
 }
@@ -59,6 +108,7 @@ export function CheckoutView({
   subtotal,
   vat,
   vatLabel,
+  transferBanks,
 }: {
   loggedIn: boolean;
   iyzicoReady: boolean;
@@ -68,12 +118,22 @@ export function CheckoutView({
   subtotal: number;
   vat: number;
   vatLabel: string;
+  transferBanks: Array<{
+    id: string;
+    name: string;
+    holder: string;
+    iban: string;
+    accountType: string;
+  }>;
 }) {
   const router = useRouter();
   const [step, setStep] = useState<Step>("delivery");
   const [delivery, setDelivery] = useState<DeliveryMethod>("address");
   const [invoice, setInvoice] = useState<InvoiceType>("individual");
   const [payment, setPayment] = useState<PaymentMethod>("card");
+  const [transferBank, setTransferBank] = useState("");
+  const [transferKind, setTransferKind] = useState<"havale" | "eft">("eft");
+  const selectedAccount = transferBanks.find((bank) => bank.id === transferBank) ?? null;
   const [billingDifferent, setBillingDifferent] = useState(false);
   const [createAccount, setCreateAccount] = useState(false);
   const [password, setPassword] = useState("");
@@ -106,6 +166,16 @@ export function CheckoutView({
   const grand = subtotal + vat;
   const office = delivery === "office";
 
+  useEffect(() => {
+    if (transferBanks.length === 1) {
+      setTransferBank(transferBanks[0].id);
+      return;
+    }
+    if (transferBank && !transferBanks.some((bank) => bank.id === transferBank)) {
+      setTransferBank("");
+    }
+  }, [transferBanks, transferBank]);
+
   const payload = useMemo(
     () => ({
       fullName: form.fullName,
@@ -118,6 +188,8 @@ export function CheckoutView({
       deliveryMethod: delivery,
       invoiceType: billingDifferent ? invoice : "individual",
       paymentMethod: payment,
+      transferBank: payment === "transfer" ? transferBank.trim() : undefined,
+      transferKind: payment === "transfer" ? transferKind : undefined,
       billingDifferent,
       billingFullName: billingDifferent ? billing.fullName : undefined,
       billingPhone: billingDifferent ? phoneDigits(billing.phone) : undefined,
@@ -130,7 +202,7 @@ export function CheckoutView({
       taxOffice: billingDifferent && invoice === "corporate" ? billing.taxOffice : undefined,
       taxNumber: billingDifferent && invoice === "corporate" ? billing.taxNumber : undefined,
     }),
-    [form, office, delivery, invoice, payment, billingDifferent, billing],
+    [form, office, delivery, invoice, payment, transferBank, transferKind, billingDifferent, billing],
   );
 
   function setField(key: keyof typeof form, value: string) {
@@ -223,9 +295,21 @@ export function CheckoutView({
     setStep("payment");
   }
 
+  function validateTransfer() {
+    if (payment !== "transfer") return null;
+    if (transferBanks.length === 0) return "Havale / EFT için henüz banka tanımlanmadı";
+    if (!selectedAccount) return "Listeden banka seçin";
+    return null;
+  }
+
   async function placeOrder() {
     if (!hasAccount) {
       setError("Siparişi tamamlamak için giriş yapın veya hesap oluşturmaya izin verin");
+      return;
+    }
+    const transferIssue = validateTransfer();
+    if (transferIssue) {
+      setError(transferIssue);
       return;
     }
     setPending(true);
@@ -643,10 +727,84 @@ export function CheckoutView({
                 >
                   <span className="block text-[14px] font-extrabold">Havale / EFT</span>
                   <span className="mt-1 block text-[12px] leading-relaxed text-[#6b7280]">
-                    Sipariş onayından sonra hesap bilgileri iletilecek.
+                    Yönetimin tanımladığı hesaba Havale veya EFT yapın.
                   </span>
                 </button>
               </div>
+              {payment === "transfer" ? (
+                <div className="mt-4 grid w-full grid-cols-1 gap-3 sm:grid-cols-2">
+                  <label className="block min-w-0 text-[12px] font-bold text-[#555] sm:col-span-2">
+                    Banka adı
+                    {transferBanks.length === 0 ? (
+                      <p className="mt-1 text-[13px] font-medium text-[#6b7280]">
+                        Şu an seçilebilir hesap yok. Yönetim panelinden IBAN ve şirket adını kaydedin.
+                      </p>
+                    ) : (
+                      <div className="mt-1 grid gap-2">
+                        {transferBanks.map((bank) => {
+                          const active = transferBank === bank.id;
+                          return (
+                            <button
+                              key={bank.id}
+                              type="button"
+                              onClick={() => setTransferBank(bank.id)}
+                              className={`flex w-full items-center gap-3 rounded-md border px-3 py-2.5 text-left ${
+                                active ? "border-orange bg-[#fff8f0]" : "border-line bg-white"
+                              }`}
+                            >
+                              <BankLogo id={bank.id} size={40} />
+                              <span className="min-w-0">
+                                <span className="block text-[13px] font-extrabold text-navy">{bank.name}</span>
+                                <span className="block text-[12px] font-medium tracking-wide text-[#6b7280]">
+                                  {formatIbanDisplay(bank.iban)}
+                                </span>
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </label>
+                  {selectedAccount ? (
+                    <>
+                      <CopyField label="Şirket / alıcı adı" value={selectedAccount.holder} />
+                      <CopyField
+                        label="IBAN No"
+                        value={formatIbanDisplay(selectedAccount.iban)}
+                        copyValue={selectedAccount.iban.replace(/\s+/g, "")}
+                        inputClassName="tracking-wide"
+                      />
+                      <label className="block min-w-0 text-[12px] font-bold text-[#555]">
+                        Hesap türü
+                        <input value={selectedAccount.accountType} readOnly className={`${inputClass} bg-soft`} />
+                      </label>
+                    </>
+                  ) : null}
+                  <div className={selectedAccount ? "" : "sm:col-span-2"}>
+                    <p className="text-[12px] font-bold text-[#555]">Gönderim</p>
+                    <div className="mt-1 grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setTransferKind("havale")}
+                        className={`h-11 rounded-md border text-[13px] font-extrabold ${
+                          transferKind === "havale" ? "border-orange bg-[#fff8f0] text-navy" : "border-line bg-white"
+                        }`}
+                      >
+                        Havale
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setTransferKind("eft")}
+                        className={`h-11 rounded-md border text-[13px] font-extrabold ${
+                          transferKind === "eft" ? "border-orange bg-[#fff8f0] text-navy" : "border-line bg-white"
+                        }`}
+                      >
+                        EFT
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
             </section>
           ) : null}
 
@@ -687,7 +845,25 @@ export function CheckoutView({
                 </div>
                 <div className="flex justify-between gap-4 py-2">
                   <dt className="text-[#6b7280]">Ödeme</dt>
-                  <dd className="font-semibold">{payment === "transfer" ? "Havale / EFT" : "Kredi kartı"}</dd>
+                  <dd className="text-right font-semibold">
+                    {payment === "transfer" ? (
+                      <>
+                        {transferKind === "havale" ? "Havale" : "EFT"}
+                        <span className="mt-1 flex items-center justify-end gap-2 font-normal text-[#555]">
+                          {selectedAccount ? <BankLogo id={selectedAccount.id} size={28} /> : null}
+                          {selectedAccount?.name || "Banka seçilmedi"}
+                        </span>
+                        {selectedAccount?.holder ? (
+                          <span className="mt-1 block font-normal text-[#555]">{selectedAccount.holder}</span>
+                        ) : null}
+                        <span className="mt-1 block font-normal tracking-wide text-[#555]">
+                          {selectedAccount ? formatIbanDisplay(selectedAccount.iban) : "IBAN yok"}
+                        </span>
+                      </>
+                    ) : (
+                      "Kredi kartı"
+                    )}
+                  </dd>
                 </div>
               </dl>
             </section>
@@ -730,7 +906,15 @@ export function CheckoutView({
                 disabled={pending}
                 onClick={() => {
                   if (step === "delivery") void goPayment();
-                  else setStep("confirm");
+                  else {
+                    const transferIssue = validateTransfer();
+                    if (transferIssue) {
+                      setError(transferIssue);
+                      return;
+                    }
+                    setError(null);
+                    setStep("confirm");
+                  }
                 }}
                 className="inline-flex h-11 items-center gap-2 rounded-md bg-orange px-5 text-[13px] font-extrabold tracking-wide text-[#111] hover:bg-orange-hover disabled:opacity-60"
               >

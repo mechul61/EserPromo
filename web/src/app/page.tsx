@@ -11,6 +11,8 @@ import { formatPriceTry, mediaUrl } from "@/lib/media";
 import { grossPrice } from "@/lib/product-detail";
 import { productPath } from "@/lib/seo/urls";
 
+export const dynamic = "force-dynamic";
+
 export default async function HomePage() {
   const rows = await prisma.product.findMany({
     where: { isActive: true, isGroupPrimary: true },
