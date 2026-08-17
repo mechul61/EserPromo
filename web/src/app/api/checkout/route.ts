@@ -8,7 +8,7 @@ import { clientKey, rateLimit } from "@/lib/security/rate-limit";
 const schema = z.object({
   fullName: z.string().trim().min(2).max(80),
   email: z.string().trim().email().optional().or(z.literal("")),
-  phone: z.string().trim().min(10).max(20),
+  phone: z.string().trim().min(10).max(32),
   city: z.string().trim().min(2).max(40),
   district: z.string().trim().min(2).max(40),
   line: z.string().trim().min(6).max(200),
@@ -16,6 +16,17 @@ const schema = z.object({
   deliveryMethod: z.enum(["address", "office"]).default("address"),
   invoiceType: z.enum(["individual", "corporate"]).default("individual"),
   paymentMethod: z.enum(["card", "transfer"]).default("card"),
+  billingDifferent: z.boolean().optional(),
+  billingFullName: z.string().trim().max(80).optional(),
+  billingPhone: z.string().trim().max(32).optional(),
+  billingCity: z.string().trim().max(40).optional(),
+  billingDistrict: z.string().trim().max(40).optional(),
+  billingLine: z.string().trim().max(200).optional(),
+  billingPostalCode: z.string().trim().max(10).optional(),
+  tcKimlik: z.string().trim().max(11).optional(),
+  companyName: z.string().trim().max(120).optional(),
+  taxOffice: z.string().trim().max(80).optional(),
+  taxNumber: z.string().trim().max(11).optional(),
 });
 
 export async function POST(req: NextRequest) {

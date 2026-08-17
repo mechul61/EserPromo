@@ -108,6 +108,7 @@ model Product {
   images         ProductImage[]
   cartItems      CartItem[]
   orderItems     OrderItem[]
+  favorites      Favorite[]
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -144,8 +145,57 @@ model User {
   addresses       Address[]
   carts           Cart[]
   orders          Order[]
+  profile         UserProfile?
+  favorites       Favorite[]
+  loginEvents     LoginEvent[]
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
+}
+
+model LoginEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  email     String
+  source    String   @default("login")
+  ip        String   @default("")
+  userAgent String   @default("")
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model Favorite {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, productId])
+  @@index([userId])
+  @@index([productId])
+}
+
+model UserProfile {
+  userId              String    @id
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  firstName           String    @default("")
+  lastName            String    @default("")
+  birthDate           DateTime?
+  gender              String?
+  avatarPath          String?
+  companyName         String    @default("")
+  companyTitle        String    @default("")
+  taxOffice           String    @default("")
+  taxNumber           String    @default("")
+  tcKimlik            String    @default("")
+  useCorporateDefault Boolean   @default(false)
+  notifyEmail         Boolean   @default(true)
+  notifySms           Boolean   @default(false)
+  notifyOrder         Boolean   @default(true)
+  updatedAt           DateTime  @updatedAt
 }
 
 model Session {
@@ -166,9 +216,12 @@ model Address {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   title       String   @default("Teslimat")
   fullName    String
+  email       String   @default("")
   phone       String
+  country     String   @default("Türkiye")
   city        String
   district    String
+  postalCode  String   @default("")
   line        String
   isDefault   Boolean  @default(false)
   createdAt   DateTime @default(now())

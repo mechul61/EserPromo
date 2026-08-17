@@ -3,6 +3,8 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { verifyPassword } from "@/lib/auth/password";
 import { createSession } from "@/lib/auth/session";
+import { recordLoginEvent } from "@/lib/auth/login-events";
+import { promoteIfListed } from "@/lib/auth/admin";
 import { normalizeEmail } from "@/lib/security/crypto";
 import { clientKey, rateLimit } from "@/lib/security/rate-limit";
 import { assertSameOrigin, jsonError } from "@/lib/security/origin";
@@ -33,5 +35,10 @@ export async function POST(req: NextRequest) {
   if (!match) return jsonError("E-posta veya şifre hatalı.", 401);
 
   await createSession(user.id);
-  return Response.json({ ok: true });
+  await recordLoginEvent(user.id, email, req, "login");
+  const promoted = await promoteIfListed(user.id, email);
+  return Response.json({
+    ok: true,
+    role: promoted || user.role === "admin" ? "admin" : user.role,
+  });
 }

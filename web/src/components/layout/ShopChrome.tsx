@@ -1,6 +1,7 @@
 import { TopBar } from "@/components/layout/TopBar";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { SiteFooter } from "@/components/layout/SiteFooter";
+import { FavoritesProvider } from "@/components/favorites/FavoritesProvider";
 
 export function ShopChrome({
   children,
@@ -14,12 +15,14 @@ export function ShopChrome({
   className?: string;
 }) {
   return (
-    <div className={`flex min-h-dvh flex-col ${className}`}>
-      <TopBar />
-      <SiteHeader />
-      <main className={`container-ep flex-1 ${mainClassName}`}>{children}</main>
-      <SiteFooter />
-      {extra}
-    </div>
+    <FavoritesProvider>
+      <div className={`flex min-h-dvh flex-col ${className}`}>
+        <TopBar />
+        <SiteHeader />
+        <main className={`container-ep flex-1 ${mainClassName}`}>{children}</main>
+        <SiteFooter />
+        {extra}
+      </div>
+    </FavoritesProvider>
   );
 }

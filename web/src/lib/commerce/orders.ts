@@ -2,6 +2,18 @@ import { prisma } from "../db";
 import { randomToken } from "../security/crypto";
 import type { AuthUser } from "../auth/session";
 import { iyzicoReady } from "../env";
+import { saveUserAddress } from "./addresses";
+
+export const ORDER_STATUS_LABEL: Record<string, string> = {
+  draft: "Taslak",
+  pending_payment: "Ödeme bekleniyor",
+  paid: "Ödendi",
+  preparing: "Hazırlanıyor",
+  shipped: "Kargoda",
+  completed: "Tamamlandı",
+  cancelled: "İptal",
+  failed: "Başarısız",
+};
 
 export type CheckoutAddress = {
   fullName: string;
@@ -14,6 +26,17 @@ export type CheckoutAddress = {
   deliveryMethod?: "address" | "office";
   invoiceType?: "individual" | "corporate";
   paymentMethod?: "card" | "transfer";
+  billingDifferent?: boolean;
+  billingFullName?: string;
+  billingPhone?: string;
+  billingCity?: string;
+  billingDistrict?: string;
+  billingLine?: string;
+  billingPostalCode?: string;
+  tcKimlik?: string;
+  companyName?: string;
+  taxOffice?: string;
+  taxNumber?: string;
 };
 
 function money(n: number) {
@@ -100,7 +123,36 @@ export async function createOrderFromCart(user: AuthUser, address: CheckoutAddre
           address.deliveryMethod === "office" ? "Teslimat: Ofisten teslim al" : "Teslimat: Adrese gönderim",
           address.email ? `E-posta: ${address.email.trim()}` : "",
           address.postalCode ? `Posta kodu: ${address.postalCode.trim()}` : "",
-          address.invoiceType === "corporate" ? "Fatura: Kurumsal" : "Fatura: Bireysel",
+          address.billingDifferent
+            ? address.invoiceType === "corporate"
+              ? "Fatura: Kurumsal"
+              : "Fatura: Bireysel"
+            : "Fatura: Teslimat adresi ile aynı",
+          address.billingDifferent && address.invoiceType === "individual" && address.tcKimlik
+            ? `TCKN: ${address.tcKimlik.trim()}`
+            : "",
+          address.billingDifferent && address.invoiceType === "corporate" && address.companyName
+            ? `Şirket: ${address.companyName.trim()}`
+            : "",
+          address.billingDifferent && address.invoiceType === "corporate" && address.taxOffice
+            ? `Vergi dairesi: ${address.taxOffice.trim()}`
+            : "",
+          address.billingDifferent && address.invoiceType === "corporate" && address.taxNumber
+            ? `Vergi no: ${address.taxNumber.trim()}`
+            : "",
+          address.billingDifferent
+            ? [
+                "Fatura adresi farklı:",
+                address.billingFullName?.trim(),
+                address.billingPhone?.trim(),
+                [address.billingLine?.trim(), address.billingDistrict?.trim(), address.billingCity?.trim()]
+                  .filter(Boolean)
+                  .join(", "),
+                address.billingPostalCode ? `PK: ${address.billingPostalCode.trim()}` : "",
+              ]
+                .filter(Boolean)
+                .join(" ")
+            : "",
           address.paymentMethod === "transfer" ? "Ödeme: Havale / EFT" : "Ödeme: Kredi kartı",
         ]
           .filter(Boolean)
@@ -121,12 +173,51 @@ export async function createOrderFromCart(user: AuthUser, address: CheckoutAddre
     return created;
   });
 
+  if (address.deliveryMethod !== "office") {
+    await saveUserAddress(user.id, {
+      title: "Teslimat",
+      fullName: address.fullName,
+      email: address.email,
+      phone: address.phone,
+      city: address.city,
+      district: address.district,
+      postalCode: address.postalCode,
+      line: address.line,
+      isDefault: true,
+    });
+  }
+
+  if (address.billingDifferent && address.billingLine && address.billingCity && address.billingDistrict) {
+    await saveUserAddress(user.id, {
+      title: "Fatura",
+      fullName: address.billingFullName || address.fullName,
+      email: address.email,
+      phone: address.billingPhone || address.phone,
+      city: address.billingCity,
+      district: address.billingDistrict,
+      postalCode: address.billingPostalCode,
+      line: address.billingLine,
+      isDefault: false,
+    });
+  }
+
   return { order, iyzicoReady: iyzicoReady() };
 }
 
 export async function getUserOrder(userId: string, publicNumber: string) {
   return prisma.order.findFirst({
     where: { userId, publicNumber },
-    include: { items: true, payments: { select: { status: true, provider: true, amount: true, createdAt: true } } },
+    include: {
+      items: {
+        include: {
+          product: {
+            select: {
+              images: { orderBy: { sortOrder: "asc" }, take: 1, select: { localPath: true } },
+            },
+          },
+        },
+      },
+      payments: { select: { status: true, provider: true, amount: true, createdAt: true } },
+    },
   });
 }

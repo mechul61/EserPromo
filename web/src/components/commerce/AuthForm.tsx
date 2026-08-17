@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { PasswordRules } from "@/components/commerce/PasswordRules";
 
 type Mode = "login" | "register";
 
@@ -9,6 +10,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [password, setPassword] = useState("");
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -33,13 +35,13 @@ export function AuthForm({ mode }: { mode: Mode }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      const data = (await res.json()) as { error?: string };
+      const data = (await res.json()) as { error?: string; role?: string };
       if (!res.ok) {
         setError(data.error || "İşlem başarısız");
         return;
       }
       router.refresh();
-      router.push("/hesabim");
+      router.push(data.role === "admin" ? "/admin" : "/hesabim");
     } catch {
       setError("Bağlantı hatası");
     } finally {
@@ -76,14 +78,14 @@ export function AuthForm({ mode }: { mode: Mode }) {
           name="password"
           type="password"
           required
-          minLength={mode === "register" ? 10 : 1}
+          minLength={mode === "register" ? 8 : 1}
           autoComplete={mode === "register" ? "new-password" : "current-password"}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
           className="mt-1 h-11 w-full rounded-md border border-line px-3 text-sm"
         />
       </label>
-      {mode === "register" ? (
-        <p className="text-[12px] text-muted">En az 10 karakter, harf ve rakam.</p>
-      ) : null}
+      {mode === "register" ? <PasswordRules value={password} /> : null}
       {error ? <p className="text-[13px] text-brand-red">{error}</p> : null}
       <button
         type="submit"

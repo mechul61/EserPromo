@@ -1,6 +1,5 @@
 import Link from "next/link";
 import {
-  Heart,
   Phone,
   Search,
   ShoppingCart,
@@ -8,6 +7,7 @@ import {
 } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
+import { FavoriteHeaderLink } from "@/components/favorites/FavoriteHeaderLink";
 import { getCurrentUser } from "@/lib/auth/session";
 import { peekCartCount } from "@/lib/commerce/cart";
 
@@ -74,13 +74,7 @@ export async function SiteHeader() {
             </span>
           </Link>
 
-          <Link href="/favoriler" className="relative flex flex-col items-center gap-0.5 text-[11px]">
-            <Heart className="size-5 text-navy" />
-            <span className="absolute -top-1.5 -right-2 flex size-4 items-center justify-center rounded-full bg-brand-red text-[10px] font-bold text-white">
-              0
-            </span>
-            <span className="font-medium text-navy">Favorilerim</span>
-          </Link>
+          <FavoriteHeaderLink />
 
           <Link href="/sepet" className="relative flex flex-col items-center gap-0.5 text-[11px]">
             <ShoppingCart className="size-5 text-navy" />

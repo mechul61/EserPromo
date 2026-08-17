@@ -3,7 +3,8 @@
 import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Check, Heart } from "lucide-react";
+import { Check } from "lucide-react";
+import { FavoriteButton } from "@/components/favorites/FavoriteButton";
 
 const tabs = [
   "Çok Satanlar",
@@ -88,13 +89,11 @@ export function ProductSection({ products }: { products: HomeProduct[] }) {
               >
                 {product.badge}
               </span>
-              <button
-                type="button"
-                aria-label="Favorilere ekle"
-                className="absolute top-2.5 right-2.5 z-10 flex size-8 items-center justify-center rounded-full bg-white/95 text-[#b0b0b0] shadow-sm transition hover:text-brand-red"
-              >
-                <Heart className="size-4" strokeWidth={1.75} />
-              </button>
+              <FavoriteButton
+                productId={product.id}
+                variant="home"
+                iconClassName="size-4"
+              />
               <div className="relative mx-auto aspect-square w-full max-w-[180px]">
                 <Image
                   src={product.image}

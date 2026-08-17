@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Check, Heart } from "lucide-react";
+import { Check } from "lucide-react";
+import { FavoriteButton } from "@/components/favorites/FavoriteButton";
 import { ProductBuyBox } from "@/components/product/ProductBuyBox";
 import { ProductGallery } from "@/components/product/ProductGallery";
 import { formatPriceTry, formatStock } from "@/lib/media";
@@ -59,9 +60,7 @@ export function ProductStage({
           <h1 className="text-[22px] leading-tight font-extrabold tracking-wide text-navy uppercase sm:text-[24px]">
             {heading}
           </h1>
-          <Link href="/favoriler" aria-label="Favorilere ekle" className="mt-0.5 shrink-0 text-navy hover:text-brand-red">
-            <Heart className="size-5" strokeWidth={1.6} />
-          </Link>
+          <FavoriteButton productId={productId} variant="plain" iconClassName="size-5" />
         </div>
 
         <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px]">

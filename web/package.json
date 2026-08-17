@@ -13,7 +13,8 @@
     "db:studio": "prisma studio",
     "sync": "tsx src/lib/etkin/sync.ts",
     "sync:import-sample": "tsx src/lib/etkin/import-sample.ts",
-    "sync:import-dump": "tsx src/lib/etkin/import-dump.ts"
+    "sync:import-dump": "tsx src/lib/etkin/import-dump.ts",
+    "admin:promote": "tsx src/scripts/promote-admin.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",

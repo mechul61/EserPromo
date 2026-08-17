@@ -11,7 +11,7 @@ export const metadata = {
 
 export default async function RegisterPage() {
   const user = await getCurrentUser();
-  if (user) redirect("/hesabim");
+  if (user) redirect(user.role === "admin" ? "/admin" : "/hesabim");
 
   return (
     <ShopChrome>

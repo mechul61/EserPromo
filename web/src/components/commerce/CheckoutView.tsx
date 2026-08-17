@@ -17,6 +17,10 @@ import {
 } from "lucide-react";
 import { SITE_CONTACT } from "@/data/catalog-page";
 import { formatPriceTry } from "@/lib/media";
+import { formatPhoneTR, isValidTRPhone, phoneDigits } from "@/lib/phone";
+import { passwordPolicyError } from "@/lib/auth/password-policy";
+import { PasswordRules } from "@/components/commerce/PasswordRules";
+import { CityDistrictFields } from "@/components/forms/CityDistrictFields";
 
 export type CheckoutLine = {
   name: string;
@@ -30,19 +34,6 @@ type Step = "delivery" | "payment" | "confirm";
 type DeliveryMethod = "address" | "office";
 type InvoiceType = "individual" | "corporate";
 type PaymentMethod = "card" | "transfer";
-
-const CITIES = [
-  "İstanbul",
-  "Ankara",
-  "İzmir",
-  "Bursa",
-  "Antalya",
-  "Kocaeli",
-  "Konya",
-  "Adana",
-  "Gaziantep",
-  "Mersin",
-];
 
 const STEPS = [
   { id: "cart", label: "Sepetim", icon: "check" as const },
@@ -84,6 +75,10 @@ export function CheckoutView({
   const [invoice, setInvoice] = useState<InvoiceType>("individual");
   const [payment, setPayment] = useState<PaymentMethod>("card");
   const [billingDifferent, setBillingDifferent] = useState(false);
+  const [createAccount, setCreateAccount] = useState(false);
+  const [password, setPassword] = useState("");
+  const [passwordConfirm, setPasswordConfirm] = useState("");
+  const [hasAccount, setHasAccount] = useState(loggedIn);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({
@@ -95,6 +90,18 @@ export function CheckoutView({
     line: "",
     postalCode: "",
   });
+  const [billing, setBilling] = useState({
+    fullName: userName ?? "",
+    phone: "",
+    city: "İstanbul",
+    district: "",
+    line: "",
+    postalCode: "",
+    tcKimlik: "",
+    companyName: "",
+    taxOffice: "",
+    taxNumber: "",
+  });
 
   const grand = subtotal + vat;
   const office = delivery === "office";
@@ -103,45 +110,122 @@ export function CheckoutView({
     () => ({
       fullName: form.fullName,
       email: form.email,
-      phone: form.phone,
+      phone: phoneDigits(form.phone),
       city: office ? "İstanbul" : form.city,
       district: office ? "Tuzla" : form.district,
       line: office ? SITE_CONTACT.address : form.line,
       postalCode: form.postalCode,
       deliveryMethod: delivery,
-      invoiceType: invoice,
+      invoiceType: billingDifferent ? invoice : "individual",
       paymentMethod: payment,
+      billingDifferent,
+      billingFullName: billingDifferent ? billing.fullName : undefined,
+      billingPhone: billingDifferent ? phoneDigits(billing.phone) : undefined,
+      billingCity: billingDifferent ? billing.city : undefined,
+      billingDistrict: billingDifferent ? billing.district : undefined,
+      billingLine: billingDifferent ? billing.line : undefined,
+      billingPostalCode: billingDifferent ? billing.postalCode : undefined,
+      tcKimlik: billingDifferent && invoice === "individual" ? billing.tcKimlik : undefined,
+      companyName: billingDifferent && invoice === "corporate" ? billing.companyName : undefined,
+      taxOffice: billingDifferent && invoice === "corporate" ? billing.taxOffice : undefined,
+      taxNumber: billingDifferent && invoice === "corporate" ? billing.taxNumber : undefined,
     }),
-    [form, office, delivery, invoice, payment],
+    [form, office, delivery, invoice, payment, billingDifferent, billing],
   );
 
   function setField(key: keyof typeof form, value: string) {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
+  function setBillingField(key: keyof typeof billing, value: string) {
+    setBilling((prev) => ({ ...prev, [key]: value }));
+  }
+
   function validateDelivery() {
     if (form.fullName.trim().length < 2) return "Ad soyad girin";
-    if (form.phone.trim().length < 10) return "Telefon numarasını girin";
+    if (!isValidTRPhone(form.phone)) return "Geçerli bir telefon numarası girin";
     if (!office) {
       if (form.district.trim().length < 2) return "İlçe girin";
       if (form.line.trim().length < 6) return "Adres girin";
     }
+    if (billingDifferent) {
+      if (!isValidTRPhone(billing.phone)) return "Geçerli bir fatura telefonu girin";
+      if (billing.district.trim().length < 2) return "Fatura ilçesi girin";
+      if (billing.line.trim().length < 6) return "Fatura adresi girin";
+      if (invoice === "individual") {
+        if (billing.fullName.trim().length < 2) return "Fatura ad soyad girin";
+        const tc = billing.tcKimlik.replace(/\D/g, "");
+        if (tc.length !== 11) return "TC Kimlik No 11 haneli olmalıdır";
+      } else {
+        if (billing.companyName.trim().length < 2) return "Şirket unvanı girin";
+        if (billing.taxOffice.trim().length < 2) return "Vergi dairesi girin";
+        const vn = billing.taxNumber.replace(/\D/g, "");
+        if (vn.length < 10) return "Vergi numarası girin";
+      }
+    }
     return null;
   }
 
-  function goPayment() {
+  function validateAccount() {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+      return "Hesap için geçerli bir e-posta girin";
+    }
+    const policy = passwordPolicyError(password);
+    if (policy) return policy;
+    if (password !== passwordConfirm) return "Şifreler eşleşmiyor";
+    return null;
+  }
+
+  async function goPayment() {
     const issue = validateDelivery();
     if (issue) {
       setError(issue);
       return;
+    }
+    if (!hasAccount && createAccount) {
+      const accountIssue = validateAccount();
+      if (accountIssue) {
+        setError(accountIssue);
+        return;
+      }
+      setPending(true);
+      setError(null);
+      try {
+        const res = await fetch("/api/auth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: form.fullName,
+            email: form.email,
+            password,
+            phone: phoneDigits(form.phone),
+            city: office ? undefined : form.city,
+            district: office ? undefined : form.district,
+            line: office ? undefined : form.line,
+            postalCode: office ? undefined : form.postalCode,
+          }),
+        });
+        const data = (await res.json()) as { error?: string };
+        if (!res.ok) {
+          setError(data.error || "Hesap oluşturulamadı");
+          return;
+        }
+        setHasAccount(true);
+        router.refresh();
+      } catch {
+        setError("Hesap oluşturulurken bağlantı hatası");
+        return;
+      } finally {
+        setPending(false);
+      }
     }
     setError(null);
     setStep("payment");
   }
 
   async function placeOrder() {
-    if (!loggedIn) {
-      setError("Siparişi tamamlamak için giriş yapın");
+    if (!hasAccount) {
+      setError("Siparişi tamamlamak için giriş yapın veya hesap oluşturmaya izin verin");
       return;
     }
     setPending(true);
@@ -291,7 +375,15 @@ export function CheckoutView({
                 </label>
                 <label className="block min-w-0 text-[12px] font-bold text-[#555]">
                   Telefon Numarası
-                  <input value={form.phone} onChange={(e) => setField("phone", e.target.value)} className={inputClass} />
+                  <input
+                    type="tel"
+                    inputMode="tel"
+                    autoComplete="tel"
+                    placeholder="0 (5__) ___ __ __"
+                    value={form.phone}
+                    onChange={(e) => setField("phone", formatPhoneTR(e.target.value))}
+                    className={inputClass}
+                  />
                 </label>
               </div>
 
@@ -306,18 +398,13 @@ export function CheckoutView({
                       Ülke
                       <input value="Türkiye" disabled className={`${inputClass} bg-[#f7f8fa]`} />
                     </label>
-                    <label className="block min-w-0 text-[12px] font-bold text-[#555]">
-                      Şehir
-                      <select value={form.city} onChange={(e) => setField("city", e.target.value)} className={inputClass}>
-                        {CITIES.map((city) => (
-                          <option key={city}>{city}</option>
-                        ))}
-                      </select>
-                    </label>
-                    <label className="block min-w-0 text-[12px] font-bold text-[#555]">
-                      İlçe
-                      <input value={form.district} onChange={(e) => setField("district", e.target.value)} className={inputClass} />
-                    </label>
+                    <CityDistrictFields
+                      city={form.city}
+                      district={form.district}
+                      onCity={(value) => setField("city", value)}
+                      onDistrict={(value) => setField("district", value)}
+                      inputClass={inputClass}
+                    />
                   </div>
                   <div className="mt-3 grid w-full grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_180px]">
                     <label className="block min-w-0 text-[12px] font-bold text-[#555]">
@@ -336,6 +423,50 @@ export function CheckoutView({
                 </>
               )}
 
+              {!hasAccount ? (
+                <div className="mt-4 rounded-md border border-[#d7e8f6] bg-[#eef6fb] p-4">
+                  <label className="flex items-start gap-2 text-[13px] text-[#333]">
+                    <input
+                      type="checkbox"
+                      className="mt-0.5"
+                      checked={createAccount}
+                      onChange={(e) => setCreateAccount(e.target.checked)}
+                    />
+                    <span>
+                      Kullanıcı hesabı oluşturulacak. Bu bilgilerle üye kaydı açmama{" "}
+                      <strong>izin veriyor musunuz?</strong>
+                    </span>
+                  </label>
+                  {createAccount ? (
+                    <>
+                      <div className="mt-3 grid w-full grid-cols-1 gap-3 md:grid-cols-2">
+                        <label className="block min-w-0 text-[12px] font-bold text-[#555]">
+                          Şifre
+                          <input
+                            type="password"
+                            autoComplete="new-password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            className={inputClass}
+                          />
+                        </label>
+                        <label className="block min-w-0 text-[12px] font-bold text-[#555]">
+                          Şifre Tekrar
+                          <input
+                            type="password"
+                            autoComplete="new-password"
+                            value={passwordConfirm}
+                            onChange={(e) => setPasswordConfirm(e.target.value)}
+                            className={inputClass}
+                          />
+                        </label>
+                      </div>
+                      <PasswordRules value={password} />
+                    </>
+                  ) : null}
+                </div>
+              ) : null}
+
               <label className="mt-4 flex items-center gap-2 text-[13px] text-[#333]">
                 <input
                   type="checkbox"
@@ -345,37 +476,141 @@ export function CheckoutView({
                 Fatura adresim farklı
               </label>
               {billingDifferent ? (
-                <p className="mt-2 text-[12px] leading-relaxed text-[#6b7280]">
-                  Fatura adresi sipariş notuna işlenir; kurumsal bilgiler bir sonraki adımda netleştirilir.
-                </p>
-              ) : null}
+                <div className="mt-4 space-y-3 rounded-md border border-line bg-[#fafbfc] p-4">
+                  <h2 className="text-[18px] font-extrabold tracking-wide text-[#111] uppercase">
+                    Fatura Adresi
+                  </h2>
+                  <div className="flex flex-wrap gap-6 text-[14px]">
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="radio"
+                        name="invoice"
+                        checked={invoice === "individual"}
+                        onChange={() => setInvoice("individual")}
+                      />
+                      Bireysel
+                    </label>
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="radio"
+                        name="invoice"
+                        checked={invoice === "corporate"}
+                        onChange={() => setInvoice("corporate")}
+                      />
+                      Kurumsal
+                    </label>
+                  </div>
 
-              <h2 className="mt-8 text-[18px] font-extrabold tracking-wide text-[#111] uppercase">
-                Fatura Bilgileri
-              </h2>
-              <div className="mt-3 flex flex-wrap gap-6 text-[14px]">
-                <label className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    name="invoice"
-                    checked={invoice === "individual"}
-                    onChange={() => setInvoice("individual")}
-                  />
-                  Bireysel
-                </label>
-                <label className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    name="invoice"
-                    checked={invoice === "corporate"}
-                    onChange={() => setInvoice("corporate")}
-                  />
-                  Kurumsal
-                </label>
-              </div>
-              {invoice === "corporate" ? (
-                <div className="mt-3 rounded-md border border-[#d7e8f6] bg-[#eef6fb] px-4 py-3 text-[13px] leading-relaxed text-[#334]">
-                  Kurumsal fatura için bilgilerinizi bir sonraki adımda girebilirsiniz.
+                  {invoice === "individual" ? (
+                    <div className="grid w-full grid-cols-1 gap-3 md:grid-cols-3">
+                      <label className="block min-w-0 text-[12px] font-bold text-[#555]">
+                        Ad Soyad
+                        <input
+                          value={billing.fullName}
+                          onChange={(e) => setBillingField("fullName", e.target.value)}
+                          className={inputClass}
+                        />
+                      </label>
+                      <label className="block min-w-0 text-[12px] font-bold text-[#555]">
+                        TC Kimlik No
+                        <input
+                          inputMode="numeric"
+                          maxLength={11}
+                          value={billing.tcKimlik}
+                          onChange={(e) => setBillingField("tcKimlik", e.target.value.replace(/\D/g, "").slice(0, 11))}
+                          className={inputClass}
+                          placeholder="11 haneli TC Kimlik No"
+                        />
+                      </label>
+                      <label className="block min-w-0 text-[12px] font-bold text-[#555]">
+                        Telefon
+                        <input
+                          type="tel"
+                          inputMode="tel"
+                          autoComplete="tel"
+                          placeholder="0 (5__) ___ __ __"
+                          value={billing.phone}
+                          onChange={(e) => setBillingField("phone", formatPhoneTR(e.target.value))}
+                          className={inputClass}
+                        />
+                      </label>
+                    </div>
+                  ) : (
+                    <div className="grid w-full grid-cols-1 gap-3 md:grid-cols-2">
+                      <label className="block min-w-0 text-[12px] font-bold text-[#555] md:col-span-2">
+                        Şirket Unvanı
+                        <input
+                          value={billing.companyName}
+                          onChange={(e) => setBillingField("companyName", e.target.value)}
+                          className={inputClass}
+                        />
+                      </label>
+                      <label className="block min-w-0 text-[12px] font-bold text-[#555]">
+                        Vergi Dairesi
+                        <input
+                          value={billing.taxOffice}
+                          onChange={(e) => setBillingField("taxOffice", e.target.value)}
+                          className={inputClass}
+                        />
+                      </label>
+                      <label className="block min-w-0 text-[12px] font-bold text-[#555]">
+                        Vergi No
+                        <input
+                          inputMode="numeric"
+                          maxLength={11}
+                          value={billing.taxNumber}
+                          onChange={(e) => setBillingField("taxNumber", e.target.value.replace(/\D/g, "").slice(0, 11))}
+                          className={inputClass}
+                        />
+                      </label>
+                      <label className="block min-w-0 text-[12px] font-bold text-[#555]">
+                        Yetkili Ad Soyad
+                        <input
+                          value={billing.fullName}
+                          onChange={(e) => setBillingField("fullName", e.target.value)}
+                          className={inputClass}
+                        />
+                      </label>
+                      <label className="block min-w-0 text-[12px] font-bold text-[#555]">
+                        Telefon
+                        <input
+                          type="tel"
+                          inputMode="tel"
+                          autoComplete="tel"
+                          placeholder="0 (5__) ___ __ __"
+                          value={billing.phone}
+                          onChange={(e) => setBillingField("phone", formatPhoneTR(e.target.value))}
+                          className={inputClass}
+                        />
+                      </label>
+                    </div>
+                  )}
+
+                  <div className="grid w-full grid-cols-1 gap-3 md:grid-cols-3">
+                    <CityDistrictFields
+                      city={billing.city}
+                      district={billing.district}
+                      onCity={(value) => setBillingField("city", value)}
+                      onDistrict={(value) => setBillingField("district", value)}
+                      inputClass={inputClass}
+                    />
+                    <label className="block min-w-0 text-[12px] font-bold text-[#555]">
+                      Posta Kodu
+                      <input
+                        value={billing.postalCode}
+                        onChange={(e) => setBillingField("postalCode", e.target.value)}
+                        className={inputClass}
+                      />
+                    </label>
+                  </div>
+                  <label className="block min-w-0 text-[12px] font-bold text-[#555]">
+                    Adres
+                    <textarea
+                      value={billing.line}
+                      onChange={(e) => setBillingField("line", e.target.value)}
+                      className="mt-1 block h-24 w-full rounded-md border border-line bg-white px-3 py-2 text-[13px] outline-none focus:border-orange"
+                    />
+                  </label>
                 </div>
               ) : null}
             </section>
@@ -432,7 +667,23 @@ export function CheckoutView({
                 </div>
                 <div className="flex justify-between gap-4 border-b border-line py-2">
                   <dt className="text-[#6b7280]">Fatura</dt>
-                  <dd className="font-semibold">{invoice === "corporate" ? "Kurumsal" : "Bireysel"}</dd>
+                  <dd className="text-right font-semibold">
+                    {billingDifferent ? (
+                      <>
+                        {invoice === "corporate" ? "Kurumsal" : "Bireysel"}
+                        <span className="mt-1 block font-normal text-[#555]">
+                          {invoice === "corporate"
+                            ? `${billing.companyName} · VD: ${billing.taxOffice} · VN: ${billing.taxNumber}`
+                            : `TCKN: ${billing.tcKimlik}`}
+                        </span>
+                        <span className="mt-1 block font-normal text-[#555]">
+                          {billing.line}, {billing.district} / {billing.city}
+                        </span>
+                      </>
+                    ) : (
+                      "Teslimat adresi ile aynı"
+                    )}
+                  </dd>
                 </div>
                 <div className="flex justify-between gap-4 py-2">
                   <dt className="text-[#6b7280]">Ödeme</dt>
@@ -476,13 +727,14 @@ export function CheckoutView({
             ) : (
               <button
                 type="button"
+                disabled={pending}
                 onClick={() => {
-                  if (step === "delivery") goPayment();
+                  if (step === "delivery") void goPayment();
                   else setStep("confirm");
                 }}
-                className="inline-flex h-11 items-center gap-2 rounded-md bg-orange px-5 text-[13px] font-extrabold tracking-wide text-[#111] hover:bg-orange-hover"
+                className="inline-flex h-11 items-center gap-2 rounded-md bg-orange px-5 text-[13px] font-extrabold tracking-wide text-[#111] hover:bg-orange-hover disabled:opacity-60"
               >
-                Devam Et
+                {pending ? "Kaydediliyor…" : "Devam Et"}
                 <ArrowRight className="size-4" />
               </button>
             )}

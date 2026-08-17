@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "Address" ADD COLUMN "email" TEXT NOT NULL DEFAULT '';
+ALTER TABLE "Address" ADD COLUMN "country" TEXT NOT NULL DEFAULT 'Türkiye';
+ALTER TABLE "Address" ADD COLUMN "postalCode" TEXT NOT NULL DEFAULT '';

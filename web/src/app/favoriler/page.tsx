@@ -1,15 +1,28 @@
-import { ShopChrome } from "@/components/layout/ShopChrome";
+import { AccountChrome } from "@/components/account/AccountChrome";
+import { FavoritesView } from "@/components/account/FavoritesView";
+import { getCurrentUser } from "@/lib/auth/session";
+import { listFavoriteProducts } from "@/lib/commerce/favorites";
 
 export const metadata = {
   title: "Favorilerim",
   robots: { index: false, follow: false },
 };
 
-export default function FavoritesPage() {
+export default async function FavoritesPage() {
+  const user = await getCurrentUser();
+  const items = user ? await listFavoriteProducts(user.id) : [];
+
   return (
-    <ShopChrome>
-      <h1 className="text-[24px] font-extrabold text-navy">Favorilerim</h1>
-      <p className="mt-4 text-[14px] text-muted">Üye girişi sonrası favori listesi eklenecek.</p>
-    </ShopChrome>
+    <AccountChrome
+      title="Favorilerim"
+      subtitle="Beğendiğiniz ürünler."
+      crumbs={[
+        { href: "/", label: "Ana Sayfa" },
+        { href: "/hesabim", label: "Hesabım" },
+        { label: "Favorilerim" },
+      ]}
+    >
+      <FavoritesView initial={items} />
+    </AccountChrome>
   );
 }

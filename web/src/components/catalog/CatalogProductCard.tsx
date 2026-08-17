@@ -1,11 +1,15 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
-import { Heart } from "lucide-react";
 import type { ListingProduct } from "@/data/catalog-page";
 import { quoteHref } from "@/data/catalog-page";
+import { FavoriteButton } from "@/components/favorites/FavoriteButton";
 import { formatPriceTry, formatStock } from "@/lib/media";
 
 export function CatalogProductCard({ product }: { product: ListingProduct }) {
+  const productId = Number(product.id);
+
   return (
     <article className="flex h-full flex-col border border-[#e6e8ec] bg-white shadow-[0_1px_4px_rgba(16,24,40,0.04)]">
       <div className="relative aspect-square bg-white">
@@ -17,13 +21,7 @@ export function CatalogProductCard({ product }: { product: ListingProduct }) {
             YENİ
           </span>
         ) : null}
-        <Link
-          href="/favoriler"
-          aria-label="Favorilere ekle"
-          className="absolute top-2.5 right-2.5 z-10 flex size-8 items-center justify-center rounded-full text-[#9aa0a8] hover:text-brand-red"
-        >
-          <Heart className="size-[18px]" strokeWidth={1.6} />
-        </Link>
+        <FavoriteButton productId={productId} />
         <Link href={product.href} className="absolute inset-0">
           <Image
             src={product.image}
