@@ -101,9 +101,11 @@ export const SITE_SETTING_DEFAULTS: SiteSettings = {
     tiktok: "",
   },
   seo: {
-    title: "Eser Promo | Promosyon Ürünleri",
-    description: "Logo baskılı promosyon ürünleri, kurumsal hediyelik ve toplu alım çözümleri.",
-    keywords: "",
+    title: "Eser Promo | Tuzla Promosyon Ürünleri ve Kurumsal Hediyelik",
+    description:
+      "Tuzla merkezli promosyon ürünleri, logolu baskı ve kurumsal hediyelik. Pendik, Gebze, Kartal ve Kocaeli hattına hızlı tedarik.",
+    keywords:
+      "promosyon ürünleri, kurumsal hediye, logolu promosyon, tuzla promosyon, pendik promosyon, gebze promosyon, promosyon kalem, promosyon ajanda, toplu alım teklifi, kurumsal hediyelik",
     allowIndexing: true,
   },
   maintenance: {

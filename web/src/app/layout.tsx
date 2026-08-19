@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { Montserrat } from "next/font/google";
 import "./globals.css";
 import { siteUrl } from "@/lib/env";
-import { faviconSrc, getSiteSettings } from "@/lib/site-settings";
+import { buildLocalBusinessJsonLd, buildWebsiteSearchJsonLd } from "@/lib/seo/local-business";
+import { faviconSrc, getSiteContact, getSiteSettings } from "@/lib/site-settings";
 
 const montserrat = Montserrat({
   variable: "--font-montserrat",
@@ -46,30 +47,27 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const settings = await getSiteSettings();
+  const [settings, contact] = await Promise.all([getSiteSettings(), getSiteContact()]);
+  const siteName = settings.general.siteName || "Eser Promo";
   const socialUrls = Object.values(settings.socialMedia)
     .map((value) => value.trim())
     .filter((value) => value.startsWith("http"));
   const orgJsonLd = {
     "@context": "https://schema.org",
     "@type": "Organization",
-    name: settings.general.siteName || "Eser Promo",
+    name: siteName,
     url: siteUrl(),
     logo: `${siteUrl()}/brand/logo.png`,
     sameAs: socialUrls.length > 0 ? socialUrls : undefined,
   };
-  const websiteJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    name: settings.general.siteName || "Eser Promo",
-    url: siteUrl(),
-    inLanguage: "tr-TR",
-  };
+  const websiteJsonLd = buildWebsiteSearchJsonLd(siteName);
+  const localBusinessJsonLd = buildLocalBusinessJsonLd(contact, siteName);
   return (
     <html lang="tr" className={`${montserrat.variable} h-full`}>
       <body className="min-h-dvh flex flex-col font-sans antialiased">
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessJsonLd) }} />
         {children}
       </body>
     </html>

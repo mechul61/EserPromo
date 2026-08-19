@@ -1,4 +1,5 @@
 import { SITE_CONTACT } from "./catalog-page";
+import { LOCAL_AREA_LINKS } from "@/lib/seo/local-areas";
 
 export type InfoSection = {
   heading?: string;
@@ -17,6 +18,9 @@ export const FOOTER_COLS = {
     { href: "/hakkimizda", label: "Hakkımızda" },
     { href: "/kurumsal", label: "Kurumsal" },
     { href: "/baski-teknikleri", label: "Baskı Teknikleri" },
+    { href: "/teklif", label: "Toplu Alım / Teklif" },
+    { href: "/logolu-siparis", label: "Logolu Sipariş" },
+    ...LOCAL_AREA_LINKS.slice(0, 3),
     { href: "/bayilik", label: "Bayilik" },
     { href: "/kariyer", label: "Kariyer" },
     { href: "/iletisim", label: "İletişim" },
@@ -423,6 +427,10 @@ export const INFO_PAGES: Record<string, InfoPageContent> = {
 export const SHOP_SITEMAP = [
   { href: "/", label: "Ana Sayfa" },
   { href: "/urunler", label: "Tüm Ürünler" },
+  { href: "/bolgeler/tuzla-promosyon-urunleri", label: "Tuzla Promosyon Ürünleri" },
+  { href: "/bolgeler/pendik-promosyon-urunleri", label: "Pendik Promosyon Ürünleri" },
+  { href: "/bolgeler/gebze-promosyon-urunleri", label: "Gebze Promosyon Ürünleri" },
+  { href: "/teklif", label: "Toplu Alım / Teklif" },
   { href: "/sepet", label: "Sepetim" },
   { href: "/favoriler", label: "Favorilerim" },
   { href: "/giris", label: "Giriş Yap" },

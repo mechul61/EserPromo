@@ -4,7 +4,7 @@ import { buildPageMetadata } from "@/lib/seo/metadata";
 export const metadata = buildPageMetadata({
   title: "Hakkımızda",
   description:
-    "Eser Promo'nun kurumsal promosyon, logolu baskı ve toplu sipariş süreçlerindeki üretim yaklaşımı ve hizmet anlayışı.",
+    "Tuzla merkezli Eser Promo: promosyon ürünleri, logolu baskı ve kurumsal hediyelik tedarikçisi. Pendik, Gebze ve Anadolu Yakası'na hizmet.",
   path: "/hakkimizda",
 });
 

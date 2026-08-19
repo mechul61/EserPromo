@@ -15,9 +15,9 @@ function currentTimestamp() { return Date.now(); }
 
 export const dynamic = "force-dynamic";
 export const metadata = buildPageMetadata({
-  title: "Promosyon Ürünleri ve Kurumsal Hediyeler",
+  title: "Promosyon Ürünleri Tuzla | Kurumsal Hediyelik",
   description:
-    "Eser Promo'da logolu promosyon ürünleri, kurumsal hediyeler, hızlı teklif ve kaliteli baskı teknikleri ile markanıza uygun çözümler.",
+    "Tuzla merkezli Eser Promo: promosyon ürünleri, logolu kurumsal hediyelik, toplu alım teklifi. Pendik, Gebze, Kartal ve Anadolu Yakası'na hızlı tedarik.",
   path: "/",
 });
 

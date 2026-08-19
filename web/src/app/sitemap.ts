@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/db";
 import { siteUrl } from "@/lib/env";
+import { LOCAL_AREAS } from "@/lib/seo/local-areas";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = siteUrl();
@@ -21,6 +22,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/kullanim-sartlari/",
     "/kvkk/",
     "/site-haritasi/",
+    "/teklif/",
+    "/logolu-siparis/",
+    "/arama/",
+    ...LOCAL_AREAS.map((area) => `/bolgeler/${area.slug}/`),
   ];
   const [categories, products] = await Promise.all([
     prisma.category.findMany({ where: { removed: false }, select: { slug: true, updatedAt: true } }),
