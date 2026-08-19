@@ -4,6 +4,7 @@ import { useEffect, useId, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ExternalLink, X } from "lucide-react";
+import { CartLinesGrid } from "@/components/grid/AdminGrids";
 import { formatPriceTry } from "@/lib/media";
 
 export type CartLine = {
@@ -102,39 +103,21 @@ export function CartDetailView({
         ))}
       </div>
 
-      <section className="overflow-x-auto rounded-md border border-line bg-white">
-        {lines.length === 0 ? (
-          <p className="p-5 text-[13px] text-[#6b7280]">Sepet boş.</p>
-        ) : (
-          <table className="w-full min-w-[640px] text-left text-[13px]">
-            <thead className="border-b border-line bg-soft text-[11px] font-bold tracking-wide text-[#6b7280] uppercase">
-              <tr>
-                <th className="px-4 py-2">Ürün</th>
-                <th className="px-4 py-2">SKU</th>
-                <th className="px-4 py-2">Adet</th>
-                <th className="px-4 py-2">Tutar</th>
-              </tr>
-            </thead>
-            <tbody>
-              {lines.map((line) => (
-                <tr
-                  key={line.id}
-                  className="cursor-pointer border-b border-line last:border-b-0 hover:bg-soft"
-                  onClick={() => {
-                    setItemId(line.id);
-                    setOpen("item");
-                  }}
-                >
-                  <td className="px-4 py-2.5 font-extrabold text-navy">{line.name}</td>
-                  <td className="px-4 py-2.5 text-[#6b7280]">{line.sku}</td>
-                  <td className="px-4 py-2.5">{line.quantity}</td>
-                  <td className="px-4 py-2.5 font-extrabold">{money(line.grand)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-        <div className="flex justify-between border-t border-line px-4 py-3 text-[13px]">
+      <section>
+        <CartLinesGrid
+          rows={lines.map((line) => ({
+            id: line.id,
+            name: line.name,
+            sku: line.sku,
+            quantity: line.quantity,
+            total: line.grand,
+          }))}
+          onRowClick={(row) => {
+            setItemId(row.id);
+            setOpen("item");
+          }}
+        />
+        <div className="mt-0 flex justify-between rounded-b-md border border-t-0 border-line bg-white px-4 py-3 text-[13px]">
           <span className="text-[#6b7280]">{updatedAt} güncellendi</span>
           <span className="font-extrabold text-navy">Toplam {money(grand)}</span>
         </div>
@@ -208,34 +191,16 @@ export function CartDetailView({
                 </Link>
               </div>
             ) : (
-              <div className="min-h-0 flex-1 overflow-auto">
-                {lines.length === 0 ? (
-                  <p className="px-4 py-6 text-[13px] text-[#6b7280]">Sepet boş.</p>
-                ) : (
-                  <table className="w-full text-left text-[13px]">
-                    <thead className="border-b border-line bg-soft text-[11px] font-bold tracking-wide text-[#6b7280] uppercase">
-                      <tr>
-                        <th className="px-4 py-2">Ürün</th>
-                        <th className="px-4 py-2">Adet</th>
-                        <th className="px-4 py-2">Tutar</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {lines.map((line) => (
-                        <tr key={line.id} className="border-b border-line last:border-b-0">
-                          <td className="px-4 py-2.5">
-                            <p className="font-extrabold text-navy">{line.name}</p>
-                            <p className="text-[12px] text-[#6b7280]">{line.sku}</p>
-                          </td>
-                          <td className="px-4 py-2.5">{line.quantity}</td>
-                          <td className="px-4 py-2.5 font-extrabold">
-                            {open === "qty" ? line.quantity.toLocaleString("tr-TR") : money(amount(line))}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
+              <div className="min-h-0 flex-1 overflow-auto p-4">
+                <CartLinesGrid
+                  rows={lines.map((line) => ({
+                    id: line.id,
+                    name: line.name,
+                    sku: line.sku,
+                    quantity: line.quantity,
+                    total: typeof amount(line) === "number" ? Number(amount(line)) : line.grand,
+                  }))}
+                />
               </div>
             )}
           </div>

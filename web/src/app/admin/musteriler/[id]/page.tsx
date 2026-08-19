@@ -51,12 +51,20 @@ export default async function AdminCustomerDetailPage({
       <div className="grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
         <section className="rounded-md border border-line bg-white p-5 text-[13px]">
           <p>
+            <span className="text-[#6b7280]">Müşteri no: </span>
+            #{user.publicNo}
+          </p>
+          <p className="mt-2">
             <span className="text-[#6b7280]">Telefon: </span>
             {formatPhoneTR(user.phone ?? "") || "—"}
           </p>
           <p className="mt-2">
+            <span className="text-[#6b7280]">Grup: </span>
+            {user.customerGroup === "vip" ? "VIP" : user.customerGroup === "wholesale" ? "Toptan" : "Perakende"}
+          </p>
+          <p className="mt-2">
             <span className="text-[#6b7280]">Rol: </span>
-            {user.role === "admin" ? "Yönetici" : "Müşteri"}
+            {user.role === "customer" ? "Müşteri" : "Yönetici"}
           </p>
           <p className="mt-2">
             <span className="text-[#6b7280]">Kayıt: </span>

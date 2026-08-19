@@ -38,13 +38,22 @@ function money(n: number) {
   return `₺${formatPriceTry(n)}`;
 }
 
-export function CartView({ items }: { items: CartLineView[] }) {
+export type AppliedCoupon = {
+  code: string;
+  name: string;
+  amount: number;
+  label: string;
+};
+
+export function CartView({ items, coupon }: { items: CartLineView[]; coupon: AppliedCoupon | null }) {
   const router = useRouter();
   const [qty, setQty] = useState<Record<number, number>>(() =>
     Object.fromEntries(items.map((item) => [item.productId, item.quantity])),
   );
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [couponCode, setCouponCode] = useState(coupon?.code ?? "");
+  const [applied, setApplied] = useState<AppliedCoupon | null>(coupon);
 
   const lines = useMemo(
     () => items.filter((item) => (qty[item.productId] ?? item.quantity) > 0),
@@ -159,6 +168,50 @@ export function CartView({ items }: { items: CartLineView[] }) {
   async function goCheckout() {
     const ok = await saveAll();
     if (ok) router.push("/odeme");
+  }
+
+  async function applyCoupon() {
+    setPending(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/cart/coupon", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: couponCode }),
+      });
+      const data = (await res.json()) as { error?: string; coupon?: AppliedCoupon | null };
+      if (!res.ok) {
+        setError(data.error || "Kupon uygulanamadı");
+        return;
+      }
+      setApplied(data.coupon ?? null);
+      if (data.coupon) setCouponCode(data.coupon.code);
+      router.refresh();
+    } catch {
+      setError("Bağlantı hatası");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function removeCoupon() {
+    setPending(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/cart/coupon", { method: "DELETE" });
+      const data = (await res.json()) as { error?: string };
+      if (!res.ok) {
+        setError(data.error || "Kupon kaldırılamadı");
+        return;
+      }
+      setApplied(null);
+      setCouponCode("");
+      router.refresh();
+    } catch {
+      setError("Bağlantı hatası");
+    } finally {
+      setPending(false);
+    }
   }
 
   const waText = encodeURIComponent(
@@ -347,6 +400,22 @@ export function CartView({ items }: { items: CartLineView[] }) {
           <h2 className="text-[15px] font-extrabold tracking-wide text-[#111] uppercase">
             Sipariş Özeti
           </h2>
+          <div className="mt-4 flex gap-2">
+            <input
+              value={couponCode}
+              onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+              placeholder="Kupon kodu"
+              className="h-10 min-w-0 flex-1 rounded-md border border-line px-3 text-[13px] outline-none"
+            />
+            <button
+              type="button"
+              disabled={pending || !couponCode.trim()}
+              onClick={() => void applyCoupon()}
+              className="h-10 shrink-0 rounded-md bg-navy px-3 text-[12px] font-extrabold text-white disabled:opacity-50"
+            >
+              Uygula
+            </button>
+          </div>
           <dl className="mt-4 space-y-2.5 text-[13px]">
             <div className="flex items-center justify-between">
               <dt className="text-[#666]">Ara Toplam</dt>
@@ -360,13 +429,28 @@ export function CartView({ items }: { items: CartLineView[] }) {
               <dt className="text-[#666]">Kargo</dt>
               <dd className="font-semibold text-brand-green">Ücretsiz</dd>
             </div>
+            {applied ? (
+              <div className="flex items-center justify-between">
+                <dt className="text-[#666]">
+                  Kupon ({applied.code})
+                  <button
+                    type="button"
+                    className="ml-2 text-[11px] font-bold text-brand-red"
+                    onClick={() => void removeCoupon()}
+                  >
+                    Kaldır
+                  </button>
+                </dt>
+                <dd className="font-semibold text-brand-green">−{money(applied.amount)}</dd>
+              </div>
+            ) : null}
             <div className="pt-1">
               <div className="flex items-end justify-between gap-3">
                 <dt className="text-[12px] font-extrabold tracking-wide text-[#111] uppercase">
                   Genel Toplam
                 </dt>
                 <dd className="text-[20px] leading-none font-extrabold text-navy">
-                  {money(totals.grand)}
+                  {money(Math.max(0, totals.grand - (applied?.amount ?? 0)))}
                 </dd>
               </div>
               <p className="mt-1 text-right text-[11px] text-[#8b919a]">KDV Dahil</p>

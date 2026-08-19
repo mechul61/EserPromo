@@ -9,16 +9,17 @@ export type AuthUser = {
   id: string;
   email: string;
   name: string;
-  role: "customer" | "admin";
+  role: "customer" | "admin" | "super_admin" | "editor" | "support" | "content";
 };
 
 function cookieSecure() {
   return process.env.NODE_ENV === "production";
 }
 
-export async function createSession(userId: string) {
+export async function createSession(userId: string, remember?: boolean) {
   const token = randomToken(32);
-  const expiresAt = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000);
+  const days = remember === true ? 30 : remember === false ? 1 : SESSION_DAYS;
+  const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
   await prisma.session.create({
     data: {
       userId,
@@ -32,7 +33,7 @@ export async function createSession(userId: string) {
     secure: cookieSecure(),
     sameSite: "lax",
     path: "/",
-    expires: expiresAt,
+    ...(remember === false ? {} : { expires: expiresAt }),
   });
 }
 
@@ -60,7 +61,7 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
     where: { tokenHash: sha256(token) },
     include: { user: true },
   });
-  if (!session || session.expiresAt < new Date() || !session.user.isActive) {
+  if (!session || session.expiresAt < new Date() || !session.user.isActive || session.user.blocked) {
     return null;
   }
 

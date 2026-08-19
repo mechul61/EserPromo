@@ -1,40 +1,43 @@
 import Link from "next/link";
 import { ChevronRight, Home, Mail, MapPin, Phone, Smartphone } from "lucide-react";
 import { ShopChrome } from "@/components/layout/ShopChrome";
-import { SITE_CONTACT } from "@/data/catalog-page";
+import { ContactSupportForm } from "@/components/commerce/ContactSupportForm";
 import { INFO_PAGES } from "@/data/info-pages";
+import { getCurrentUser } from "@/lib/auth/session";
+import { isRecaptchaEnabled } from "@/lib/security/recaptcha";
+import { getSiteContact } from "@/lib/site-settings";
 
 export const metadata = { title: "İletişim" };
 
-const cards = [
-  {
-    label: "Adres",
-    value: SITE_CONTACT.address,
-    href: "https://maps.google.com/?q=" + encodeURIComponent(SITE_CONTACT.address),
-    Icon: MapPin,
-  },
-  {
-    label: "Telefon",
-    value: SITE_CONTACT.phone,
-    href: SITE_CONTACT.phoneTel,
-    Icon: Phone,
-  },
-  {
-    label: "WhatsApp",
-    value: SITE_CONTACT.whatsapp,
-    href: SITE_CONTACT.whatsappHref,
-    Icon: Smartphone,
-  },
-  {
-    label: "E-posta",
-    value: SITE_CONTACT.email,
-    href: `mailto:${SITE_CONTACT.email}`,
-    Icon: Mail,
-  },
-] as const;
-
-export default function Page() {
+export default async function Page() {
   const page = INFO_PAGES.iletisim;
+  const [user, recaptchaEnabled, contact] = await Promise.all([getCurrentUser(), isRecaptchaEnabled(), getSiteContact()]);
+  const cards = [
+    {
+      label: "Adres",
+      value: contact.address,
+      href: contact.mapsUrl || "https://maps.google.com/?q=" + encodeURIComponent(contact.address),
+      Icon: MapPin,
+    },
+    {
+      label: "Telefon",
+      value: contact.phone,
+      href: contact.phoneTel,
+      Icon: Phone,
+    },
+    {
+      label: "WhatsApp",
+      value: contact.whatsapp,
+      href: contact.whatsappHref,
+      Icon: Smartphone,
+    },
+    {
+      label: "E-posta",
+      value: contact.email,
+      href: `mailto:${contact.email}`,
+      Icon: Mail,
+    },
+  ] as const;
 
   return (
     <ShopChrome>
@@ -72,6 +75,14 @@ export default function Page() {
               <p className="mt-2 text-[14px] leading-relaxed text-[#444]">{value}</p>
             </a>
           ))}
+        </div>
+
+        <div className="mt-4">
+          <ContactSupportForm
+            recaptchaEnabled={recaptchaEnabled}
+            defaultName={user?.name ?? ""}
+            defaultEmail={user?.email ?? ""}
+          />
         </div>
 
         <p className="mt-5 text-[13px] text-[#6b7280]">

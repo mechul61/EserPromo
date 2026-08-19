@@ -5,7 +5,7 @@ import { AccountChrome } from "@/components/account/AccountChrome";
 import { getCurrentUser } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import { formatDateTr } from "@/lib/account";
-import { ORDER_STATUS_LABEL } from "@/lib/commerce/orders";
+import { customerShippingCopy, isOfficePickup } from "@/lib/commerce/orders";
 import { formatPriceTry } from "@/lib/media";
 
 export const metadata = {
@@ -48,7 +48,7 @@ export default async function OrdersPage() {
                 <div className="min-w-0">
                   <p className="text-[15px] font-extrabold text-navy">{order.publicNumber}</p>
                   <p className="mt-1 text-[13px] text-[#6b7280]">
-                    {ORDER_STATUS_LABEL[order.status] ?? order.status} ·{" "}
+                    {customerShippingCopy(order.status, isOfficePickup(order.customerNote)).title} ·{" "}
                     {order._count.items.toLocaleString("tr-TR")} ürün · {formatDateTr(order.createdAt)}
                   </p>
                   <p className="mt-1 text-[14px] font-extrabold text-[#111]">

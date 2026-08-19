@@ -9,6 +9,7 @@ import { prisma } from "@/lib/db";
 import { formatDateTimeTr } from "@/lib/auth/login-meta";
 import { formatPriceTry, mediaUrl } from "@/lib/media";
 import { formatPhoneTR } from "@/lib/phone";
+import { CARGO_COMPANIES, isCargoCompany } from "@/lib/commerce/cargo";
 import { productPath } from "@/lib/seo/urls";
 
 export const metadata = { title: "Sipariş | Yönetim" };
@@ -214,6 +215,12 @@ export default async function AdminOrderDetailPage({
                   {Number(order.shippingTotal) === 0 ? "Ücretsiz" : `₺${formatPriceTry(order.shippingTotal)}`}
                 </dd>
               </div>
+              {Number(order.discountTotal) > 0 ? (
+                <div className="flex justify-between">
+                  <dt>Kupon{order.couponCode ? ` (${order.couponCode})` : ""}</dt>
+                  <dd>−₺{formatPriceTry(order.discountTotal)}</dd>
+                </div>
+              ) : null}
               <div className="flex justify-between font-extrabold text-navy">
                 <dt>Genel toplam</dt>
                 <dd>₺{formatPriceTry(order.grandTotal)}</dd>
@@ -228,6 +235,9 @@ export default async function AdminOrderDetailPage({
               <Row label="Telefon" value={formatPhoneTR(order.shipPhone) || order.shipPhone} />
               <Row label="Adres" value={order.shipLine} />
               <Row label="İlçe / İl" value={`${order.shipDistrict} / ${order.shipCity}`} />
+              <Row label="Kargo firması" value={isCargoCompany(order.cargoCompany) ? CARGO_COMPANIES[order.cargoCompany] : order.cargoCompany} />
+              <Row label="Takip no" value={order.trackingNo} />
+              <Row label="Takip linki" value={order.trackingUrl} />
               {note.rows.map((row) => (
                 <Row key={`${row.label}-${row.value}`} label={row.label} value={row.value} />
               ))}

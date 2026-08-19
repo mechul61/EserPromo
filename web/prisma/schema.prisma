@@ -16,6 +16,23 @@ datasource db {
 enum UserRole {
   customer
   admin
+  super_admin
+  editor
+  support
+  content
+}
+
+enum CustomerGroup {
+  retail
+  wholesale
+  vip
+}
+
+enum CustomerSource {
+  website
+  social
+  email
+  other
 }
 
 enum OrderStatus {
@@ -36,6 +53,18 @@ enum PaymentStatus {
   refunded
 }
 
+enum CouponKind {
+  general
+  shipping
+  special
+  product
+}
+
+enum CouponDiscountKind {
+  percent
+  amount
+}
+
 model Category {
   id             Int            @id
   parentId       Int?
@@ -51,11 +80,14 @@ model Category {
   sourceMd5      String?
   products       Product[]
   groups         ProductGroup[]
+  adminLocked    Boolean        @default(false)
+  removed        Boolean        @default(false)
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
 
   @@index([parentId])
   @@index([showOnHomepage, homepageOrder])
+  @@index([removed])
 }
 
 /// Varyant ailesi — Google'daki tek kanonik ürün sayfası.
@@ -105,10 +137,14 @@ model Product {
   /// Eski/varyant slug; 301 ile grup URL'sine yönlenir.
   slug           String   @unique
   isActive       Boolean  @default(true)
+  showOnHomepage Boolean  @default(true)
+  adminLocked    Boolean  @default(false)
+  removed        Boolean  @default(false)
   images         ProductImage[]
   cartItems      CartItem[]
   orderItems     OrderItem[]
   favorites      Favorite[]
+  notifications  UserNotification[]
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -116,6 +152,8 @@ model Product {
   @@index([sku])
   @@index([skuGroup, isGroupPrimary])
   @@index([isActive, sortOrder])
+  @@index([isActive, showOnHomepage, isGroupPrimary])
+  @@index([removed])
 }
 
 model ProductImage {
@@ -133,13 +171,18 @@ model ProductImage {
 }
 
 model User {
-  id              String    @id @default(cuid())
-  email           String    @unique
+  id              String          @id @default(cuid())
+  publicNo        Int             @unique @default(autoincrement())
+  email           String          @unique
   passwordHash    String
   name            String
   phone           String?
-  role            UserRole  @default(customer)
-  isActive        Boolean   @default(true)
+  city            String          @default("")
+  role            UserRole        @default(customer)
+  customerGroup   CustomerGroup   @default(retail)
+  source          CustomerSource  @default(website)
+  isActive        Boolean         @default(true)
+  blocked         Boolean         @default(false)
   emailVerifiedAt DateTime?
   sessions        Session[]
   addresses       Address[]
@@ -147,9 +190,17 @@ model User {
   orders          Order[]
   profile         UserProfile?
   favorites       Favorite[]
+  notifications   UserNotification[]
   loginEvents     LoginEvent[]
+  passwordResets  PasswordResetToken[]
+  couponRedemptions CouponRedemption[]
+  supportTickets  SupportTicket[]
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
+
+  @@index([role, isActive, blocked])
+  @@index([customerGroup])
+  @@index([city])
 }
 
 model LoginEvent {
@@ -163,6 +214,19 @@ model LoginEvent {
   createdAt DateTime @default(now())
 
   @@index([userId, createdAt])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model Favorite {
@@ -194,8 +258,27 @@ model UserProfile {
   useCorporateDefault Boolean   @default(false)
   notifyEmail         Boolean   @default(true)
   notifySms           Boolean   @default(false)
+  notifyWhatsapp      Boolean   @default(false)
   notifyOrder         Boolean   @default(true)
   updatedAt           DateTime  @updatedAt
+}
+
+model UserNotification {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String
+  title     String
+  body      String    @db.Text
+  href      String?
+  productId Int?
+  product   Product?  @relation(fields: [productId], references: [id], onDelete: SetNull)
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, createdAt])
+  @@index([userId, readAt])
+  @@index([productId, type, createdAt])
 }
 
 model Session {
@@ -235,9 +318,13 @@ model Cart {
   userId     String?    @unique
   user       User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
   guestToken String?    @unique
+  couponId   String?
+  coupon     Coupon?    @relation(fields: [couponId], references: [id], onDelete: SetNull)
   items      CartItem[]
   createdAt  DateTime   @default(now())
   updatedAt  DateTime   @updatedAt
+
+  @@index([couponId])
 }
 
 model CartItem {
@@ -266,6 +353,10 @@ model Order {
   shippingTotal    Decimal     @db.Decimal(12, 2) @default(0)
   /// Ödenecek tutar (KDV dahil)
   grandTotal       Decimal     @db.Decimal(12, 2)
+  discountTotal    Decimal     @db.Decimal(12, 2) @default(0)
+  couponId         String?
+  coupon           Coupon?     @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  couponCode       String?
   currency         String      @default("TRY")
   /// Sipariş anı teslimat kopyası (adres silinse de fatura kalır)
   shipFullName     String
@@ -276,12 +367,19 @@ model Order {
   customerNote     String?     @db.Text
   items            OrderItem[]
   payments         Payment[]
+  couponRedemption CouponRedemption?
   paidAt           DateTime?
+  cargoCompany     String      @default("")
+  trackingNo       String      @default("")
+  trackingUrl      String      @default("")
+  shippedAt        DateTime?
+  deliveredAt      DateTime?
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
 
   @@index([userId, createdAt])
   @@index([status])
+  @@index([couponId])
 }
 
 model OrderItem {
@@ -340,4 +438,342 @@ model TransferBank {
   iban        String   @default("")
   accountType String   @default("Vadesiz TL")
   updatedAt   DateTime @updatedAt
+}
+
+enum PaymentMethodKind {
+  card
+  transfer
+  wallet
+  cod
+}
+
+model PaymentMethod {
+  id          String             @id @default(cuid())
+  key         String             @unique
+  name        String
+  description String             @default("")
+  kind        PaymentMethodKind
+  provider    String             @default("")
+  isActive    Boolean            @default(true)
+  sortOrder   Int                @default(0)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  @@index([isActive, sortOrder])
+}
+
+model SiteSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+model Coupon {
+  id             String              @id @default(cuid())
+  code           String              @unique
+  name           String
+  description    String?             @db.Text
+  kind           CouponKind          @default(general)
+  discountKind   CouponDiscountKind
+  discountValue  Decimal             @db.Decimal(12, 2)
+  minOrderAmount Decimal             @db.Decimal(12, 2) @default(0)
+  startsAt       DateTime
+  endsAt         DateTime
+  usageLimit     Int?
+  usedCount      Int                 @default(0)
+  perUserLimit   Int                 @default(1)
+  isActive       Boolean             @default(true)
+  /// Ürün kuponu için Product.id listesi
+  productIds     Json?
+  carts          Cart[]
+  orders         Order[]
+  redemptions    CouponRedemption[]
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  @@index([isActive, startsAt, endsAt])
+  @@index([kind])
+}
+
+model CouponRedemption {
+  id        String   @id @default(cuid())
+  couponId  String
+  coupon    Coupon   @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  orderId   String   @unique
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount    Decimal  @db.Decimal(12, 2)
+  createdAt DateTime @default(now())
+
+  @@index([couponId, createdAt])
+  @@index([userId, createdAt])
+}
+
+enum BannerKind {
+  banner
+  slider
+}
+
+enum BannerPlacement {
+  hero
+  middle_1
+  middle_2
+  bottom
+  side
+  category
+}
+
+model Banner {
+  id         String           @id @default(cuid())
+  kind       BannerKind       @default(banner)
+  title      String
+  href       String           @default("")
+  imagePath  String
+  width      Int              @default(1920)
+  height     Int              @default(600)
+  placement  BannerPlacement  @default(hero)
+  isActive   Boolean          @default(true)
+  startsAt   DateTime?
+  endsAt     DateTime?
+  minAmount  Decimal          @default(0) @db.Decimal(12, 2)
+  maxAmount  Decimal          @default(0) @db.Decimal(12, 2)
+  views      Int              @default(0)
+  sortOrder  Int              @default(0)
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  @@index([kind, isActive, sortOrder])
+  @@index([placement, isActive, sortOrder])
+}
+
+enum PopupKind {
+  subscribe
+  promo
+  info
+}
+
+enum PopupPlacement {
+  home
+  all
+  category
+  product
+  cart
+}
+
+enum PopupDevice {
+  all
+  desktop
+  mobile
+}
+
+enum PopupAudience {
+  all
+  new_visitors
+  returning
+  logged_in
+}
+
+model Popup {
+  id              String          @id @default(cuid())
+  title           String
+  description     String          @default("")
+  kind            PopupKind       @default(subscribe)
+  placement       PopupPlacement  @default(all)
+  device          PopupDevice     @default(all)
+  audience        PopupAudience   @default(all)
+  isDraft         Boolean         @default(false)
+  isActive        Boolean         @default(true)
+  imagePath       String          @default("")
+  heading         String          @default("")
+  body            String          @default("")
+  ctaLabel        String          @default("")
+  ctaHref         String          @default("")
+  couponCode      String          @default("")
+  startsAt        DateTime?
+  endsAt          DateTime?
+  views           Int             @default(0)
+  clicks          Int             @default(0)
+  conversions     Int             @default(0)
+  delaySeconds    Int             @default(2)
+  frequencyHours  Int             @default(24)
+  sortOrder       Int             @default(0)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([isActive, isDraft, startsAt, endsAt])
+  @@index([placement, isActive])
+}
+
+model PopupSubscriber {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  popupId   String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+enum EmailTemplateCategory {
+  order
+  customer
+  marketing
+  other
+}
+
+enum EmailTemplateLanguage {
+  tr
+  en
+}
+
+model EmailTemplate {
+  id            String                 @id @default(cuid())
+  key           String                 @unique
+  name          String
+  description   String                 @default("")
+  subject       String
+  heading       String                 @default("")
+  body          String                 @db.Text
+  ctaLabel      String                 @default("")
+  ctaUrl        String                 @default("")
+  category      EmailTemplateCategory
+  language      EmailTemplateLanguage  @default(tr)
+  icon          String                 @default("mail")
+  showOrderBox  Boolean                @default(false)
+  isActive      Boolean                @default(true)
+  isSystem      Boolean                @default(true)
+  sentCount     Int                    @default(0)
+  failCount     Int                    @default(0)
+  lastSentAt    DateTime?
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+
+  @@index([category, isActive])
+}
+
+model EmailLog {
+  id          String   @id @default(cuid())
+  templateKey String
+  to          String
+  subject     String
+  status      String
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([templateKey, createdAt])
+  @@index([status, createdAt])
+}
+
+enum ReportCategory {
+  sales
+  customer
+  product
+  finance
+  marketing
+  other
+}
+
+enum ReportKindType {
+  table
+  chart
+}
+
+enum ReportSchedule {
+  none
+  daily
+  weekly
+  monthly
+}
+
+model SavedReport {
+  id          String           @id @default(cuid())
+  key         String           @unique
+  name        String
+  description String           @default("")
+  source      String
+  category    ReportCategory
+  kind        ReportKindType   @default(table)
+  icon        String           @default("chart")
+  schedule    ReportSchedule   @default(none)
+  isShared    Boolean          @default(false)
+  isSystem    Boolean          @default(true)
+  creatorName String           @default("Yönetici")
+  runCount    Int              @default(0)
+  lastRunAt   DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  runs        ReportRun[]
+
+  @@index([category, isShared])
+  @@index([schedule])
+}
+
+model ReportRun {
+  id        String      @id @default(cuid())
+  reportId  String
+  report    SavedReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  action    String
+  rowCount  Int         @default(0)
+  createdAt DateTime    @default(now())
+
+  @@index([reportId, createdAt])
+  @@index([action, createdAt])
+}
+
+enum SupportCategory {
+  order
+  returns
+  payment
+  invoice
+  cargo
+  account
+  other
+}
+
+enum SupportPriority {
+  low
+  medium
+  high
+}
+
+enum SupportStatus {
+  open
+  waiting
+  resolved
+  archived
+}
+
+model SupportTicket {
+  id           String           @id @default(cuid())
+  publicNumber String           @unique
+  userId       String?
+  user         User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  name         String
+  email        String
+  phone        String           @default("")
+  subject      String
+  category     SupportCategory  @default(other)
+  priority     SupportPriority  @default(medium)
+  status       SupportStatus    @default(waiting)
+  rating       Int?
+  resolvedAt   DateTime?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  messages     SupportMessage[]
+
+  @@index([status, createdAt])
+  @@index([email, createdAt])
+  @@index([userId, createdAt])
+}
+
+model SupportMessage {
+  id         String        @id @default(cuid())
+  ticketId   String
+  ticket     SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  author     String
+  authorName String
+  body       String        @db.Text
+  createdAt  DateTime      @default(now())
+
+  @@index([ticketId, createdAt])
 }

@@ -4,7 +4,7 @@ import { CatalogChrome } from "@/components/catalog/CatalogChrome";
 import { CatalogSidebar } from "@/components/catalog/CatalogSidebar";
 import { CartView, type CartLineView } from "@/components/commerce/CartView";
 import { MainNav } from "@/components/layout/MainNav";
-import { getCart } from "@/lib/commerce/cart";
+import { getCart, appliedCouponFor } from "@/lib/commerce/cart";
 import { mediaUrl } from "@/lib/media";
 import { productPath } from "@/lib/seo/urls";
 
@@ -15,6 +15,7 @@ export const metadata = {
 
 export default async function CartPage() {
   const cart = await getCart();
+  const coupon = await appliedCouponFor(cart);
 
   const items: CartLineView[] = (cart?.items ?? []).map((item) => ({
     productId: item.productId,
@@ -51,7 +52,7 @@ export default async function CartPage() {
               <span className="text-[#555]">Sepetim</span>
             </nav>
 
-            <CartView items={items} />
+            <CartView items={items} coupon={coupon} />
           </div>
         </div>
       </div>

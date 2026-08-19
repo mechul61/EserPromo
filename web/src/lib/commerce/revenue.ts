@@ -16,7 +16,7 @@ export function parseRevenuePeriod(raw?: string): RevenuePeriod {
   if (raw === "today" || raw === "week" || raw === "month" || raw === "year" || raw === "all") {
     return raw;
   }
-  return "all";
+  return "month";
 }
 
 function pad(n: number) {

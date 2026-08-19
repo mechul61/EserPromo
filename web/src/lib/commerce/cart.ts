@@ -2,6 +2,8 @@ import { cookies } from "next/headers";
 import { prisma } from "../db";
 import { randomToken } from "../security/crypto";
 import { getCurrentUser } from "../auth/session";
+import { couponPreview, cartLinesForCoupon, normalizeCouponCode, validateCouponForCart } from "./coupons";
+import { getSiteSettings, stockAllowsSale, stockMaxQty } from "@/lib/site-settings";
 
 export const CART_COOKIE = "ep_cart";
 
@@ -103,10 +105,23 @@ async function mergeGuestCart(userCartId: string, guestToken: string) {
       update: { quantity: { increment: item.quantity } },
     });
   }
+  if (guest.couponId) {
+    const userCart = await prisma.cart.findUnique({
+      where: { id: userCartId },
+      select: { couponId: true },
+    });
+    if (!userCart?.couponId) {
+      await prisma.cart.update({
+        where: { id: userCartId },
+        data: { couponId: guest.couponId },
+      });
+    }
+  }
   await prisma.cart.delete({ where: { id: guest.id } });
 }
 
 const cartInclude = {
+  coupon: true,
   items: {
     include: {
       product: {
@@ -125,17 +140,19 @@ export async function addToCart(productId: number, quantity: number) {
     throw new Error("Geçersiz adet");
   }
   const product = await prisma.product.findUnique({ where: { id: productId } });
-  if (!product || !product.isActive) throw new Error("Ürün bulunamadı");
-  if (product.stockTotal < 1) throw new Error("Bu ürün stokta yok");
-  if (quantity > product.stockTotal) {
+  if (!product || !product.isActive || product.removed) throw new Error("Ürün bulunamadı");
+  const settings = await getSiteSettings();
+  if (!stockAllowsSale(product.stockTotal, settings)) throw new Error("Bu ürün stokta yok");
+  const maxQty = stockMaxQty(product.stockTotal, settings);
+  if (quantity > maxQty) {
     throw new Error(`Stokta ${product.stockTotal} adet var`);
   }
 
   const cart = await getOrCreateCart();
   const existing = cart.items.find((i) => i.productId === productId);
   const nextQty = (existing?.quantity ?? 0) + quantity;
-  if (nextQty > product.stockTotal) {
-    const remaining = product.stockTotal - (existing?.quantity ?? 0);
+  if (nextQty > maxQty) {
+    const remaining = maxQty - (existing?.quantity ?? 0);
     throw new Error(
       remaining <= 0
         ? "Bu ürün sepetinizde stok adedine ulaştı"
@@ -161,7 +178,8 @@ export async function setCartItemQuantity(productId: number, quantity: number) {
     await prisma.cartItem.deleteMany({ where: { cartId: cart.id, productId } });
   } else {
     const product = await prisma.product.findUnique({ where: { id: productId } });
-    if (!product || quantity > product.stockTotal) {
+    const settings = await getSiteSettings();
+    if (!product || product.removed || !product.isActive || !stockAllowsSale(product.stockTotal, settings) || quantity > stockMaxQty(product.stockTotal, settings)) {
       throw new Error(
         !product ? "Ürün bulunamadı" : `Stokta ${product.stockTotal} adet var`,
       );
@@ -189,7 +207,8 @@ export async function setCartQuantities(
       continue;
     }
     const product = await prisma.product.findUnique({ where: { id: item.productId } });
-    if (!product || item.quantity > product.stockTotal) {
+    const settings = await getSiteSettings();
+    if (!product || item.quantity > stockMaxQty(product.stockTotal, settings) || !stockAllowsSale(product.stockTotal, settings)) {
       throw new Error(
         !product ? "Ürün bulunamadı" : `Stokta ${product.stockTotal} adet var`,
       );
@@ -212,6 +231,36 @@ export async function setCartQuantities(
 export async function clearCart() {
   const cart = await getOrCreateCart();
   await prisma.cartItem.deleteMany({ where: { cartId: cart.id } });
+  await prisma.cart.update({ where: { id: cart.id }, data: { couponId: null } });
+  return prisma.cart.findUniqueOrThrow({
+    where: { id: cart.id },
+    include: cartInclude,
+  });
+}
+
+export async function applyCartCoupon(code: string) {
+  const cart = await getOrCreateCart();
+  if (cart.items.length === 0) throw new Error("Sepet boş");
+  const coupon = await prisma.coupon.findUnique({
+    where: { code: normalizeCouponCode(code) },
+  });
+  if (!coupon) throw new Error("Kupon bulunamadı");
+  const user = await getCurrentUser();
+  const check = await validateCouponForCart(coupon, cartLinesForCoupon(cart.items), {
+    userId: user?.id,
+  });
+  if (check.error) throw new Error(check.error);
+  await prisma.cart.update({ where: { id: cart.id }, data: { couponId: coupon.id } });
+  const next = await prisma.cart.findUniqueOrThrow({
+    where: { id: cart.id },
+    include: cartInclude,
+  });
+  return { cart: next, preview: couponPreview(coupon, check.amount) };
+}
+
+export async function removeCartCoupon() {
+  const cart = await getOrCreateCart();
+  await prisma.cart.update({ where: { id: cart.id }, data: { couponId: null } });
   return prisma.cart.findUniqueOrThrow({
     where: { id: cart.id },
     include: cartInclude,
@@ -279,3 +328,16 @@ export async function peekCartCount(): Promise<number> {
   });
   return cartItemCount(cart);
 }
+
+export async function appliedCouponFor(
+  cart: Awaited<ReturnType<typeof getCart>>,
+) {
+  if (!cart?.coupon) return null;
+  const user = await getCurrentUser();
+  const check = await validateCouponForCart(cart.coupon, cartLinesForCoupon(cart.items), {
+    userId: user?.id,
+  });
+  if (check.error) return null;
+  return couponPreview(cart.coupon, check.amount);
+}
+

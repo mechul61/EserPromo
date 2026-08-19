@@ -31,6 +31,8 @@ export function ProductStage({
   unitPrice,
   specs,
   colors,
+  sellable,
+  maxQty,
 }: {
   productId: number;
   heading: string;
@@ -42,6 +44,8 @@ export function ProductStage({
   unitPrice: number;
   specs: Array<{ label: string; value: string }>;
   colors: ProductColorOption[];
+  sellable?: boolean;
+  maxQty?: number;
 }) {
   const [qty, setQty] = useState(1);
   const [printType, setPrintType] = useState<PrintKind | null>(null);
@@ -199,6 +203,8 @@ export function ProductStage({
               stock={stock}
               qty={qty}
               onQty={setQty}
+              sellable={sellable}
+              maxQty={maxQty}
             />
           </div>
         </div>

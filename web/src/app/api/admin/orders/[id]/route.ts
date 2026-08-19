@@ -1,12 +1,17 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { requireAdminApi } from "@/lib/auth/admin";
+import { cargoTrackingUrl, isCargoCompany } from "@/lib/commerce/cargo";
+import { notifyOrderDelivered, notifyOrderShipped, safeNotify } from "@/lib/commerce/email-templates";
 import { prisma } from "@/lib/db";
 import { assertSameOrigin, jsonError } from "@/lib/security/origin";
 
 const schema = z.object({
   status: z.enum(["pending_payment", "paid", "preparing", "shipped", "completed", "cancelled", "failed"]).optional(),
   paymentStatus: z.enum(["pending", "success", "failure", "refunded"]).optional(),
+  cargoCompany: z.string().max(40).optional(),
+  trackingNo: z.string().max(80).optional(),
+  trackingUrl: z.string().max(400).optional(),
 });
 
 export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
@@ -21,7 +26,15 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
   const { id } = await ctx.params;
   const body = schema.safeParse(await req.json().catch(() => null));
   if (!body.success) return jsonError("Geçersiz durum");
-  if (!body.data.status && !body.data.paymentStatus) return jsonError("Geçersiz durum");
+  if (
+    !body.data.status &&
+    !body.data.paymentStatus &&
+    body.data.cargoCompany === undefined &&
+    body.data.trackingNo === undefined &&
+    body.data.trackingUrl === undefined
+  ) {
+    return jsonError("Geçersiz durum");
+  }
 
   const order = await prisma.order.findUnique({
     where: { id },
@@ -31,12 +44,27 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
 
   const nextStatus = body.data.status ?? order.status;
   const paidLike = ["paid", "preparing", "shipped", "completed"].includes(nextStatus);
+  const cargoCompany = body.data.cargoCompany ?? order.cargoCompany;
+  const trackingNo = body.data.trackingNo ?? order.trackingNo;
+  const trackingUrl =
+    body.data.trackingUrl !== undefined
+      ? body.data.trackingUrl
+      : cargoTrackingUrl(cargoCompany, trackingNo, order.trackingUrl);
+
+  if (body.data.cargoCompany && body.data.cargoCompany !== "" && !isCargoCompany(body.data.cargoCompany)) {
+    return jsonError("Kargo firması geçersiz");
+  }
 
   const updated = await prisma.order.update({
     where: { id },
     data: {
       status: nextStatus,
       paidAt: paidLike ? (order.paidAt ?? new Date()) : order.paidAt,
+      cargoCompany,
+      trackingNo,
+      trackingUrl,
+      shippedAt: nextStatus === "shipped" ? (order.shippedAt ?? new Date()) : order.shippedAt,
+      deliveredAt: nextStatus === "completed" ? (order.deliveredAt ?? new Date()) : order.deliveredAt,
     },
   });
 
@@ -60,6 +88,13 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
     if (mapped !== payment.status) {
       await prisma.payment.update({ where: { id: payment.id }, data: { status: mapped } });
     }
+  }
+
+  if (nextStatus === "shipped" && order.status !== "shipped") {
+    await safeNotify(notifyOrderShipped(updated.id));
+  }
+  if (nextStatus === "completed" && order.status !== "completed") {
+    await safeNotify(notifyOrderDelivered(updated.id));
   }
 
   return Response.json({ ok: true, status: updated.status });

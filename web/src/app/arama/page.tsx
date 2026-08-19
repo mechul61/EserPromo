@@ -20,6 +20,7 @@ export default async function SearchPage({
     ? await prisma.product.findMany({
         where: {
           isActive: true,
+          removed: false,
           OR: [
             { name: { contains: query, mode: "insensitive" } },
             { title: { contains: query, mode: "insensitive" } },

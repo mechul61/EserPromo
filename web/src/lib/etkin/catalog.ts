@@ -41,6 +41,12 @@ export async function upsertCategory(
     if (dl.ok) imageLocalPath = dl.localPath;
   }
 
+  const existing = await prisma.category.findUnique({
+    where: { id },
+    select: { removed: true, adminLocked: true },
+  });
+  if (existing?.removed) return;
+
   await prisma.category.upsert({
     where: { id },
     create: {
@@ -57,18 +63,20 @@ export async function upsertCategory(
       homepageOrder: toInt(cat.anasayfa_sira),
       sourceMd5: cat.md5 || null,
     },
-    update: {
-      parentId,
-      name: cat.isim,
-      description: cat.aciklama || null,
-      imageUrl: cat.resim || null,
-      ...(imageLocalPath ? { imageLocalPath } : {}),
-      iconUrl: cat.kat_icon || null,
-      sortOrder: toInt(cat.sira),
-      showOnHomepage: toInt(cat.anasayfa_gosterim) === 1,
-      homepageOrder: toInt(cat.anasayfa_sira),
-      sourceMd5: cat.md5 || null,
-    },
+    update: existing?.adminLocked
+      ? { sourceMd5: cat.md5 || null }
+      : {
+          parentId,
+          name: cat.isim,
+          description: cat.aciklama || null,
+          imageUrl: cat.resim || null,
+          ...(imageLocalPath ? { imageLocalPath } : {}),
+          iconUrl: cat.kat_icon || null,
+          sortOrder: toInt(cat.sira),
+          showOnHomepage: toInt(cat.anasayfa_gosterim) === 1,
+          homepageOrder: toInt(cat.anasayfa_sira),
+          sourceMd5: cat.md5 || null,
+        },
   });
 }
 
@@ -143,6 +151,25 @@ async function upsertSingleProduct(
   const skuGroup = (p.urun_kodgrup || p.urun_kodu || String(id)).trim();
   const sku = (p.urun_kodu || String(id)).trim();
 
+  const current = await prisma.product.findUnique({
+    where: { id },
+    select: {
+      removed: true,
+      adminLocked: true,
+      price: true,
+      discountLocked: true,
+      name: true,
+      slug: true,
+    },
+  });
+  if (current?.removed) return { imagesDownloaded: 0 };
+
+  const categoryState = await prisma.category.findUnique({
+    where: { id: categoryId },
+    select: { removed: true, adminLocked: true },
+  });
+  if (categoryState?.removed) return { imagesDownloaded: 0 };
+
   // Kategori yoksa minimal oluştur (ürün FK için)
   await prisma.category.upsert({
     where: { id: categoryId },
@@ -151,9 +178,7 @@ async function upsertSingleProduct(
       name: p.kategori_adi || `Kategori ${categoryId}`,
       slug: categorySlug(p.kategori_adi || `kategori-${categoryId}`, categoryId),
     },
-    update: p.kategori_adi
-      ? { name: p.kategori_adi }
-      : {},
+    update: p.kategori_adi && !categoryState?.adminLocked ? { name: p.kategori_adi } : { id: categoryId },
   });
 
   await prisma.productGroup.upsert({
@@ -201,35 +226,61 @@ async function upsertSingleProduct(
       sourceMd5: p.md5 || null,
       slug: productSlug(p.urun_baslik || `${p.urun_kodu} ${p.urun_isim}`, id),
       isActive: true,
+      showOnHomepage: true,
       isGroupPrimary: false,
     },
-    update: {
-      categoryId,
-      sku,
-      skuGroup,
-      name: p.urun_isim,
-      title: p.urun_baslik || null,
-      description: p.urun_aciklama || null,
-      color: p.urun_renk || null,
-      size: p.urun_ebat || null,
-      features: p.ozellik || null,
-      sortOrder: toInt(p.sira),
-      catalogPage: toInt(p.katalog_sayfa_no) || null,
-      isManufactured: toInt(p.imalat) === 1,
-      discountLocked: toInt(p.kirmiziurun) === 1,
-      price: parseEtkinPrice(p.urun_fiyat ?? p.urun_fiyat_virgul),
-      vatRate: toInt(p.fiyat_kdv, 20),
-      stockTotal: toInt(p.toplam_stok),
-      stockCenter: toInt(p.mstok),
-      stockIstanbul: toInt(p.istok),
-      stockTopkapi: toInt(p.tstok),
-      traseUrl: p.urun_trase || null,
-      traseFileName: p.urun_trase_dosya_isim || null,
-      traseFileSize: toInt(p.urun_trase_dosya_boyut) || null,
-      sourceMd5: p.md5 || null,
-      isActive: true,
-    },
+    update: current?.adminLocked
+      ? { sourceMd5: p.md5 || null }
+      : {
+          categoryId,
+          sku,
+          skuGroup,
+          name: p.urun_isim,
+          title: p.urun_baslik || null,
+          description: p.urun_aciklama || null,
+          color: p.urun_renk || null,
+          size: p.urun_ebat || null,
+          features: p.ozellik || null,
+          sortOrder: toInt(p.sira),
+          catalogPage: toInt(p.katalog_sayfa_no) || null,
+          isManufactured: toInt(p.imalat) === 1,
+          discountLocked: toInt(p.kirmiziurun) === 1,
+          price: parseEtkinPrice(p.urun_fiyat ?? p.urun_fiyat_virgul),
+          vatRate: toInt(p.fiyat_kdv, 20),
+          stockTotal: toInt(p.toplam_stok),
+          stockCenter: toInt(p.mstok),
+          stockIstanbul: toInt(p.istok),
+          stockTopkapi: toInt(p.tstok),
+          traseUrl: p.urun_trase || null,
+          traseFileName: p.urun_trase_dosya_isim || null,
+          traseFileSize: toInt(p.urun_trase_dosya_boyut) || null,
+          sourceMd5: p.md5 || null,
+          isActive: true,
+        },
   });
+
+  if (current && !current.adminLocked) {
+    const newPrice = parseEtkinPrice(p.urun_fiyat ?? p.urun_fiyat_virgul);
+    const isDiscounted = toInt(p.kirmiziurun) === 1;
+    const { isFavoriteDiscount, notifyFavoriteDiscount } = await import("../commerce/favorite-alerts");
+    if (
+      isFavoriteDiscount({
+        oldPrice: Number(current.price),
+        newPrice,
+        wasDiscounted: current.discountLocked,
+        isDiscounted,
+      })
+    ) {
+      void notifyFavoriteDiscount({
+        productId: id,
+        name: p.urun_isim || current.name,
+        slug: current.slug,
+        oldPrice: Number(current.price),
+        newPrice,
+        wentOnSale: !current.discountLocked && isDiscounted,
+      }).catch((error) => console.error("favorite discount notify", id, error));
+    }
+  }
 
   let imagesDownloaded = 0;
   if (options.downloadImages !== false) {
@@ -270,13 +321,13 @@ async function upsertSingleProduct(
 
 async function ensureGroupPrimary(skuGroup: string) {
   const primary = await prisma.product.findFirst({
-    where: { skuGroup, isGroupPrimary: true, isActive: true },
+    where: { skuGroup, isGroupPrimary: true, isActive: true, removed: false },
     select: { id: true },
   });
   if (primary) return;
 
   const first = await prisma.product.findFirst({
-    where: { skuGroup, isActive: true },
+    where: { skuGroup, isActive: true, removed: false },
     orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
     select: { id: true },
   });
@@ -293,7 +344,7 @@ async function ensureGroupPrimary(skuGroup: string) {
  */
 export async function getVariantSiblings(skuGroup: string) {
   return prisma.product.findMany({
-    where: { skuGroup, isActive: true },
+    where: { skuGroup, isActive: true, removed: false },
     include: {
       images: { orderBy: { sortOrder: "asc" } },
       category: true,
@@ -314,6 +365,7 @@ export async function listProductGroups(options?: {
     where: {
       isActive: true,
       isGroupPrimary: true,
+      removed: false,
       ...(options?.categoryId ? { categoryId: options.categoryId } : {}),
     },
     include: {
@@ -339,7 +391,7 @@ export async function resolveProduct(slug: string) {
     where: { slug },
     include,
   });
-  if (bySlug?.isActive) {
+  if (bySlug?.isActive && !bySlug.removed) {
     return { kind: "ok" as const, product: bySlug };
   }
 
@@ -355,7 +407,7 @@ export async function resolveProduct(slug: string) {
       where: { id },
       include,
     });
-    if (byId?.isActive) {
+    if (byId?.isActive && !byId.removed) {
       if (byId.slug === slug) return { kind: "ok" as const, product: byId };
       return { kind: "redirect" as const, to: byId.slug };
     }

@@ -16,6 +16,22 @@ export function formatDateTr(value: Date | string | null | undefined) {
   return d.toLocaleDateString("tr-TR");
 }
 
+export async function listAccountNotifications(userId: string) {
+  return prisma.userNotification.findMany({
+    where: { userId },
+    orderBy: { createdAt: "desc" },
+    take: 50,
+    select: {
+      id: true,
+      title: true,
+      body: true,
+      href: true,
+      readAt: true,
+      createdAt: true,
+    },
+  });
+}
+
 export async function getAccountOverview(userId: string) {
   const [user, orders, lastSession, lastLoginEvent] = await Promise.all([
     prisma.user.findUniqueOrThrow({
@@ -65,6 +81,7 @@ export async function getAccountOverview(userId: string) {
       useCorporateDefault: user.profile?.useCorporateDefault ?? false,
       notifyEmail: user.profile?.notifyEmail ?? true,
       notifySms: user.profile?.notifySms ?? false,
+      notifyWhatsapp: user.profile?.notifyWhatsapp ?? false,
       notifyOrder: user.profile?.notifyOrder ?? true,
     },
     stats: {

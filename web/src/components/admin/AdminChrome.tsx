@@ -1,18 +1,27 @@
+import { Suspense } from "react";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import type { AuthUser } from "@/lib/auth/session";
 
 export function AdminChrome({
   user,
   children,
+  supportWaiting = 0,
+  ordersWaiting = 0,
 }: {
   user: AuthUser;
   children: React.ReactNode;
+  supportWaiting?: number;
+  ordersWaiting?: number;
 }) {
   return (
-    <div className="min-h-dvh bg-soft">
-      <div className="grid min-h-dvh grid-cols-1 lg:grid-cols-[240px_minmax(0,1fr)]">
-        <AdminSidebar name={user.name} />
-        <div className="min-w-0 px-5 py-6 lg:px-8">{children}</div>
+    <div className="h-dvh overflow-hidden bg-[#171b22] p-3">
+      <div className="grid h-[calc(100dvh-24px)] max-h-[calc(100dvh-24px)] overflow-hidden rounded-[18px] bg-[#f5f7fb] grid-cols-1 grid-rows-[auto_minmax(0,1fr)] lg:grid-cols-[250px_minmax(0,1fr)] lg:grid-rows-none">
+        <div className="min-h-0 overflow-hidden lg:h-full">
+          <Suspense fallback={<aside className="h-full bg-[#0b1524]" />}>
+            <AdminSidebar name={user.name} supportWaiting={supportWaiting} ordersWaiting={ordersWaiting} />
+          </Suspense>
+        </div>
+        <div className="min-h-0 min-w-0 overflow-y-auto overscroll-contain p-4 lg:p-5">{children}</div>
       </div>
     </div>
   );

@@ -4,10 +4,11 @@ import { ChevronRight, Home } from "lucide-react";
 import { CheckoutView, type CheckoutLine } from "@/components/commerce/CheckoutView";
 import { ShopChrome } from "@/components/layout/ShopChrome";
 import { getCurrentUser } from "@/lib/auth/session";
-import { getCart } from "@/lib/commerce/cart";
+import { getCart, appliedCouponFor } from "@/lib/commerce/cart";
 import { lineTotals } from "@/lib/commerce/orders";
 import { getEnabledTransferBanks } from "@/lib/commerce/transfer-banks";
-import { iyzicoReady } from "@/lib/env";
+import { getCheckoutPaymentMethods, iyzicoIsReady } from "@/lib/commerce/payments";
+import { getSiteSettings } from "@/lib/site-settings";
 import { mediaUrl } from "@/lib/media";
 import { grossPrice } from "@/lib/product-detail";
 
@@ -17,13 +18,17 @@ export const metadata = {
 };
 
 export default async function CheckoutPage() {
-  const [user, cart, transferBanks] = await Promise.all([
+  const [user, cart, transferBanks, paymentMethods, iyzicoReady, settings] = await Promise.all([
     getCurrentUser(),
     getCart(),
     getEnabledTransferBanks(),
+    getCheckoutPaymentMethods(),
+    iyzicoIsReady(),
+    getSiteSettings(),
   ]);
 
   if (!cart || cart.items.length === 0) redirect("/sepet");
+  const coupon = await appliedCouponFor(cart);
 
   let subtotal = 0;
   let vat = 0;
@@ -66,14 +71,18 @@ export default async function CheckoutPage() {
 
       <CheckoutView
         loggedIn={Boolean(user)}
-        iyzicoReady={iyzicoReady()}
+        iyzicoReady={iyzicoReady}
+        paymentMethods={paymentMethods}
         userName={user?.name}
         userEmail={user?.email}
         items={items}
         subtotal={subtotal}
         vat={vat}
         vatLabel={vatLabel}
+        coupon={coupon}
         transferBanks={transferBanks}
+        orderNoteEnabled={settings.order.orderNoteEnabled}
+        minOrderAmount={settings.order.minimumOrderAmount}
       />
     </ShopChrome>
   );

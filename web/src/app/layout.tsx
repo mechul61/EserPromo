@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Montserrat } from "next/font/google";
 import "./globals.css";
 import { siteUrl } from "@/lib/env";
+import { faviconSrc, getSiteSettings } from "@/lib/site-settings";
 
 const montserrat = Montserrat({
   variable: "--font-montserrat",
@@ -9,15 +10,21 @@ const montserrat = Montserrat({
   weight: ["400", "500", "600", "700", "800"],
 });
 
-export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl()),
-  title: {
-    default: "Eser Promo | Promosyon Ürünleri",
-    template: "%s | Eser Promo",
-  },
-  description:
-    "Logo baskılı promosyon ürünleri, kurumsal hediyelik ve toplu alım çözümleri.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSiteSettings();
+  const icon = faviconSrc(settings);
+  return {
+    metadataBase: new URL(siteUrl()),
+    title: {
+      default: settings.seo.title || settings.general.siteTitle || "Eser Promo",
+      template: `%s | ${settings.general.siteName || "Eser Promo"}`,
+    },
+    description: settings.seo.description || settings.general.description,
+    keywords: settings.seo.keywords || undefined,
+    robots: settings.seo.allowIndexing ? { index: true, follow: true } : { index: false, follow: false },
+    icons: icon ? [{ url: icon }] : undefined,
+  };
+}
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (

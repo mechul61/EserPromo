@@ -3,8 +3,9 @@ import { prisma } from "../db";
 import { getCurrentUser, type AuthUser } from "./session";
 import { normalizeEmail } from "../security/crypto";
 import { jsonError } from "../security/origin";
+import { isStaffRole } from "@/lib/admin/staff-copy";
 
-function listedAdminEmails() {
+export function listedAdminEmails() {
   return (process.env.ADMIN_EMAIL || process.env.ADMIN_EMAILS || "")
     .split(/[,;\s]+/)
     .map((value) => normalizeEmail(value))
@@ -12,15 +13,24 @@ function listedAdminEmails() {
 }
 
 export function isAdminUser(user: { role: string } | null | undefined) {
-  return user?.role === "admin";
+  return !!user && isStaffRole(user.role);
 }
 
 /** Sadece login/kayıt sırasında, ADMIN_EMAIL listesindeki hesaplar için. */
 export async function promoteIfListed(userId: string, email: string) {
   const listed = listedAdminEmails();
   if (!listed.includes(normalizeEmail(email))) return false;
-  await prisma.user.update({ where: { id: userId }, data: { role: "admin" } });
+  await prisma.user.update({ where: { id: userId }, data: { role: "super_admin", isActive: true } });
   return true;
+}
+
+export async function ensureListedSuperAdmins() {
+  const listed = listedAdminEmails();
+  if (!listed.length) return;
+  await prisma.user.updateMany({
+    where: { email: { in: listed } },
+    data: { role: "super_admin", isActive: true, blocked: false },
+  });
 }
 
 export async function requireAdmin(): Promise<AuthUser> {

@@ -3,15 +3,15 @@
  * Anahtarlar gelince iyzipay SDK buraya bağlanır.
  */
 
-import { iyzicoReady } from "../env";
+import { iyzicoIsReady } from "../commerce/payments";
 
-export function assertIyzicoConfigured() {
-  if (!iyzicoReady()) {
+export async function assertIyzicoConfigured() {
+  if (!(await iyzicoIsReady())) {
     throw new Error("Iyzico henüz yapılandırılmadı");
   }
 }
 
 export async function startIyzicoPayment(_orderId: string): Promise<never> {
-  assertIyzicoConfigured();
+  await assertIyzicoConfigured();
   throw new Error("Iyzico entegrasyonu anahtarlar eklendikten sonra açılacak");
 }

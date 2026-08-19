@@ -102,22 +102,28 @@ function money(n: number) {
 export function CheckoutView({
   loggedIn,
   iyzicoReady,
+  paymentMethods,
   userName,
   userEmail,
   items,
   subtotal,
   vat,
   vatLabel,
+  coupon,
   transferBanks,
+  orderNoteEnabled = false,
+  minOrderAmount = 0,
 }: {
   loggedIn: boolean;
   iyzicoReady: boolean;
+  paymentMethods: Array<{ key: PaymentMethod; name: string; description: string }>;
   userName?: string;
   userEmail?: string;
   items: CheckoutLine[];
   subtotal: number;
   vat: number;
   vatLabel: string;
+  coupon: { code: string; name: string; amount: number; label: string } | null;
   transferBanks: Array<{
     id: string;
     name: string;
@@ -125,14 +131,15 @@ export function CheckoutView({
     iban: string;
     accountType: string;
   }>;
+  orderNoteEnabled?: boolean;
+  minOrderAmount?: number;
 }) {
   const router = useRouter();
   const [step, setStep] = useState<Step>("delivery");
   const [delivery, setDelivery] = useState<DeliveryMethod>("address");
   const [invoice, setInvoice] = useState<InvoiceType>("individual");
-  const [payment, setPayment] = useState<PaymentMethod>("card");
+  const [payment, setPayment] = useState<PaymentMethod>(paymentMethods[0]?.key ?? "card");
   const [transferBank, setTransferBank] = useState("");
-  const [transferKind, setTransferKind] = useState<"havale" | "eft">("eft");
   const selectedAccount = transferBanks.find((bank) => bank.id === transferBank) ?? null;
   const [billingDifferent, setBillingDifferent] = useState(false);
   const [createAccount, setCreateAccount] = useState(false);
@@ -141,6 +148,8 @@ export function CheckoutView({
   const [hasAccount, setHasAccount] = useState(loggedIn);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [couponCode, setCouponCode] = useState(coupon?.code ?? "");
+  const [applied, setApplied] = useState(coupon);
   const [form, setForm] = useState({
     fullName: userName ?? "",
     email: userEmail ?? "",
@@ -162,9 +171,65 @@ export function CheckoutView({
     taxOffice: "",
     taxNumber: "",
   });
+  const [orderNote, setOrderNote] = useState("");
 
-  const grand = subtotal + vat;
+  const goods = subtotal + vat;
+  const grand = Math.max(0, goods - (applied?.amount ?? 0));
   const office = delivery === "office";
+  const selectedMethod = paymentMethods.find((method) => method.key === payment) ?? paymentMethods[0] ?? null;
+
+  useEffect(() => {
+    if (!paymentMethods.some((method) => method.key === payment)) {
+      setPayment(paymentMethods[0]?.key ?? "card");
+    }
+  }, [paymentMethods, payment]);
+
+  async function applyCoupon() {
+    setPending(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/cart/coupon", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: couponCode }),
+      });
+      const data = (await res.json()) as {
+        error?: string;
+        coupon?: { code: string; name: string; amount: number; label: string } | null;
+      };
+      if (!res.ok) {
+        setError(data.error || "Kupon uygulanamadı");
+        return;
+      }
+      setApplied(data.coupon ?? null);
+      if (data.coupon) setCouponCode(data.coupon.code);
+      router.refresh();
+    } catch {
+      setError("Bağlantı hatası");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function removeCoupon() {
+    setPending(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/cart/coupon", { method: "DELETE" });
+      if (!res.ok) {
+        const data = (await res.json()) as { error?: string };
+        setError(data.error || "Kupon kaldırılamadı");
+        return;
+      }
+      setApplied(null);
+      setCouponCode("");
+      router.refresh();
+    } catch {
+      setError("Bağlantı hatası");
+    } finally {
+      setPending(false);
+    }
+  }
 
   useEffect(() => {
     if (transferBanks.length === 1) {
@@ -189,7 +254,6 @@ export function CheckoutView({
       invoiceType: billingDifferent ? invoice : "individual",
       paymentMethod: payment,
       transferBank: payment === "transfer" ? transferBank.trim() : undefined,
-      transferKind: payment === "transfer" ? transferKind : undefined,
       billingDifferent,
       billingFullName: billingDifferent ? billing.fullName : undefined,
       billingPhone: billingDifferent ? phoneDigits(billing.phone) : undefined,
@@ -201,8 +265,9 @@ export function CheckoutView({
       companyName: billingDifferent && invoice === "corporate" ? billing.companyName : undefined,
       taxOffice: billingDifferent && invoice === "corporate" ? billing.taxOffice : undefined,
       taxNumber: billingDifferent && invoice === "corporate" ? billing.taxNumber : undefined,
+      orderNote: orderNote.trim() || undefined,
     }),
-    [form, office, delivery, invoice, payment, transferBank, transferKind, billingDifferent, billing],
+    [form, office, delivery, invoice, payment, transferBank, billingDifferent, billing, orderNote],
   );
 
   function setField(key: keyof typeof form, value: string) {
@@ -291,6 +356,10 @@ export function CheckoutView({
         setPending(false);
       }
     }
+    if (paymentMethods.length === 0) {
+      setError("Şu an aktif ödeme yöntemi yok");
+      return;
+    }
     setError(null);
     setStep("payment");
   }
@@ -310,6 +379,10 @@ export function CheckoutView({
     const transferIssue = validateTransfer();
     if (transferIssue) {
       setError(transferIssue);
+      return;
+    }
+    if (minOrderAmount > 0 && grand < minOrderAmount) {
+      setError(`Minimum sipariş tutarı ${minOrderAmount.toLocaleString("tr-TR", { minimumFractionDigits: 2 })} TL`);
       return;
     }
     setPending(true);
@@ -706,30 +779,29 @@ export function CheckoutView({
                 Ödeme Yöntemi
               </h2>
               <div className="mt-4 grid w-full grid-cols-1 gap-3 md:grid-cols-2">
-                <button
-                  type="button"
-                  onClick={() => setPayment("card")}
-                  className={`w-full rounded-md border p-4 text-left ${
-                    payment === "card" ? "border-orange bg-[#fff8f0]" : "border-line"
-                  }`}
-                >
-                  <span className="block text-[14px] font-extrabold">Kredi Kartı</span>
-                  <span className="mt-1 block text-[12px] leading-relaxed text-[#6b7280]">
-                    {iyzicoReady ? "3D Secure ile güvenli ödeme." : "Iyzico bağlanınca kart ödemesi açılacak."}
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPayment("transfer")}
-                  className={`w-full rounded-md border p-4 text-left ${
-                    payment === "transfer" ? "border-orange bg-[#fff8f0]" : "border-line"
-                  }`}
-                >
-                  <span className="block text-[14px] font-extrabold">Havale / EFT</span>
-                  <span className="mt-1 block text-[12px] leading-relaxed text-[#6b7280]">
-                    Yönetimin tanımladığı hesaba Havale veya EFT yapın.
-                  </span>
-                </button>
+                {paymentMethods.length === 0 ? (
+                  <p className="text-[13px] font-medium text-[#6b7280]">
+                    Aktif ödeme yöntemi yok. Yönetim panelinden bir yöntem açın.
+                  </p>
+                ) : (
+                  paymentMethods.map((method) => (
+                    <button
+                      key={method.key}
+                      type="button"
+                      onClick={() => setPayment(method.key)}
+                      className={`w-full rounded-md border p-4 text-left ${
+                        payment === method.key ? "border-orange bg-[#fff8f0]" : "border-line"
+                      }`}
+                    >
+                      <span className="block text-[14px] font-extrabold">{method.name}</span>
+                      <span className="mt-1 block text-[12px] leading-relaxed text-[#6b7280]">
+                        {method.key === "card" && !iyzicoReady
+                          ? "Iyzico bağlanınca kart ödemesi açılacak."
+                          : method.description}
+                      </span>
+                    </button>
+                  ))
+                )}
               </div>
               {payment === "transfer" ? (
                 <div className="mt-4 grid w-full grid-cols-1 gap-3 sm:grid-cols-2">
@@ -737,7 +809,7 @@ export function CheckoutView({
                     Banka adı
                     {transferBanks.length === 0 ? (
                       <p className="mt-1 text-[13px] font-medium text-[#6b7280]">
-                        Şu an seçilebilir hesap yok. Yönetim panelinden IBAN ve şirket adını kaydedin.
+                        tanımlanmadı
                       </p>
                     ) : (
                       <div className="mt-1 grid gap-2">
@@ -780,29 +852,6 @@ export function CheckoutView({
                       </label>
                     </>
                   ) : null}
-                  <div className={selectedAccount ? "" : "sm:col-span-2"}>
-                    <p className="text-[12px] font-bold text-[#555]">Gönderim</p>
-                    <div className="mt-1 grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setTransferKind("havale")}
-                        className={`h-11 rounded-md border text-[13px] font-extrabold ${
-                          transferKind === "havale" ? "border-orange bg-[#fff8f0] text-navy" : "border-line bg-white"
-                        }`}
-                      >
-                        Havale
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setTransferKind("eft")}
-                        className={`h-11 rounded-md border text-[13px] font-extrabold ${
-                          transferKind === "eft" ? "border-orange bg-[#fff8f0] text-navy" : "border-line bg-white"
-                        }`}
-                      >
-                        EFT
-                      </button>
-                    </div>
-                  </div>
                 </div>
               ) : null}
             </section>
@@ -848,7 +897,7 @@ export function CheckoutView({
                   <dd className="text-right font-semibold">
                     {payment === "transfer" ? (
                       <>
-                        {transferKind === "havale" ? "Havale" : "EFT"}
+                        {selectedMethod?.name || "Havale / EFT"}
                         <span className="mt-1 flex items-center justify-end gap-2 font-normal text-[#555]">
                           {selectedAccount ? <BankLogo id={selectedAccount.id} size={28} /> : null}
                           {selectedAccount?.name || "Banka seçilmedi"}
@@ -861,11 +910,22 @@ export function CheckoutView({
                         </span>
                       </>
                     ) : (
-                      "Kredi kartı"
+                      selectedMethod?.name || "Kredi kartı"
                     )}
                   </dd>
                 </div>
               </dl>
+              {orderNoteEnabled ? (
+                <label className="mt-4 block text-[13px] font-bold text-[#111]">
+                  Siparişinizle ilgili notunuz
+                  <textarea
+                    value={orderNote}
+                    onChange={(e) => setOrderNote(e.target.value)}
+                    rows={3}
+                    className={`${inputClass} h-auto py-2`}
+                  />
+                </label>
+              ) : null}
             </section>
           ) : null}
 
@@ -907,6 +967,10 @@ export function CheckoutView({
                 onClick={() => {
                   if (step === "delivery") void goPayment();
                   else {
+                    if (paymentMethods.length === 0) {
+                      setError("Şu an aktif ödeme yöntemi yok");
+                      return;
+                    }
                     const transferIssue = validateTransfer();
                     if (transferIssue) {
                       setError(transferIssue);
@@ -971,6 +1035,34 @@ export function CheckoutView({
                 <dt className="text-[#666]">Kargo</dt>
                 <dd className="font-semibold text-brand-green">Ücretsiz</dd>
               </div>
+              {applied ? (
+                <div className="flex justify-between gap-3">
+                  <dt className="text-[#666]">
+                    Kupon ({applied.code})
+                    <button type="button" className="ml-2 text-[12px] font-bold text-brand-red" onClick={() => void removeCoupon()}>
+                      Kaldır
+                    </button>
+                  </dt>
+                  <dd className="font-semibold text-brand-green">−{money(applied.amount)}</dd>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <input
+                    value={couponCode}
+                    onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                    placeholder="Kupon kodu"
+                    className="h-10 min-w-0 flex-1 rounded-md border border-line px-3 text-[13px] outline-none"
+                  />
+                  <button
+                    type="button"
+                    disabled={pending || !couponCode.trim()}
+                    onClick={() => void applyCoupon()}
+                    className="h-10 rounded-md bg-navy px-3 text-[12px] font-extrabold text-white disabled:opacity-50"
+                  >
+                    Uygula
+                  </button>
+                </div>
+              )}
               <div className="flex items-end justify-between gap-3 pt-2">
                 <dt>
                   <span className="block text-[14px] font-extrabold tracking-wide text-navy uppercase sm:text-[16px]">

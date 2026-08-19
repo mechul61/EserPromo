@@ -17,6 +17,7 @@ const schema = z.object({
 function revalidateBanks() {
   revalidatePath("/odeme");
   revalidatePath("/admin/bankalar");
+  revalidatePath("/admin/odemeler");
 }
 
 export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {

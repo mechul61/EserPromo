@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { createOrderFromCart } from "@/lib/commerce/orders";
 import { assertSameOrigin, jsonError } from "@/lib/security/origin";
 import { clientKey, rateLimit } from "@/lib/security/rate-limit";
+import { isPaymentMethodActive } from "@/lib/commerce/payments";
 import { findTransferAccount, getEnabledTransferBanks } from "@/lib/commerce/transfer-banks";
 
 const schema = z.object({
@@ -30,6 +31,7 @@ const schema = z.object({
   companyName: z.string().trim().max(120).optional(),
   taxOffice: z.string().trim().max(80).optional(),
   taxNumber: z.string().trim().max(11).optional(),
+  orderNote: z.string().trim().max(1000).optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -48,6 +50,9 @@ export async function POST(req: NextRequest) {
 
   const body = schema.safeParse(await req.json().catch(() => null));
   if (!body.success) return jsonError("Teslimat bilgilerini kontrol edin.");
+  if (!(await isPaymentMethodActive(body.data.paymentMethod))) {
+    return jsonError("Bu ödeme yöntemi kapalı.");
+  }
   if (body.data.paymentMethod === "transfer") {
     const enabled = await getEnabledTransferBanks();
     if (!findTransferAccount(enabled, body.data.transferBank ?? "")) {

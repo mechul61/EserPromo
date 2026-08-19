@@ -1,86 +1,152 @@
-import { AdminHeading } from "@/components/admin/AdminChrome";
-import { AdminPager, AdminSearch } from "@/components/admin/AdminSearch";
-import { OrderRow } from "@/components/admin/OrderRow";
+import { CustomersPageView } from "@/components/admin/CustomersPageView";
+import type {
+  CustomerKpi,
+  CustomerRow,
+  CustomerShare,
+  CustomerSourceShare,
+  CustomerStatus,
+  TopSpender,
+} from "@/components/admin/customer-types";
 import { prisma } from "@/lib/db";
-import { formatDateTr } from "@/lib/account";
+import { REVENUE_STATUSES } from "@/lib/commerce/revenue";
+import { formatPriceTry } from "@/lib/media";
+import { formatPhoneTR } from "@/lib/phone";
 
+export const dynamic = "force-dynamic";
 export const metadata = { title: "Müşteriler | Yönetim" };
 
-const PAGE_SIZE = 20;
+function pct(current: number, previous: number) {
+  if (previous <= 0) return current > 0 ? 100 : 0;
+  return ((current - previous) / previous) * 100;
+}
 
-export default async function AdminCustomersPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ q?: string; page?: string }>;
-}) {
-  const { q = "", page: rawPage } = await searchParams;
-  const query = q.trim();
-  const page = Math.max(1, Number(rawPage) || 1);
-  const where = {
-    role: "customer" as const,
-    ...(query
-      ? {
-          OR: [
-            { email: { contains: query, mode: "insensitive" as const } },
-            { name: { contains: query, mode: "insensitive" as const } },
-            { phone: { contains: query } },
-          ],
-        }
-      : {}),
-  };
+function initials(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  const letters = ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase();
+  return letters || "M";
+}
 
-  const [total, users] = await Promise.all([
-    prisma.user.count({ where }),
-    prisma.user.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-      skip: (page - 1) * PAGE_SIZE,
-      take: PAGE_SIZE,
-      include: { _count: { select: { orders: true } } },
-    }),
-  ]);
-  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
+function statusOf(isActive: boolean, blocked: boolean): CustomerStatus {
+  if (blocked) return "blocked";
+  if (!isActive) return "passive";
+  return "active";
+}
 
-  return (
-    <div>
-      <AdminHeading title="Müşteriler" subtitle={`${total.toLocaleString("tr-TR")} üye`} />
-      <div className="mb-4 max-w-xl">
-        <AdminSearch action="/admin/musteriler" placeholder="Ad, e-posta veya telefon" q={query} />
-      </div>
-      <div className="overflow-x-auto rounded-md border border-line bg-white">
-        {users.length === 0 ? (
-          <p className="p-5 text-[13px] text-[#6b7280]">Müşteri bulunamadı.</p>
-        ) : (
-          <table className="w-full min-w-[720px] text-left text-[13px]">
-            <thead className="border-b border-line bg-soft text-[11px] font-bold tracking-wide text-[#6b7280] uppercase">
-              <tr>
-                <th className="px-4 py-2">Ad</th>
-                <th className="px-4 py-2">E-posta</th>
-                <th className="px-4 py-2">Rol</th>
-                <th className="px-4 py-2">Sipariş</th>
-                <th className="px-4 py-2">Kayıt</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((user) => (
-                <OrderRow key={user.id} href={`/admin/musteriler/${user.id}`}>
-                  <td className="px-4 py-2.5 font-extrabold text-navy">
-                    {user.name}
-                    {!user.isActive ? (
-                      <span className="ml-2 text-[11px] font-bold text-brand-red">Pasif</span>
-                    ) : null}
-                  </td>
-                  <td className="px-4 py-2.5">{user.email}</td>
-                  <td className="px-4 py-2.5">{user.role === "admin" ? "Yönetici" : "Müşteri"}</td>
-                  <td className="px-4 py-2.5">{user._count.orders}</td>
-                  <td className="px-4 py-2.5 text-[#6b7280]">{formatDateTr(user.createdAt)}</td>
-                </OrderRow>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-      <AdminPager href="/admin/musteriler" page={page} pageCount={pageCount} q={query} />
-    </div>
-  );
+export default async function AdminCustomersPage() {
+  const now = new Date();
+  const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const prevStart = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+  const customersWhere = { role: "customer" as const };
+
+  const [users, spendRows, weekUsers, prevWeekUsers, weekActive, prevWeekActive, weekOrders, prevWeekOrders, weekSpend, prevWeekSpend] =
+    await Promise.all([
+      prisma.user.findMany({
+        where: customersWhere,
+        orderBy: { createdAt: "desc" },
+        take: 5000,
+        include: {
+          _count: { select: { orders: true } },
+          addresses: { select: { city: true, isDefault: true }, orderBy: { isDefault: "desc" }, take: 1 },
+        },
+      }),
+      prisma.order.groupBy({
+        by: ["userId"],
+        where: { status: { in: [...REVENUE_STATUSES] }, user: customersWhere },
+        _sum: { grandTotal: true },
+        _count: true,
+      }),
+      prisma.user.count({ where: { ...customersWhere, createdAt: { gte: weekStart } } }),
+      prisma.user.count({ where: { ...customersWhere, createdAt: { gte: prevStart, lt: weekStart } } }),
+      prisma.user.count({ where: { ...customersWhere, isActive: true, blocked: false, createdAt: { gte: weekStart } } }),
+      prisma.user.count({
+        where: { ...customersWhere, isActive: true, blocked: false, createdAt: { gte: prevStart, lt: weekStart } },
+      }),
+      prisma.order.count({ where: { createdAt: { gte: weekStart }, user: customersWhere } }),
+      prisma.order.count({ where: { createdAt: { gte: prevStart, lt: weekStart }, user: customersWhere } }),
+      prisma.order.aggregate({
+        where: { createdAt: { gte: weekStart }, status: { in: [...REVENUE_STATUSES] }, user: customersWhere },
+        _sum: { grandTotal: true },
+      }),
+      prisma.order.aggregate({
+        where: {
+          createdAt: { gte: prevStart, lt: weekStart },
+          status: { in: [...REVENUE_STATUSES] },
+          user: customersWhere,
+        },
+        _sum: { grandTotal: true },
+      }),
+    ]);
+
+  const spendByUser = new Map(spendRows.map((row) => [row.userId, Number(row._sum.grandTotal ?? 0)]));
+  const rows: CustomerRow[] = users.map((user) => {
+    const city = user.city || user.addresses[0]?.city || "";
+    return {
+      id: user.id,
+      publicNo: user.publicNo,
+      name: user.name,
+      email: user.email,
+      phone: formatPhoneTR(user.phone ?? "") || "—",
+      city,
+      customerGroup: user.customerGroup,
+      source: user.source,
+      isActive: user.isActive,
+      blocked: user.blocked,
+      status: statusOf(user.isActive, user.blocked),
+      orderCount: user._count.orders,
+      spend: spendByUser.get(user.id) ?? 0,
+      createdAt: user.createdAt.toISOString(),
+      isNew: user.createdAt >= weekStart,
+    };
+  });
+
+  const active = rows.filter((row) => row.status === "active").length;
+  const totalSpend = rows.reduce((sum, row) => sum + row.spend, 0);
+  const totalOrders = rows.reduce((sum, row) => sum + row.orderCount, 0);
+
+  const kpis: CustomerKpi[] = [
+    { label: "Toplam Müşteri", value: rows.length.toLocaleString("tr-TR"), delta: pct(weekUsers, prevWeekUsers), color: "bg-[#2f6bff]", icon: "total" },
+    { label: "Aktif Müşteri", value: active.toLocaleString("tr-TR"), delta: pct(weekActive, prevWeekActive), color: "bg-[#22c55e]", icon: "active" },
+    { label: "Yeni Müşteri", value: weekUsers.toLocaleString("tr-TR"), delta: pct(weekUsers, prevWeekUsers), color: "bg-[#f59e0b]", icon: "new" },
+    { label: "Toplam Sipariş", value: totalOrders.toLocaleString("tr-TR"), delta: pct(weekOrders, prevWeekOrders), color: "bg-[#7c3aed]", icon: "orders" },
+    {
+      label: "Toplam Harcama",
+      value: `₺${formatPriceTry(totalSpend)}`,
+      delta: pct(Number(weekSpend._sum.grandTotal ?? 0), Number(prevWeekSpend._sum.grandTotal ?? 0)),
+      color: "bg-[#ec4899]",
+      icon: "spend",
+    },
+  ];
+
+  const passive = rows.filter((row) => row.status !== "active").length;
+  const distCounts = [
+    { id: "retail", name: "Perakende", count: rows.filter((row) => row.status === "active" && row.customerGroup === "retail").length, color: "#2f6bff" },
+    { id: "wholesale", name: "Toptan", count: rows.filter((row) => row.status === "active" && row.customerGroup === "wholesale").length, color: "#f59e0b" },
+    { id: "vip", name: "VIP", count: rows.filter((row) => row.status === "active" && row.customerGroup === "vip").length, color: "#8b5cf6" },
+    { id: "passive", name: "Pasif", count: passive, color: "#94a3b8" },
+  ];
+  const distTotal = Math.max(1, distCounts.reduce((sum, item) => sum + item.count, 0));
+  const shares: CustomerShare[] = distCounts.map((item) => ({
+    ...item,
+    percent: Math.round((item.count / distTotal) * 100),
+  }));
+
+  const sourceTotal = Math.max(1, rows.length);
+  const sources: CustomerSourceShare[] = [
+    { id: "website", name: "Web Sitesi", percent: 0 },
+    { id: "social", name: "Sosyal Medya", percent: 0 },
+    { id: "email", name: "E-posta Kampanyası", percent: 0 },
+    { id: "other", name: "Diğer", percent: 0 },
+  ].map((item) => ({
+    ...item,
+    percent: Math.round((rows.filter((row) => row.source === item.id).length / sourceTotal) * 100),
+  }));
+
+  const topSpenders: TopSpender[] = [...rows]
+    .sort((a, b) => b.spend - a.spend)
+    .slice(0, 5)
+    .map((row) => ({ id: row.id, name: row.name, initials: initials(row.name), spend: row.spend }));
+
+  const cities = [...new Set(rows.map((row) => row.city).filter(Boolean))].sort((a, b) => a.localeCompare(b, "tr"));
+
+  return <CustomersPageView customers={rows} kpis={kpis} shares={shares} sources={sources} topSpenders={topSpenders} cities={cities} />;
 }

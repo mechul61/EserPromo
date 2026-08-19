@@ -24,6 +24,7 @@ export type ProfileFormValues = {
   useCorporateDefault: boolean;
   notifyEmail: boolean;
   notifySms: boolean;
+  notifyWhatsapp: boolean;
   notifyOrder: boolean;
 };
 
@@ -95,6 +96,7 @@ export function ProfileView({ initial }: { initial: ProfileFormValues }) {
         body: JSON.stringify({
           notifyEmail: form.notifyEmail,
           notifySms: form.notifySms,
+          notifyWhatsapp: form.notifyWhatsapp,
           notifyOrder: form.notifyOrder,
         }),
       });
@@ -288,6 +290,9 @@ export function ProfileView({ initial }: { initial: ProfileFormValues }) {
 
       <section className="rounded-md border border-line bg-white p-5">
         <h2 className="text-[15px] font-extrabold tracking-wide text-[#111] uppercase">İletişim Tercihleri</h2>
+        <p className="mt-1 text-[12px] text-[#6b7280]">
+          Favori ürünleriniz indirime girince ve sipariş güncellemelerinde bu kanalları kullanırız.
+        </p>
         <div className="mt-4 space-y-3 text-[13px] text-[#333]">
           <label className="flex items-center gap-2">
             <input
@@ -304,6 +309,14 @@ export function ProfileView({ initial }: { initial: ProfileFormValues }) {
               onChange={(e) => setField("notifySms", e.target.checked)}
             />
             SMS bildirimleri
+          </label>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={form.notifyWhatsapp}
+              onChange={(e) => setField("notifyWhatsapp", e.target.checked)}
+            />
+            WhatsApp bildirimleri
           </label>
           <label className="flex items-center gap-2">
             <input

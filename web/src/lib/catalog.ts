@@ -10,12 +10,13 @@ export {
 
 export async function resolveCategory(slug: string) {
   const exact = await prisma.category.findUnique({ where: { slug } });
+  if (exact?.removed) return null;
   if (exact) return exact;
   const rows = await prisma.category.findMany({
     where: { slug: { startsWith: `${slug}-` } },
   });
   const re = new RegExp(`^${slug.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}-\\d+$`);
-  return rows.find((row) => re.test(row.slug)) ?? null;
+  return rows.find((row) => re.test(row.slug) && !row.removed) ?? null;
 }
 
 export async function categoryIdsWithChildren(id: number) {
@@ -28,6 +29,7 @@ export async function categoryIdsWithChildren(id: number) {
 
 export async function getAllCategories() {
   return prisma.category.findMany({
+    where: { removed: false },
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
     select: {
       id: true,
@@ -51,7 +53,7 @@ export async function getCategoryTree(opts?: { homepageOnly?: boolean }) {
 
 export async function getHomepageCategories() {
   return prisma.category.findMany({
-    where: { showOnHomepage: true },
+    where: { showOnHomepage: true, removed: false },
     orderBy: [{ homepageOrder: "asc" }, { name: "asc" }],
     select: {
       id: true,

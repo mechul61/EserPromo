@@ -15,6 +15,8 @@ export function ProductBuyBox({
   stock,
   qty,
   onQty,
+  sellable,
+  maxQty,
 }: {
   productId: number;
   name: string;
@@ -23,13 +25,15 @@ export function ProductBuyBox({
   stock: number;
   qty: number;
   onQty: (qty: number) => void;
+  sellable?: boolean;
+  maxQty?: number;
 }) {
   const router = useRouter();
   const [pending, setPending] = useState<"cart" | "buy" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [draft, setDraft] = useState(String(qty));
-  const inStock = stock > 0;
-  const maxQty = Math.max(0, stock);
+  const inStock = sellable ?? stock > 0;
+  const limit = Math.max(0, maxQty ?? stock);
   const total = unit * qty;
 
   useEffect(() => {
@@ -38,8 +42,8 @@ export function ProductBuyBox({
 
   function clamp(next: number) {
     if (!Number.isFinite(next)) return 1;
-    if (maxQty < 1) return 1;
-    return Math.min(maxQty, Math.max(1, Math.trunc(next)));
+    if (limit < 1) return 1;
+    return Math.min(limit, Math.max(1, Math.trunc(next)));
   }
 
   async function submit(redirectTo?: string) {
@@ -51,7 +55,7 @@ export function ProductBuyBox({
       setError("Adet en az 1 olmalı");
       return;
     }
-    if (qty > stock) {
+    if (qty > limit) {
       setError(`Stokta ${stock} adet var`);
       return;
     }
@@ -100,7 +104,7 @@ export function ProductBuyBox({
           inputMode="numeric"
           pattern="[0-9]*"
           min={1}
-          max={maxQty || undefined}
+          max={limit || undefined}
           value={draft}
           disabled={!inStock}
           onChange={(e) => {
@@ -119,7 +123,7 @@ export function ProductBuyBox({
         <button
           type="button"
           aria-label="Artır"
-          disabled={!inStock || qty >= maxQty}
+          disabled={!inStock || qty >= limit}
           className="flex h-12 w-12 items-center justify-center text-[#333] disabled:opacity-40"
           onClick={() => onQty(clamp(qty + 1))}
         >

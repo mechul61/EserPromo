@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { getSiteSettings, logoSrc } from "@/lib/site-settings";
 
 type LogoProps = {
   className?: string;
@@ -12,18 +13,20 @@ const sizes = {
   lg: { width: 250, height: 58 },
 };
 
-export function Logo({ className = "", size = "md" }: LogoProps) {
+export async function Logo({ className = "", size = "md" }: LogoProps) {
   const dim = sizes[size];
+  const settings = await getSiteSettings();
+  const src = logoSrc(settings);
 
   return (
     <Link
       href="/"
       className={`inline-flex items-center ${className}`}
-      aria-label="eser Promo"
+      aria-label={settings.general.siteName || "eser Promo"}
     >
       <Image
-        src="/brand/logo.png?v=2"
-        alt="eser Promo"
+        src={src}
+        alt={settings.general.siteName || "eser Promo"}
         width={dim.width}
         height={dim.height}
         priority

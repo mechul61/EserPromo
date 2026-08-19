@@ -18,6 +18,7 @@ const schema = z.object({
   useCorporateDefault: z.boolean().optional(),
   notifyEmail: z.boolean().optional(),
   notifySms: z.boolean().optional(),
+  notifyWhatsapp: z.boolean().optional(),
   notifyOrder: z.boolean().optional(),
 });
 
@@ -71,6 +72,7 @@ export async function PATCH(req: NextRequest) {
         useCorporateDefault: data.useCorporateDefault ?? false,
         notifyEmail: data.notifyEmail ?? true,
         notifySms: data.notifySms ?? false,
+        notifyWhatsapp: data.notifyWhatsapp ?? false,
         notifyOrder: data.notifyOrder ?? true,
       },
       update: {
@@ -86,6 +88,7 @@ export async function PATCH(req: NextRequest) {
         ...(data.useCorporateDefault !== undefined ? { useCorporateDefault: data.useCorporateDefault } : {}),
         ...(data.notifyEmail !== undefined ? { notifyEmail: data.notifyEmail } : {}),
         ...(data.notifySms !== undefined ? { notifySms: data.notifySms } : {}),
+        ...(data.notifyWhatsapp !== undefined ? { notifyWhatsapp: data.notifyWhatsapp } : {}),
         ...(data.notifyOrder !== undefined ? { notifyOrder: data.notifyOrder } : {}),
       },
     }),

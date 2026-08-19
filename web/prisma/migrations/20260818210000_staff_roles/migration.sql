@@ -1,0 +1,4 @@
+ALTER TYPE "UserRole" ADD VALUE IF NOT EXISTS 'super_admin';
+ALTER TYPE "UserRole" ADD VALUE IF NOT EXISTS 'editor';
+ALTER TYPE "UserRole" ADD VALUE IF NOT EXISTS 'support';
+ALTER TYPE "UserRole" ADD VALUE IF NOT EXISTS 'content';

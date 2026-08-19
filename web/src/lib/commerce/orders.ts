@@ -1,27 +1,22 @@
 import { prisma } from "../db";
 import { randomToken } from "../security/crypto";
 import type { AuthUser } from "../auth/session";
-import { iyzicoReady } from "../env";
+import { iyzicoIsReady, isPaymentMethodActive } from "./payments";
 import { saveUserAddress } from "./addresses";
 import { findTransferAccount, formatIban, getEnabledTransferBanks } from "./transfer-banks";
+import { validateCouponForCart, cartLinesForCoupon } from "./coupons";
+import { notifyOrderPlaced } from "./email-templates";
+import { getSiteSettings, stockAllowsSale } from "@/lib/site-settings";
 
-export const ORDER_STATUS_LABEL: Record<string, string> = {
-  draft: "Taslak",
-  pending_payment: "Ödeme bekleniyor",
-  paid: "Ödendi",
-  preparing: "Hazırlanıyor",
-  shipped: "Kargoda",
-  completed: "Tamamlandı",
-  cancelled: "İptal",
-  failed: "Başarısız",
-};
-
-export const PAYMENT_STATUS_LABEL: Record<string, string> = {
-  pending: "Ödeme bekleniyor",
-  success: "Ödeme alındı",
-  failure: "Ödeme başarısız",
-  refunded: "İade edildi",
-};
+export {
+  CARGO_STATUS_OPTIONS,
+  ORDER_STATUS_LABEL,
+  PAYMENT_STATUS_LABEL,
+  customerShippingCopy,
+  isOfficePickup,
+  shippingSteps,
+} from "./orders-copy";
+export type { ShippingStep } from "./orders-copy";
 
 export type CheckoutAddress = {
   fullName: string;
@@ -36,6 +31,7 @@ export type CheckoutAddress = {
   paymentMethod?: "card" | "transfer";
   transferBank?: string;
   transferKind?: "havale" | "eft";
+  orderNote?: string;
   billingDifferent?: boolean;
   billingFullName?: string;
   billingPhone?: string;
@@ -63,18 +59,44 @@ export function lineTotals(unitPrice: number, vatRate: number, qty: number) {
   };
 }
 
-function publicOrderNumber() {
-  const d = new Date();
-  const y = String(d.getFullYear()).slice(2);
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `EP-${y}${m}${day}-${randomToken(3).slice(0, 6).toUpperCase()}`;
+function istanbulYearShort(now = new Date()) {
+  const year = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Istanbul",
+    year: "numeric",
+  }).format(now);
+  return year.slice(-2);
+}
+
+function isPublicNumberConflict(error: unknown) {
+  if (!error || typeof error !== "object" || !("code" in error)) return false;
+  if ((error as { code?: string }).code !== "P2002") return false;
+  const target = (error as { meta?: { target?: unknown } }).meta?.target;
+  return Array.isArray(target) && target.includes("publicNumber");
+}
+
+async function nextPublicOrderNumber(
+  db: { order: { findMany: typeof prisma.order.findMany } },
+  prefix: string,
+) {
+  const head = `${prefix}-${istanbulYearShort()}-`;
+  const rows = await db.order.findMany({
+    where: { publicNumber: { startsWith: head } },
+    select: { publicNumber: true },
+  });
+  let max = 0;
+  for (const row of rows) {
+    const rest = row.publicNumber.slice(head.length);
+    if (!/^\d+$/.test(rest)) continue;
+    const n = Number(rest);
+    if (n > max) max = n;
+  }
+  return `${head}${max + 1}`;
 }
 
 export async function createOrderFromCart(user: AuthUser, address: CheckoutAddress) {
   const cart = await prisma.cart.findUnique({
     where: { userId: user.id },
-    include: { items: { include: { product: true } } },
+    include: { items: { include: { product: true } }, coupon: true },
   });
   if (!cart || cart.items.length === 0) {
     throw new Error("Sepet boş");
@@ -86,6 +108,9 @@ export async function createOrderFromCart(user: AuthUser, address: CheckoutAddre
       : null;
   if (address.paymentMethod === "transfer" && !transferAccount) {
     throw new Error("Listeden banka seçin");
+  }
+  if (!(await isPaymentMethodActive(address.paymentMethod))) {
+    throw new Error("Bu ödeme yöntemi kapalı");
   }
 
   let subtotal = 0;
@@ -101,10 +126,14 @@ export async function createOrderFromCart(user: AuthUser, address: CheckoutAddre
     lineTotal: number;
   }> = [];
 
+  const settings = await getSiteSettings();
+
   for (const item of cart.items) {
     const p = item.product;
-    if (!p.isActive) throw new Error(`${p.name} satışta değil`);
-    if (p.stockTotal < item.quantity) throw new Error(`${p.name} için yetersiz stok`);
+    if (!p.isActive || p.removed) throw new Error(`${p.name} satışta değil`);
+    if (!stockAllowsSale(p.stockTotal, settings) || (settings.stock.stockTrackingEnabled && p.stockTotal < item.quantity && !settings.order.allowOutOfStockOrder && settings.stock.outOfStockBehavior !== "CONTINUE_SALE")) {
+      throw new Error(`${p.name} için yetersiz stok`);
+    }
     const t = lineTotals(Number(p.price), Number(p.vatRate), item.quantity);
     subtotal += t.subtotal;
     vatTotal += t.vatTotal;
@@ -120,17 +149,54 @@ export async function createOrderFromCart(user: AuthUser, address: CheckoutAddre
     });
   }
 
-  const grandTotal = money(subtotal + vatTotal);
+  const goodsTotal = money(subtotal + vatTotal);
+  let discountTotal = 0;
+  let couponId: string | null = null;
+  let couponCode: string | null = null;
+  if (cart.coupon) {
+    const check = await validateCouponForCart(cart.coupon, cartLinesForCoupon(cart.items), {
+      userId: user.id,
+    });
+    if (check.error) throw new Error(check.error);
+    discountTotal = check.amount;
+    couponId = cart.coupon.id;
+    couponCode = cart.coupon.code;
+  }
+  const grandTotal = money(Math.max(0, goodsTotal - discountTotal));
+  if (settings.order.minimumOrderAmount > 0 && grandTotal < settings.order.minimumOrderAmount) {
+    throw new Error(`Minimum sipariş tutarı ${settings.order.minimumOrderAmount.toLocaleString("tr-TR", { minimumFractionDigits: 2 })} TL`);
+  }
 
-  const order = await prisma.$transaction(async (tx) => {
+  const prefix = (settings.order.orderNumberPrefix || "ESER").replace(/-+$/g, "") || "ESER";
+
+  const order = await (async () => {
+    for (let attempt = 0; attempt < 8; attempt++) {
+      try {
+        return await prisma.$transaction(async (tx) => {
+          const publicNumber = await nextPublicOrderNumber(tx, prefix);
+          if (couponId) {
+      const locked = await tx.coupon.findUnique({ where: { id: couponId } });
+      if (!locked) throw new Error("Kupon bulunamadı");
+      if (locked.usageLimit != null && locked.usedCount >= locked.usageLimit) {
+        throw new Error("Bu kuponun kullanım limiti doldu");
+      }
+      await tx.coupon.update({
+        where: { id: couponId },
+        data: { usedCount: { increment: 1 } },
+      });
+    }
+
     const created = await tx.order.create({
       data: {
-        publicNumber: publicOrderNumber(),
+        publicNumber,
         userId: user.id,
         status: "pending_payment",
         subtotal,
         vatTotal,
         shippingTotal: 0,
+        discountTotal,
+        couponId,
+        couponCode,
         grandTotal,
         shipFullName: address.fullName.trim(),
         shipPhone: address.phone.trim(),
@@ -173,7 +239,7 @@ export async function createOrderFromCart(user: AuthUser, address: CheckoutAddre
             : "",
           address.paymentMethod === "transfer" && transferAccount
             ? [
-                `Ödeme: ${address.transferKind === "havale" ? "Havale" : "EFT"}`,
+                `Ödeme: Havale / EFT`,
                 `Banka adı: ${transferAccount.name}`,
                 transferAccount.holder ? `Alıcı: ${transferAccount.holder}` : "",
                 `IBAN: ${formatIban(transferAccount.iban)}`,
@@ -182,6 +248,12 @@ export async function createOrderFromCart(user: AuthUser, address: CheckoutAddre
                 .filter(Boolean)
                 .join("\n")
             : "Ödeme: Kredi kartı",
+          couponCode && discountTotal > 0
+            ? `Kupon: ${couponCode} (−₺${discountTotal.toLocaleString("tr-TR", { minimumFractionDigits: 2 })})`
+            : "",
+          settings.order.orderNoteEnabled && address.orderNote?.trim()
+            ? `Sipariş notu: ${address.orderNote.trim()}`
+            : "",
         ]
           .filter(Boolean)
           .join("\n"),
@@ -198,9 +270,27 @@ export async function createOrderFromCart(user: AuthUser, address: CheckoutAddre
       include: { items: true, payments: true },
     });
 
+    if (couponId && discountTotal > 0) {
+      await tx.couponRedemption.create({
+        data: {
+          couponId,
+          orderId: created.id,
+          userId: user.id,
+          amount: discountTotal,
+        },
+      });
+    }
+
     await tx.cartItem.deleteMany({ where: { cartId: cart.id } });
+    await tx.cart.update({ where: { id: cart.id }, data: { couponId: null } });
     return created;
-  });
+        });
+      } catch (error) {
+        if (!isPublicNumberConflict(error) || attempt === 7) throw error;
+      }
+    }
+    throw new Error("Sipariş numarası üretilemedi");
+  })();
 
   if (address.deliveryMethod !== "office") {
     await saveUserAddress(user.id, {
@@ -230,7 +320,13 @@ export async function createOrderFromCart(user: AuthUser, address: CheckoutAddre
     });
   }
 
-  return { order, iyzicoReady: iyzicoReady() };
+  try {
+    await notifyOrderPlaced(order.id);
+  } catch (error) {
+    console.error("order email", error);
+  }
+
+  return { order, iyzicoReady: await iyzicoIsReady() };
 }
 
 export async function getUserOrder(userId: string, publicNumber: string) {

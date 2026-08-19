@@ -48,7 +48,7 @@ export async function listFavoriteIds(userId: string): Promise<number[]> {
 
 export async function listFavoriteProducts(userId: string): Promise<ListingProduct[]> {
   const rows = await prisma.favorite.findMany({
-    where: { userId, product: { isActive: true } },
+    where: { userId, product: { isActive: true, removed: false } },
     include: { product: { include: favoriteProductInclude } },
     orderBy: { createdAt: "desc" },
   });
@@ -63,7 +63,7 @@ export async function peekFavoriteCount(): Promise<number> {
 
 export async function toggleFavorite(userId: string, productId: number) {
   const product = await prisma.product.findFirst({
-    where: { id: productId, isActive: true },
+    where: { id: productId, isActive: true, removed: false },
     select: { id: true },
   });
   if (!product) {
@@ -88,7 +88,7 @@ export async function mergeFavoriteIds(userId: string, productIds: number[]) {
   if (unique.length === 0) return listFavoriteIds(userId);
 
   const products = await prisma.product.findMany({
-    where: { id: { in: unique }, isActive: true },
+    where: { id: { in: unique }, isActive: true, removed: false },
     select: { id: true },
   });
   const valid = new Set(products.map((p) => p.id));

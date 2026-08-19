@@ -28,7 +28,9 @@ export async function CategorySidebar() {
                 className="group flex items-center gap-3 px-3.5 py-[11px] text-[13px] font-medium text-[#222] transition hover:bg-[#fafafa]"
               >
                 <span className="min-w-0 flex-1 leading-snug">{cat.name}</span>
-                <ChevronRight className="size-4 shrink-0 text-[#cfcfcf] group-hover:text-[#999]" />
+                {cat.children.length > 0 ? (
+                  <ChevronRight className="size-4 shrink-0 text-[#cfcfcf] group-hover:text-[#999]" />
+                ) : null}
               </Link>
             </li>
           ))}

@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   Bell,
   FileText,
+  Headphones,
   Heart,
   KeyRound,
   LayoutDashboard,
@@ -25,6 +26,7 @@ const NAV = [
   { href: "/hesabim/teklifler", label: "Teklif Taleplerim", icon: FileText },
   { href: "/favoriler", label: "Favorilerim", icon: Heart },
   { href: "/hesabim/iadeler", label: "İade & Değişim Taleplerim", icon: RefreshCcw },
+  { href: "/hesabim/destek", label: "Destek Taleplerim", icon: Headphones },
   { href: "/hesabim/bildirimler", label: "Bildirimlerim", icon: Bell },
   { href: "/hesabim/sifre", label: "Şifre Değiştir", icon: KeyRound },
   { href: "/hesabim/guvenlik", label: "Hesap Güvenliği", icon: Shield },

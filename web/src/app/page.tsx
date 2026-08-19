@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const rows = await prisma.product.findMany({
-    where: { isActive: true, isGroupPrimary: true },
+    where: { isActive: true, isGroupPrimary: true, showOnHomepage: true, removed: false },
     include: { images: { orderBy: { sortOrder: "asc" }, take: 1 } },
     orderBy: [{ stockTotal: "desc" }, { createdAt: "desc" }],
     take: 24,

@@ -12,6 +12,7 @@ import { mediaUrl, formatPriceTry, formatStock } from "@/lib/media";
 import { colorToHex, grossPrice, parseProductCopy, stripHtml } from "@/lib/product-detail";
 import { canonicalPath, categoryPath, productPath } from "@/lib/seo/urls";
 import { siteUrl } from "@/lib/env";
+import { getSiteSettings, stockAllowsSale, stockMaxQty } from "@/lib/site-settings";
 import { prisma } from "@/lib/db";
 
 type PageProps = {
@@ -47,11 +48,12 @@ export default async function ProductPage({ params }: PageProps) {
   }
 
   const product = resolved.product;
+  const settings = await getSiteSettings();
   const variants = await getVariantSiblings(product.skuGroup);
   const images = product.images
     .map((img) => mediaUrl(img.localPath))
     .filter((src): src is string => Boolean(src));
-  const inStock = product.stockTotal > 0;
+  const inStock = stockAllowsSale(product.stockTotal, settings);
   const heading = product.title || product.name;
   const vat = Number(product.vatRate);
   const unitGross = grossPrice(Number(product.price), vat);
@@ -157,6 +159,8 @@ export default async function ProductPage({ params }: PageProps) {
               unitPrice={unitGross}
               specs={specs}
               colors={colors}
+              sellable={inStock}
+              maxQty={stockMaxQty(product.stockTotal, settings)}
             />
 
             <ProductTrustBar />

@@ -2,37 +2,39 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { PAYMENT_STATUS_LABEL } from "@/lib/commerce/orders";
+import { CARGO_STATUS_OPTIONS, ORDER_STATUS_LABEL, PAYMENT_STATUS_LABEL } from "@/lib/commerce/orders-copy";
 
-const OPTIONS = ["success", "pending", "failure", "refunded"] as const;
-
+const PAYMENT_OPTIONS = ["success", "pending", "failure", "refunded"] as const;
 const FULFILLMENT = ["paid", "preparing", "shipped", "completed"];
 
-function boxValue(orderStatus: string, paymentStatus?: string) {
+function boxValue(orderStatus: string, paymentStatus?: string): (typeof PAYMENT_OPTIONS)[number] {
   if (paymentStatus === "refunded") return "refunded";
   if (paymentStatus === "failure" || orderStatus === "failed") return "failure";
   if (paymentStatus === "success" || FULFILLMENT.includes(orderStatus)) return "success";
   return "pending";
 }
 
-function payloadFor(value: (typeof OPTIONS)[number], currentOrderStatus: string) {
-  if (value === "pending") {
+function cargoValue(orderStatus: string): (typeof CARGO_STATUS_OPTIONS)[number] {
+  if (CARGO_STATUS_OPTIONS.includes(orderStatus as (typeof CARGO_STATUS_OPTIONS)[number])) {
+    return orderStatus as (typeof CARGO_STATUS_OPTIONS)[number];
+  }
+  return "paid";
+}
+
+function payloadFor(
+  payment: (typeof PAYMENT_OPTIONS)[number],
+  cargo: (typeof CARGO_STATUS_OPTIONS)[number],
+) {
+  if (payment === "pending") {
     return { status: "pending_payment" as const, paymentStatus: "pending" as const };
   }
-  if (value === "failure") {
+  if (payment === "failure") {
     return { status: "failed" as const, paymentStatus: "failure" as const };
   }
-  if (value === "refunded") {
+  if (payment === "refunded") {
     return { status: "cancelled" as const, paymentStatus: "refunded" as const };
   }
-  return {
-    status: (FULFILLMENT.includes(currentOrderStatus) ? currentOrderStatus : "paid") as
-      | "paid"
-      | "preparing"
-      | "shipped"
-      | "completed",
-    paymentStatus: "success" as const,
-  };
+  return { status: cargo, paymentStatus: "success" as const };
 }
 
 export function OrderStatusForm({
@@ -47,14 +49,19 @@ export function OrderStatusForm({
   compact?: boolean;
 }) {
   const router = useRouter();
-  const current = boxValue(status, paymentStatus);
-  const [value, setValue] = useState(current);
+  const currentPay = boxValue(status, paymentStatus);
+  const currentCargo = cargoValue(status);
+  const [pay, setPay] = useState(currentPay);
+  const [cargo, setCargo] = useState(currentCargo);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setValue(boxValue(status, paymentStatus));
+    setPay(boxValue(status, paymentStatus));
+    setCargo(cargoValue(status));
   }, [status, paymentStatus]);
+
+  const dirty = pay !== currentPay || (pay === "success" && cargo !== currentCargo);
 
   async function save() {
     setPending(true);
@@ -63,7 +70,7 @@ export function OrderStatusForm({
       const res = await fetch(`/api/admin/orders/${orderId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payloadFor(value, status)),
+        body: JSON.stringify(payloadFor(pay, cargo)),
       });
       const data = (await res.json()) as { error?: string };
       if (!res.ok) {
@@ -78,28 +85,46 @@ export function OrderStatusForm({
     }
   }
 
+  const selectClass = `block rounded-md border border-line bg-white px-2 text-[13px] font-semibold text-[#111] ${
+    compact ? "h-9 min-w-[180px]" : "mt-1 h-10 min-w-[220px]"
+  }`;
+
   return (
     <div className={`flex flex-wrap items-end gap-2 ${compact ? "" : "gap-3"}`}>
       <label className="text-[12px] font-bold tracking-wide text-[#6b7280] uppercase">
         {compact ? <span className="sr-only">Ödeme durumu</span> : "Ödeme durumu"}
         <select
-          value={value}
-          onChange={(e) => setValue(e.target.value as (typeof OPTIONS)[number])}
-          className={`block rounded-md border border-line bg-white px-2 text-[13px] font-semibold text-[#111] ${
-            compact ? "h-9 min-w-[180px]" : "mt-1 h-10 min-w-[220px]"
-          }`}
+          value={pay}
+          onChange={(e) => setPay(e.target.value as (typeof PAYMENT_OPTIONS)[number])}
+          className={selectClass}
         >
-          {OPTIONS.map((item) => (
+          {PAYMENT_OPTIONS.map((item) => (
             <option key={item} value={item}>
               {PAYMENT_STATUS_LABEL[item]}
             </option>
           ))}
         </select>
       </label>
+      {pay === "success" ? (
+        <label className="text-[12px] font-bold tracking-wide text-[#6b7280] uppercase">
+          {compact ? <span className="sr-only">Kargo durumu</span> : "Kargo durumu"}
+          <select
+            value={cargo}
+            onChange={(e) => setCargo(e.target.value as (typeof CARGO_STATUS_OPTIONS)[number])}
+            className={selectClass}
+          >
+            {CARGO_STATUS_OPTIONS.map((item) => (
+              <option key={item} value={item}>
+                {ORDER_STATUS_LABEL[item]}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
       <button
         type="button"
         onClick={() => void save()}
-        disabled={pending || value === current}
+        disabled={pending || !dirty}
         className={`rounded-md bg-navy px-4 text-[12px] font-extrabold tracking-wide text-white hover:bg-navy-deep disabled:opacity-50 ${
           compact ? "h-9" : "h-10"
         }`}

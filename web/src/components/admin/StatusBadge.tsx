@@ -1,4 +1,4 @@
-import { ORDER_STATUS_LABEL, PAYMENT_STATUS_LABEL } from "@/lib/commerce/orders";
+import { ORDER_STATUS_LABEL, PAYMENT_STATUS_LABEL } from "@/lib/commerce/orders-copy";
 
 const TONE: Record<string, string> = {
   draft: "bg-[#eef0f3] text-[#555]",

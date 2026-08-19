@@ -41,6 +41,7 @@ export default async function AccountPage() {
           useCorporateDefault: overview.profile.useCorporateDefault,
           notifyEmail: overview.profile.notifyEmail,
           notifySms: overview.profile.notifySms,
+          notifyWhatsapp: overview.profile.notifyWhatsapp,
           notifyOrder: overview.profile.notifyOrder,
         }}
       />

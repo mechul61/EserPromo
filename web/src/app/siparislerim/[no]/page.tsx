@@ -3,9 +3,10 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { AccountChrome } from "@/components/account/AccountChrome";
+import { ShippingTracker } from "@/components/account/ShippingTracker";
 import { getCurrentUser } from "@/lib/auth/session";
 import { formatDateTr } from "@/lib/account";
-import { getUserOrder, ORDER_STATUS_LABEL } from "@/lib/commerce/orders";
+import { customerShippingCopy, getUserOrder, isOfficePickup } from "@/lib/commerce/orders";
 import { formatPriceTry, mediaUrl } from "@/lib/media";
 import { formatPhoneTR } from "@/lib/phone";
 
@@ -33,12 +34,13 @@ export default async function OrderDetailPage({ params }: PageProps) {
   const order = await getUserOrder(user.id, no);
   if (!order) notFound();
 
-  const status = ORDER_STATUS_LABEL[order.status] ?? order.status;
+  const officePickup = isOfficePickup(order.customerNote);
+  const shipping = customerShippingCopy(order.status, officePickup);
 
   return (
     <AccountChrome
       title={order.publicNumber}
-      subtitle={`${status} · ${formatDateTr(order.createdAt)}`}
+      subtitle={`${shipping.title} · ${formatDateTr(order.createdAt)}`}
       crumbs={[
         { href: "/", label: "Ana Sayfa" },
         { href: "/hesabim", label: "Hesabım" },
@@ -55,11 +57,19 @@ export default async function OrderDetailPage({ params }: PageProps) {
           Siparişlerime dön
         </Link>
 
+        <ShippingTracker
+          status={order.status}
+          officePickup={officePickup}
+          trackingNo={order.trackingNo}
+          trackingUrl={order.trackingUrl}
+          cargoCompany={order.cargoCompany}
+        />
+
         <section className="rounded-md border border-line bg-white p-5">
           <h2 className="text-[15px] font-extrabold tracking-wide text-[#111] uppercase">Sipariş Özeti</h2>
           <dl className="mt-3">
             <NoteRow label="Sipariş No" value={order.publicNumber} />
-            <NoteRow label="Durum" value={status} />
+            <NoteRow label="Durum" value={shipping.title} />
             <NoteRow label="Tarih" value={formatDateTr(order.createdAt)} />
             <NoteRow
               label="Ödeme"
@@ -109,6 +119,12 @@ export default async function OrderDetailPage({ params }: PageProps) {
                 {Number(order.shippingTotal) === 0 ? "Ücretsiz" : `₺${formatPriceTry(order.shippingTotal)}`}
               </dd>
             </div>
+            {Number(order.discountTotal) > 0 ? (
+              <div className="flex justify-between gap-3">
+                <dt className="text-[#666]">Kupon{order.couponCode ? ` (${order.couponCode})` : ""}</dt>
+                <dd className="font-semibold text-brand-green">−₺{formatPriceTry(order.discountTotal)}</dd>
+              </div>
+            ) : null}
             <div className="flex items-end justify-between gap-3 pt-1">
               <dt className="text-[13px] font-extrabold uppercase">Genel Toplam</dt>
               <dd className="text-[20px] font-extrabold text-navy">₺{formatPriceTry(order.grandTotal)}</dd>

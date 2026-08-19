@@ -27,21 +27,45 @@ export async function CatalogSidebar({
           {heading}
         </div>
         <ul>
-          {tree.map((cat) => (
-            <li key={cat.slug} className="border-b border-[#f0f1f3] last:border-b-0">
-              <Link
-                href={categoryPath(cat.slug)}
-                className={`flex items-center gap-2.5 px-3 py-[9px] text-[13px] ${
-                  activeSlug === cat.slug || cat.children.some((c) => activeSlug === c.slug)
-                    ? "font-bold text-brand-red"
-                    : "font-medium text-[#222] hover:bg-[#fafafa]"
-                }`}
-              >
-                <span className="min-w-0 flex-1">{cat.name}</span>
-                <ChevronRight className="size-3.5 text-[#c8c8c8]" />
-              </Link>
-            </li>
-          ))}
+          {tree.map((cat) => {
+            const childActive = cat.children.some((child) => child.slug === activeSlug);
+            const isActive = activeSlug === cat.slug || childActive;
+            return (
+              <li key={cat.slug} className="border-b border-[#f0f1f3] last:border-b-0">
+                <Link
+                  href={categoryPath(cat.slug)}
+                  className={`flex items-center gap-2.5 px-3 py-[9px] text-[13px] ${
+                    isActive ? "font-bold text-brand-red" : "font-medium text-[#222] hover:bg-[#fafafa]"
+                  }`}
+                >
+                  <span className="min-w-0 flex-1">{cat.name}</span>
+                  {cat.children.length > 0 ? (
+                    <ChevronRight
+                      className={`size-3.5 text-[#c8c8c8] transition ${isActive ? "rotate-90" : ""}`}
+                    />
+                  ) : null}
+                </Link>
+                {isActive && cat.children.length > 0 ? (
+                  <ul className="border-t border-[#f0f1f3] bg-[#fafbfc] pb-1">
+                    {cat.children.map((child) => (
+                      <li key={child.slug}>
+                        <Link
+                          href={categoryPath(child.slug)}
+                          className={`flex items-center px-3 py-[7px] pl-7 text-[12.5px] leading-snug ${
+                            activeSlug === child.slug
+                              ? "font-bold text-brand-red"
+                              : "text-[#555] hover:bg-[#f3f4f6]"
+                          }`}
+                        >
+                          {child.name}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </li>
+            );
+          })}
         </ul>
       </div>
 

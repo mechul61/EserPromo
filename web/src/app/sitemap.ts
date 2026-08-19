@@ -5,9 +5,9 @@ import { siteUrl } from "@/lib/env";
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = siteUrl();
   const [categories, products] = await Promise.all([
-    prisma.category.findMany({ select: { slug: true, updatedAt: true } }),
+    prisma.category.findMany({ where: { removed: false }, select: { slug: true, updatedAt: true } }),
     prisma.product.findMany({
-      where: { isActive: true },
+      where: { isActive: true, removed: false },
       select: { slug: true, updatedAt: true },
     }),
   ]);

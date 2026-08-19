@@ -94,3 +94,38 @@ button {
 .animate-slide-in {
   animation: slide-in 0.45s ease both;
 }
+
+.about-blob {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  margin-inline: auto;
+}
+
+.about-blob-inner {
+  overflow: hidden;
+  aspect-ratio: 500 / 280;
+  clip-path: path(
+    "M 0 28% C 0 8% 11% 0 26% 0 H 100% L 100% 78% C 98% 92% 92% 100% 80% 100% H 0 Z"
+  );
+}
+
+.about-signature-line {
+  display: block;
+  width: min(100%, 420px);
+  height: 14px;
+  margin-top: 10px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 420 14' fill='none'%3E%3Cpath d='M0 10 C 80 2 140 12 210 8 C 280 4 340 11 420 7' stroke='%23f5a623' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E")
+    no-repeat left center / 100% 100%;
+}
+
+.about-stats-card {
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.about-stats-item {
+  border-top: 1px dashed #e5e7eb;
+}

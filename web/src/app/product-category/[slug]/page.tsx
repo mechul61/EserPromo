@@ -95,7 +95,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
     try {
       const categoryIds = await categoryIdsWithChildren(category.id);
       const rows = await prisma.product.findMany({
-        where: { categoryId: { in: categoryIds }, isActive: true },
+        where: { categoryId: { in: categoryIds }, isActive: true, removed: false },
         include: { images: { orderBy: { sortOrder: "asc" }, take: 1 } },
         orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
       });
@@ -120,6 +120,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
         where: {
           isActive: true,
           isGroupPrimary: true,
+          removed: false,
           ...(slug === "kampanyali" ? { discountLocked: true } : {}),
         },
         include: { images: { orderBy: { sortOrder: "asc" }, take: 1 } },
