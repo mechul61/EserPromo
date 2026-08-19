@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { isSameOriginRequest } from "@/lib/security/origin";
 
 const SESSION_COOKIE = "ep_sid";
 const WRITE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
@@ -18,17 +19,7 @@ function clientIp(req: NextRequest) {
   return req.headers.get("x-real-ip") || "unknown";
 }
 
-function sameOrigin(req: NextRequest) {
-  const origin = req.headers.get("origin");
-  if (!origin) return true;
-  try {
-    return new URL(origin).host === req.nextUrl.host;
-  } catch {
-    return false;
-  }
-}
-
-function isAuthEndpoint(pathname: string) {
+  if (WRITE_METHODS.has(method) && pathname.startsWith("/api/") && !isSameOriginRequest(req)) {
   return pathname.startsWith("/api/auth/");
 }
 
