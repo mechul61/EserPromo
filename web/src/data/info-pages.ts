@@ -422,6 +422,7 @@ export const INFO_PAGES: Record<string, InfoPageContent> = {
 
 export const SHOP_SITEMAP = [
   { href: "/", label: "Ana Sayfa" },
+  { href: "/urunler", label: "Tüm Ürünler" },
   { href: "/sepet", label: "Sepetim" },
   { href: "/favoriler", label: "Favorilerim" },
   { href: "/giris", label: "Giriş Yap" },

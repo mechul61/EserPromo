@@ -6,6 +6,7 @@ import { ChevronDown, ClipboardPen, Menu, Stamp } from "lucide-react";
 
 const links = [
   { href: "/", label: "ANA SAYFA" },
+  { href: "/urunler", label: "ÜRÜNLER" },
   { href: "/hakkimizda", label: "HAKKIMIZDA" },
   { href: "/kurumsal", label: "KURUMSAL", hasDropdown: true },
   { href: "/baski-teknikleri", label: "BASKI TEKNİKLERİ" },

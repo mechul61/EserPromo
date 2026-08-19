@@ -7,8 +7,8 @@ import { Check } from "lucide-react";
 import { FavoriteButton } from "@/components/favorites/FavoriteButton";
 
 const tabs = [
-  "Çok Satanlar",
   "Yeni Ürünler",
+  "Çok Satanlar",
   "Kampanyalı Ürünler",
   "Öne Çıkanlar",
 ] as const;
@@ -32,7 +32,7 @@ export type HomeProduct = {
 };
 
 export function ProductSection({ products }: { products: HomeProduct[] }) {
-  const [active, setActive] = useState<(typeof tabs)[number]>("Çok Satanlar");
+  const [active, setActive] = useState<(typeof tabs)[number]>("Yeni Ürünler");
 
   const visible = useMemo(() => {
     if (active === "Yeni Ürünler") {

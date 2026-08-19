@@ -6,6 +6,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = siteUrl();
   const staticPages = [
     "/",
+    "/urunler/",
     "/hakkimizda/",
     "/kurumsal/",
     "/baski-teknikleri/",

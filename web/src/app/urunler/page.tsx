@@ -1,6 +1,5 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { ChevronRight, Home } from "lucide-react";
 import { CatalogChrome } from "@/components/catalog/CatalogChrome";
 import { CatalogFilters } from "@/components/catalog/CatalogFilters";
@@ -8,79 +7,29 @@ import { CatalogInfiniteGrid } from "@/components/catalog/CatalogInfiniteGrid";
 import { CatalogSidebar } from "@/components/catalog/CatalogSidebar";
 import { CatalogSort } from "@/components/catalog/CatalogSort";
 import { MainNav } from "@/components/layout/MainNav";
-import {
-  asParamList,
-  catalogBreadcrumb,
-  catalogTitleForSlug,
-  knownCatalogSlug,
-} from "@/data/catalog-page";
-import { resolveCategory } from "@/lib/catalog";
+import { asParamList } from "@/data/catalog-page";
 import { getCatalogListingResult } from "@/lib/catalog-listing-query";
-import { prisma } from "@/lib/db";
 import { buildPageMetadata } from "@/lib/seo/metadata";
-import { categoryPath } from "@/lib/seo/urls";
+import { allProductsPath } from "@/lib/seo/urls";
 
 type Query = Record<string, string | string[] | undefined>;
 
 type PageProps = {
-  params: Promise<{ slug: string }>;
   searchParams: Promise<Query>;
 };
 
-const EXTRA_TITLES: Record<string, string> = {
-  "yeni-urunler": "Yeni Ürünler",
-  "cok-satanlar": "Çok Satanlar",
-  kampanyali: "Kampanyalı Ürünler",
-};
+export const metadata = buildPageMetadata({
+  title: "Tüm Ürünler",
+  description:
+    "Promosyon ve kurumsal hediye ürünlerimizin tamamını keşfedin. Kalem, ajanda, tekstil, teknoloji ürünleri ve daha fazlası.",
+  path: allProductsPath(),
+});
 
-function isKnownSlug(slug: string) {
-  return knownCatalogSlug(slug) || slug in EXTRA_TITLES;
-}
-
-export async function generateMetadata({ params }: PageProps) {
-  const { slug } = await params;
-  const category = await findCategory(slug);
-  const title = category?.name ?? EXTRA_TITLES[slug] ?? catalogTitleForSlug(slug);
-  if (!category && !isKnownSlug(slug)) return { title: "Kategori bulunamadı" };
-  const description =
-    category?.description?.replace(/<[^>]+>/g, "").slice(0, 160) ||
-    `${title} promosyon ürünleri.`;
-  return buildPageMetadata({
-    title,
-    description,
-    path: categoryPath(slug),
-  });
-}
-
-async function findCategory(slug: string) {
-  try {
-    return await resolveCategory(slug);
-  } catch {
-    return null;
-  }
-}
-
-export default async function CategoryPage({ params, searchParams }: PageProps) {
-  const { slug } = await params;
+export default async function AllProductsPage({ searchParams }: PageProps) {
   const query = await searchParams;
-  const category = await findCategory(slug);
+  const basePath = allProductsPath();
+  const scope = { kind: "all" as const };
 
-  if (!category && !isKnownSlug(slug)) notFound();
-
-  let parentName: string | null = null;
-
-  if (category?.parentId) {
-    try {
-      const parent = await prisma.category.findUnique({
-        where: { id: category.parentId },
-      });
-      parentName = parent?.name ?? null;
-    } catch {
-      parentName = null;
-    }
-  }
-
-  const scope = { kind: "category" as const, slug };
   const listing = await getCatalogListingResult(scope, {
     renk: asParamList(query.renk),
     ebat: asParamList(query.ebat),
@@ -88,17 +37,9 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
     page: 1,
   });
 
-  const title = category?.name ?? EXTRA_TITLES[slug] ?? catalogTitleForSlug(slug);
-  const crumbs = category
-    ? [
-        ...(parentName ? [{ name: parentName, slug: "" }] : []),
-        { name: category.name, slug },
-      ]
-    : catalogBreadcrumb(slug);
-  const basePath = categoryPath(slug);
   const sira = typeof query.sira === "string" ? query.sira : "populer";
   const listingKey = [
-    slug,
+    "all",
     ...asParamList(query.renk),
     ...asParamList(query.ebat),
     sira,
@@ -107,7 +48,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
   return (
     <CatalogChrome>
       <div className="flex flex-col lg:flex-row lg:items-start lg:gap-4">
-        <CatalogSidebar activeSlug={slug} />
+        <CatalogSidebar />
 
         <div className="min-w-0 flex-1">
           <MainNav />
@@ -121,24 +62,14 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
               <Link href="/" className="hover:text-navy">
                 Ana Sayfa
               </Link>
-              {crumbs.map((crumb, index) => (
-                <span key={`${crumb.slug}-${crumb.name}`} className="contents">
-                  <ChevronRight className="size-3" />
-                  {index === crumbs.length - 1 || !crumb.slug ? (
-                    <span className="text-[#555]">{crumb.name}</span>
-                  ) : (
-                    <Link href={categoryPath(crumb.slug)} className="hover:text-navy">
-                      {crumb.name}
-                    </Link>
-                  )}
-                </span>
-              ))}
+              <ChevronRight className="size-3" />
+              <span className="text-[#555]">Tüm Ürünler</span>
             </nav>
 
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h1 className="text-[28px] leading-none font-extrabold tracking-wide text-[#111] uppercase">
-                  {title}
+                  Tüm Ürünler
                 </h1>
                 <p className="mt-2 text-[13px] text-[#8b919a]">
                   {listing.total} ürün bulundu
@@ -166,7 +97,6 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
                     pageCount={listing.pageCount}
                     total={listing.total}
                     scope={scope}
-                    emptyMessage="Bu kategoride henüz ürün yok."
                   />
                 </Suspense>
               </section>

@@ -9,6 +9,10 @@ export function productPath(slug: string): string {
   return `/urun/${slug}`;
 }
 
+export function allProductsPath(): string {
+  return "/urunler";
+}
+
 export function canonicalPath(path: string): string {
   const p = path.startsWith("/") ? path : `/${path}`;
   const withSlash = p.endsWith("/") ? p : `${p}/`;
