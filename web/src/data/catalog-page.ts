@@ -36,6 +36,8 @@ export type ListingProduct = {
   color?: string;
   stock: number;
   isNew?: boolean;
+  skuGroup: string;
+  isGroupPrimary: boolean;
 };
 
 export type FilterOption = { key: string; label: string; count: number; hex?: string };

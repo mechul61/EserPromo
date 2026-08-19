@@ -58,7 +58,7 @@ export function ProductGallery({
   }
 
   return (
-    <div className="flex h-auto min-h-[250px] flex-col lg:h-[70%]">
+    <div className="flex h-auto min-h-[250px] flex-col lg:h-[82%]">
       <div
         className="group/stage relative min-h-[250px] flex-1 cursor-zoom-in overflow-hidden border border-[#e6e8ec] bg-white lg:min-h-0"
         onMouseEnter={() => {

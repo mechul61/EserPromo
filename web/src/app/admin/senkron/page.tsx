@@ -1,29 +1,33 @@
 import { AdminHeading } from "@/components/admin/AdminChrome";
-import { SyncGrid } from "@/components/grid/AdminGrids";
+import { SyncPageView } from "@/components/admin/SyncPageView";
 import { prisma } from "@/lib/db";
 
-export const metadata = { title: "Senkron | Yönetim" };
+export const metadata = { title: "Entegrasyon | Yönetim" };
+export const dynamic = "force-dynamic";
 
 export default async function AdminSyncPage() {
   const runs = await prisma.syncRun.findMany({
     orderBy: { startedAt: "desc" },
-    take: 100,
+    take: 50,
   });
 
   return (
     <div>
       <AdminHeading
-        title="Katalog senkronu"
-        subtitle="Etkin API senkron kayıtları. Yeni senkron `npm run sync` ile çalışır."
+        title="Entegrasyon"
+        subtitle="Etkin API üzerinden kategori, ürün ve görsel senkronizasyonu. İşlemleri buradan başlatıp takip edebilirsiniz."
       />
-      <SyncGrid
-        rows={runs.map((run) => ({
-          id: String(run.id),
+      <SyncPageView
+        initialRuns={runs.map((run) => ({
+          id: run.id,
           startedAt: run.startedAt.toISOString(),
+          finishedAt: run.finishedAt?.toISOString() ?? null,
           status: run.status,
-          products: run.productsUpserted,
-          images: run.imagesDownloaded,
-          error: run.errorMessage || "—",
+          requestCount: run.requestCount,
+          categoriesUpsert: run.categoriesUpsert,
+          productsUpserted: run.productsUpserted,
+          imagesDownloaded: run.imagesDownloaded,
+          errorMessage: run.errorMessage,
         }))}
       />
     </div>

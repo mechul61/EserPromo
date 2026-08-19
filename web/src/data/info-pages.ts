@@ -15,6 +15,8 @@ export type InfoPageContent = {
 export const FOOTER_COLS = {
   kurumsal: [
     { href: "/hakkimizda", label: "Hakkımızda" },
+    { href: "/kurumsal", label: "Kurumsal" },
+    { href: "/baski-teknikleri", label: "Baskı Teknikleri" },
     { href: "/bayilik", label: "Bayilik" },
     { href: "/kariyer", label: "Kariyer" },
     { href: "/iletisim", label: "İletişim" },

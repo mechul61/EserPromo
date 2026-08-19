@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  AlertTriangle,
   ArrowDownToLine,
   ArrowUpFromLine,
   Bell,
@@ -30,6 +31,7 @@ import {
   X,
 } from "lucide-react";
 import { CategoryEditor, DeleteConfirm } from "@/components/admin/CatalogEditors";
+import type { CategoryDuplicateGroup } from "@/lib/admin/category-duplicates";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { SITE_CONTACT } from "@/data/catalog-page";
 import { downloadCsv, parseCsv } from "@/lib/admin/csv";
@@ -104,12 +106,14 @@ function flattenCategories(items: CategoryRow[]) {
 
 export function CategoriesPageView({
   categories,
+  duplicateGroups,
   kpis,
   shares,
   recent,
   productTotal,
 }: {
   categories: CategoryRow[];
+  duplicateGroups: CategoryDuplicateGroup[];
   kpis: CategoryKpi[];
   shares: CategoryShare[];
   recent: CategoryRow[];
@@ -185,6 +189,7 @@ export function CategoriesPageView({
   const pageRows = filtered.slice(start, start + pageSize);
   const allSelected = pageRows.length > 0 && pageRows.every((row) => selected.has(row.id));
   const totalShare = Math.max(1, shares.reduce((sum, item) => sum + item.count, 0));
+  const duplicateCategoryCount = duplicateGroups.reduce((sum, group) => sum + group.items.length, 0);
 
   function clearFilters() {
     setDraftQuery("");
@@ -467,6 +472,109 @@ export function CategoriesPageView({
               Filtreleri Göster
             </button>
           )}
+
+          <section
+            className={`rounded-[18px] border p-4 shadow-[0_8px_24px_rgba(15,23,42,0.04)] ${
+              duplicateGroups.length > 0 ? "border-[#fecaca] bg-[#fff7f7]" : "border-[#bbf7d0] bg-[#f0fdf4]"
+            }`}
+          >
+            <div className="flex items-start gap-3">
+              {duplicateGroups.length > 0 ? (
+                <AlertTriangle className="mt-0.5 size-5 shrink-0 text-[#dc2626]" />
+              ) : (
+                <SquareStack className="mt-0.5 size-5 shrink-0 text-[#16a34a]" />
+              )}
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-[15px] font-extrabold text-[#0f172a]">Çift Kategori Kontrolü</h2>
+                  <span
+                    className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
+                      duplicateGroups.length > 0 ? "bg-[#fee2e2] text-[#dc2626]" : "bg-[#dcfce7] text-[#16a34a]"
+                    }`}
+                  >
+                    {duplicateGroups.length > 0
+                      ? `${duplicateGroups.length} grup · ${duplicateCategoryCount} kayıt`
+                      : "Temiz"}
+                  </span>
+                </div>
+                <p className="mt-1 text-[12px] leading-relaxed text-[#64748b]">
+                  {duplicateGroups.length > 0
+                    ? "Aynı isimli ve bağlantısız kategoriler aşağıda listelenir. Aynı üst kategori altındaki kayıtlar gerçek çift sayılır."
+                    : "Aynı isimli bağlantısız veya aynı üst kategori altında çift kayıt bulunamadı."}
+                </p>
+              </div>
+            </div>
+
+            {duplicateGroups.length > 0 ? (
+              <div className="mt-4 space-y-3">
+                {duplicateGroups.map((group) => (
+                  <article key={group.id} className="overflow-hidden rounded-xl border border-[#fecaca] bg-white">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#fee2e2] bg-[#fffafb] px-4 py-3">
+                      <div>
+                        <p className="text-[14px] font-extrabold text-[#0f172a]">{group.displayName}</p>
+                        <p className="mt-1 text-[12px] text-[#64748b]">
+                          {group.kind === "same-parent"
+                            ? `Aynı üst kategori: ${group.parentName ?? "Ana kategori"}`
+                            : "Bağlantısız kategorilerde aynı isim"}
+                        </p>
+                      </div>
+                      <span
+                        className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${
+                          group.kind === "same-parent"
+                            ? "bg-[#fee2e2] text-[#dc2626]"
+                            : "bg-[#fef3c7] text-[#b45309]"
+                        }`}
+                      >
+                        {group.kind === "same-parent" ? "Gerçek çift" : "Bağlantısız aynı isim"}
+                      </span>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full text-left text-[12px]">
+                        <thead className="border-b border-[#eef2f7] bg-[#fafbfc] text-[10px] font-bold tracking-wide text-[#94a3b8] uppercase">
+                          <tr>
+                            <th className="px-4 py-2">ID</th>
+                            <th className="px-3 py-2">Kategori</th>
+                            <th className="px-3 py-2">Slug</th>
+                            <th className="px-3 py-2">Üst Kategori</th>
+                            <th className="px-3 py-2">Ürün</th>
+                            <th className="px-3 py-2 text-right">İşlem</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {group.items.map((item) => (
+                            <tr key={item.id} className="border-b border-[#eef2f7] last:border-0">
+                              <td className="px-4 py-2 font-semibold text-[#475569]">{item.id}</td>
+                              <td className="px-3 py-2 font-semibold text-[#0f172a]">{item.name}</td>
+                              <td className="px-3 py-2 text-[#64748b]">{item.slug}</td>
+                              <td className="px-3 py-2 text-[#64748b]">{item.parentName ?? "Ana kategori"}</td>
+                              <td className="px-3 py-2 font-bold text-[#0f172a]">{item.productCount.toLocaleString("tr-TR")}</td>
+                              <td className="px-3 py-2">
+                                <div className="flex items-center justify-end gap-1">
+                                  <Link
+                                    href={`/product-category/${item.slug}/`}
+                                    className="inline-flex size-7 items-center justify-center rounded-lg text-[#64748b] hover:bg-[#eef2f7]"
+                                  >
+                                    <Eye className="size-3.5" />
+                                  </Link>
+                                  <button
+                                    type="button"
+                                    onClick={() => setEdit(item)}
+                                    className="inline-flex size-7 items-center justify-center rounded-lg text-[#64748b] hover:bg-[#eef2f7]"
+                                  >
+                                    <Pencil className="size-3.5" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : null}
+          </section>
 
           <section className="overflow-hidden rounded-[18px] bg-white shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
             <div className="border-b border-[#e8edf3] px-6">

@@ -22,6 +22,7 @@ import {
 import { categoryIdsWithChildren, resolveCategory } from "@/lib/catalog";
 import { prisma } from "@/lib/db";
 import { mediaUrl } from "@/lib/media";
+import { buildPageMetadata } from "@/lib/seo/metadata";
 import { canonicalPath, categoryPath, productPath } from "@/lib/seo/urls";
 
 type Query = Record<string, string | string[] | undefined>;
@@ -46,13 +47,14 @@ export async function generateMetadata({ params }: PageProps) {
   const category = await findCategory(slug);
   const title = category?.name ?? EXTRA_TITLES[slug] ?? catalogTitleForSlug(slug);
   if (!category && !isKnownSlug(slug)) return { title: "Kategori bulunamadı" };
-  return {
+  const description =
+    category?.description?.replace(/<[^>]+>/g, "").slice(0, 160) ||
+    `${title} promosyon ürünleri.`;
+  return buildPageMetadata({
     title,
-    description:
-      category?.description?.replace(/<[^>]+>/g, "").slice(0, 160) ||
-      `${title} promosyon ürünleri.`,
-    alternates: { canonical: canonicalPath(categoryPath(slug)) },
-  };
+    description,
+    path: categoryPath(slug),
+  });
 }
 
 async function findCategory(slug: string) {
@@ -109,6 +111,8 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
         size: product.size ?? undefined,
         color: product.color ?? undefined,
         stock: product.stockTotal,
+        skuGroup: product.skuGroup,
+        isGroupPrimary: product.isGroupPrimary,
         isNew: Date.now() - product.createdAt.getTime() < 1000 * 60 * 60 * 24 * 30,
       }));
     } catch {
@@ -140,6 +144,8 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
         size: product.size ?? undefined,
         color: product.color ?? undefined,
         stock: product.stockTotal,
+        skuGroup: product.skuGroup,
+        isGroupPrimary: product.isGroupPrimary,
         isNew: Date.now() - product.createdAt.getTime() < 1000 * 60 * 60 * 24 * 30,
       }));
     } catch {
@@ -149,18 +155,46 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
 
   const { colors, sizes } = listingFilterOptions(products);
 
-  const filtered = filterListing(products, {
+  const filteredVariants = filterListing(products, {
     renk: asParamList(query.renk),
     ebat: asParamList(query.ebat),
     sira: typeof query.sira === "string" ? query.sira : undefined,
   });
 
-  const pageCount = Math.max(1, Math.ceil(filtered.length / CATALOG_PAGE_SIZE));
+  // Aynı skuGroup altındaki varyantları tek karta indiriyoruz:
+  // - filtre UI renk/ebat için yine tüm varyantları kullanır (filteredVariants)
+  // - ürün kartları için sadece bir temsil (in-stock tercih + group primary fallback)
+  const groupedBySkuGroup: Map<string, ListingProduct> = new Map();
+  for (const p of filteredVariants) {
+    const existing = groupedBySkuGroup.get(p.skuGroup);
+    if (!existing) {
+      groupedBySkuGroup.set(p.skuGroup, p);
+      continue;
+    }
+
+    const existingInStock = existing.stock > 0;
+    const pInStock = p.stock > 0;
+    if (pInStock && !existingInStock) {
+      groupedBySkuGroup.set(p.skuGroup, p);
+      continue;
+    }
+    if (!existingInStock && !pInStock) {
+      if (p.isGroupPrimary && !existing.isGroupPrimary) groupedBySkuGroup.set(p.skuGroup, p);
+      continue;
+    }
+    if (existingInStock && pInStock) {
+      if (p.isGroupPrimary && !existing.isGroupPrimary) groupedBySkuGroup.set(p.skuGroup, p);
+    }
+  }
+
+  const groupedProducts = Array.from(groupedBySkuGroup.values());
+
+  const pageCount = Math.max(1, Math.ceil(groupedProducts.length / CATALOG_PAGE_SIZE));
   const page = Math.min(
     pageCount,
     Math.max(1, Number.parseInt(String(query.page ?? "1"), 10) || 1),
   );
-  const pageItems = filtered.slice(
+  const pageItems = groupedProducts.slice(
     (page - 1) * CATALOG_PAGE_SIZE,
     page * CATALOG_PAGE_SIZE,
   );
@@ -212,7 +246,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
                   {title}
                 </h1>
                 <p className="mt-2 text-[13px] text-[#8b919a]">
-                  {filtered.length} ürün bulundu
+                  {groupedProducts.length} ürün bulundu
                 </p>
               </div>
               <Suspense fallback={<div className="h-9 w-[220px]" />}>
@@ -240,7 +274,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
                   basePath={basePath}
                   query={query}
                   page={page}
-                  pageCount={Math.ceil(filtered.length / CATALOG_PAGE_SIZE)}
+                  pageCount={pageCount}
                 />
               </section>
             </div>

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Check } from "lucide-react";
 
-type Tab = "aciklama" | "ozellik" | "baski" | "yorum";
+type Tab = "aciklama" | "ozellik" | "baski";
 
 export type OtherColor = {
   href: string;
@@ -45,7 +45,6 @@ export function ProductTabs({
     { id: "aciklama", label: "ÜRÜN AÇIKLAMASI" },
     { id: "ozellik", label: "ÜRÜN ÖZELLİKLERİ" },
     { id: "baski", label: "BASKI ALANLARI" },
-    { id: "yorum", label: "YORUMLAR (0)" },
   ];
 
   const intro = description;
@@ -115,7 +114,6 @@ export function ProductTabs({
                 <p>Baskı alanı bilgisi ürün özelliklerinde yer alır.</p>
               )
             ) : null}
-            {tab === "yorum" ? <p>Bu ürüne henüz yorum yapılmadı.</p> : null}
           </div>
         </section>
 

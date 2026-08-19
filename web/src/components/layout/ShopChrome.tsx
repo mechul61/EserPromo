@@ -1,5 +1,6 @@
 import { TopBar } from "@/components/layout/TopBar";
 import { SiteHeader } from "@/components/layout/SiteHeader";
+import { MainNav } from "@/components/layout/MainNav";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SitePopup } from "@/components/layout/SitePopup";
 import { FavoritesProvider } from "@/components/favorites/FavoritesProvider";
@@ -13,12 +14,14 @@ export async function ShopChrome({
   mainClassName = "py-6",
   className = "",
   skipMaintenance = false,
+  hideNav = false,
 }: {
   children: React.ReactNode;
   extra?: React.ReactNode;
   mainClassName?: string;
   className?: string;
   skipMaintenance?: boolean;
+  hideNav?: boolean;
 }) {
   if (!skipMaintenance) {
     const [settings, user] = await Promise.all([getSiteSettings(), getCurrentUser()]);
@@ -40,6 +43,11 @@ export async function ShopChrome({
       <div className={`flex min-h-dvh flex-col ${className}`}>
         <TopBar />
         <SiteHeader />
+        {!hideNav && (
+          <div className="container-ep">
+            <MainNav />
+          </div>
+        )}
         <main className={`container-ep flex-1 ${mainClassName}`}>{children}</main>
         <SiteFooter />
         {extra}

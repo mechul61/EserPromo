@@ -1,4 +1,5 @@
 import { CategoriesPageView, type CategoryKpi, type CategoryRow, type CategoryShare } from "@/components/admin/CategoriesPageView";
+import { findDuplicateCategories } from "@/lib/admin/category-duplicates";
 import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -95,5 +96,16 @@ export default async function AdminCategoriesPage() {
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 5);
 
-  return <CategoriesPageView categories={rows} kpis={kpis} shares={shares} recent={recent} productTotal={productTotal} />;
+  const duplicateGroups = findDuplicateCategories(rows);
+
+  return (
+    <CategoriesPageView
+      categories={rows}
+      duplicateGroups={duplicateGroups}
+      kpis={kpis}
+      shares={shares}
+      recent={recent}
+      productTotal={productTotal}
+    />
+  );
 }

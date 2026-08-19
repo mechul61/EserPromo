@@ -13,23 +13,63 @@ const montserrat = Montserrat({
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSiteSettings();
   const icon = faviconSrc(settings);
+  const title = settings.seo.title || settings.general.siteTitle || "Eser Promo";
+  const description = settings.seo.description || settings.general.description;
+  const image = `${siteUrl()}/brand/logo.png`;
   return {
     metadataBase: new URL(siteUrl()),
     title: {
-      default: settings.seo.title || settings.general.siteTitle || "Eser Promo",
+      default: title,
       template: `%s | ${settings.general.siteName || "Eser Promo"}`,
     },
-    description: settings.seo.description || settings.general.description,
+    description,
     keywords: settings.seo.keywords || undefined,
     robots: settings.seo.allowIndexing ? { index: true, follow: true } : { index: false, follow: false },
     icons: icon ? [{ url: icon }] : undefined,
+    alternates: { canonical: "/" },
+    openGraph: {
+      type: "website",
+      locale: "tr_TR",
+      url: siteUrl(),
+      siteName: settings.general.siteName || "Eser Promo",
+      title,
+      description,
+      images: [{ url: image }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [image],
+    },
   };
 }
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const settings = await getSiteSettings();
+  const socialUrls = Object.values(settings.socialMedia)
+    .map((value) => value.trim())
+    .filter((value) => value.startsWith("http"));
+  const orgJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: settings.general.siteName || "Eser Promo",
+    url: siteUrl(),
+    logo: `${siteUrl()}/brand/logo.png`,
+    sameAs: socialUrls.length > 0 ? socialUrls : undefined,
+  };
+  const websiteJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: settings.general.siteName || "Eser Promo",
+    url: siteUrl(),
+    inLanguage: "tr-TR",
+  };
   return (
     <html lang="tr" className={`${montserrat.variable} h-full`}>
       <body className="min-h-dvh flex flex-col font-sans antialiased">
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }} />
         {children}
       </body>
     </html>

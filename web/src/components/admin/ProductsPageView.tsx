@@ -38,6 +38,7 @@ import {
 } from "lucide-react";
 import { DeleteConfirm, ProductEditor, type CatalogCategoryOption } from "@/components/admin/CatalogEditors";
 import type { AdminVariant } from "@/components/admin/CatalogCards";
+import { ProductFamilyGrid, familyFromVariants } from "@/components/admin/CatalogCards";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { SITE_CONTACT } from "@/data/catalog-page";
 import { formatPriceTry, mediaUrl } from "@/lib/media";
@@ -215,10 +216,21 @@ export function ProductsPageView({
     });
   }, [rows, tab, query, categoryId, status, stockFilter, minPrice, maxPrice]);
 
-  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const fallbackCategory = categories[0] ?? { id: 0, name: "—" };
+  const variantFamilies = useMemo(() => {
+    if (tab !== "variants") return [];
+    return familyFromVariants(
+      filtered.map(toDraft),
+      { id: fallbackCategory.id, name: fallbackCategory.name },
+    ).filter((family) => family.variants.length > 1);
+  }, [tab, filtered, fallbackCategory.id, fallbackCategory.name]);
+
+  const listCount = tab === "variants" ? variantFamilies.length : filtered.length;
+  const pageCount = Math.max(1, Math.ceil(listCount / pageSize));
   const currentPage = Math.min(page, pageCount);
   const start = (currentPage - 1) * pageSize;
   const pageRows = filtered.slice(start, start + pageSize);
+  const pageFamilies = variantFamilies.slice(start, start + pageSize);
   const allSelected = pageRows.length > 0 && pageRows.every((row) => selected.has(row.id));
   const totalShare = Math.max(1, categoryShares.reduce((sum, item) => sum + item.count, 0));
   const selectedRows = rows.filter((row) => selected.has(row.id));
@@ -636,6 +648,26 @@ export function ProductsPageView({
             </div>
 
             <div className="overflow-x-auto">
+              {tab === "variants" ? (
+                <div className="p-4">
+                  {pageFamilies.length === 0 ? (
+                    <p className="rounded-md border border-[#eef2f7] bg-[#fafbfc] px-4 py-10 text-center text-[#94a3b8]">
+                      Varyantlı ürün bulunamadı.
+                    </p>
+                  ) : (
+                    <ProductFamilyGrid
+                      families={pageFamilies}
+                      onEdit={setEdit}
+                      onDelete={setRemove}
+                      onToggled={(id, patch) => {
+                        setRows((current) =>
+                          current.map((row) => (row.id === id ? { ...row, ...patch } : row)),
+                        );
+                      }}
+                    />
+                  )}
+                </div>
+              ) : (
               <table className="min-w-[1080px] w-full text-left text-[13px]">
                 <thead className="border-b border-[#eef2f7] bg-[#fafbfc] text-[11px] font-bold tracking-wide text-[#94a3b8] uppercase">
                   <tr>
@@ -690,6 +722,11 @@ export function ProductsPageView({
                               <div className="min-w-0">
                                 <p className="truncate font-semibold text-[#0f172a]">{row.title || row.name}</p>
                                 <p className="text-[12px] text-[#94a3b8]">{row.sku}</p>
+                                {row.variantCount > 1 ? (
+                                  <span className="mt-1 inline-flex rounded bg-[#eef3fb] px-1.5 py-0.5 text-[10px] font-extrabold tracking-wide text-navy uppercase">
+                                    {row.variantCount} varyant
+                                  </span>
+                                ) : null}
                               </div>
                             </div>
                           </td>
@@ -743,12 +780,13 @@ export function ProductsPageView({
                   )}
                 </tbody>
               </table>
+              )}
             </div>
 
             <div className="flex flex-col gap-3 border-t border-[#eef2f7] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-[12px] text-[#94a3b8]">
-                {filtered.length.toLocaleString("tr-TR")} kayıttan {filtered.length === 0 ? 0 : start + 1} -{" "}
-                {Math.min(start + pageSize, filtered.length)} arası gösteriliyor
+                {listCount.toLocaleString("tr-TR")} {tab === "variants" ? "ürün ailesi" : "kayıt"} —{" "}
+                {listCount === 0 ? 0 : start + 1} - {Math.min(start + pageSize, listCount)} arası gösteriliyor
               </p>
               <div className="flex flex-wrap items-center gap-2">
                 <button

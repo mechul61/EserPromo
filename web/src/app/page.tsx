@@ -9,9 +9,16 @@ import { ProductSection, type HomeProduct } from "@/components/home/ProductSecti
 import { prisma } from "@/lib/db";
 import { formatPriceTry, mediaUrl } from "@/lib/media";
 import { grossPrice } from "@/lib/product-detail";
+import { buildPageMetadata } from "@/lib/seo/metadata";
 import { productPath } from "@/lib/seo/urls";
 
 export const dynamic = "force-dynamic";
+export const metadata = buildPageMetadata({
+  title: "Promosyon Ürünleri ve Kurumsal Hediyeler",
+  description:
+    "Eser Promo'da logolu promosyon ürünleri, kurumsal hediyeler, hızlı teklif ve kaliteli baskı teknikleri ile markanıza uygun çözümler.",
+  path: "/",
+});
 
 export default async function HomePage() {
   const rows = await prisma.product.findMany({
@@ -43,7 +50,7 @@ export default async function HomePage() {
   });
 
   return (
-    <ShopChrome extra={<FloatingActions />} mainClassName="pt-0 pb-5">
+    <ShopChrome extra={<FloatingActions />} mainClassName="pt-0 pb-5" hideNav>
       <div className="flex flex-col lg:flex-row lg:items-start lg:gap-4">
         <CategorySidebar />
 

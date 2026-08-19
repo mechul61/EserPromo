@@ -31,6 +31,33 @@ import { REVENUE_STATUSES } from "@/lib/commerce/revenue";
 import { ORDER_STATUS_LABEL } from "@/lib/commerce/orders";
 
 export const metadata = { title: "Yönetim özeti" };
+export const dynamic = "force-dynamic";
+
+type SearchParams = {
+  from?: string;
+  to?: string;
+};
+
+const dayMs = 24 * 60 * 60 * 1000;
+
+function parseYmd(input: unknown) {
+  if (typeof input !== "string") return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(input)) return null;
+  const d = new Date(`${input}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return null;
+  return d;
+}
+
+function addDays(d: Date, days: number) {
+  return new Date(d.getTime() + days * dayMs);
+}
+
+function toYmd(d: Date) {
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
 
 function pct(current: number, previous: number) {
   if (previous <= 0) return current > 0 ? 100 : 0;
@@ -65,10 +92,17 @@ function Delta({ value, invert }: { value: number; invert?: boolean }) {
   );
 }
 
-export default async function AdminHomePage() {
+export default async function AdminHomePage({ searchParams }: { searchParams?: SearchParams }) {
   const now = new Date();
-  const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-  const prevStart = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+  const defaultFrom = new Date(now.getTime() - 7 * dayMs);
+  const defaultTo = now;
+
+  const periodFrom = parseYmd(searchParams?.from) ?? defaultFrom;
+  const periodTo = parseYmd(searchParams?.to) ?? defaultTo;
+  const periodToExclusive = addDays(periodTo, 1);
+
+  const prevFrom = addDays(periodFrom, -7);
+  const prevToExclusive = periodFrom;
 
   const [
     orderCount,
@@ -118,20 +152,20 @@ export default async function AdminHomePage() {
       },
     }),
     prisma.order.findMany({
-      where: { createdAt: { gte: weekStart } },
+      where: { createdAt: { gte: periodFrom, lt: periodToExclusive } },
       select: { createdAt: true, grandTotal: true, status: true },
     }),
     prisma.order.findMany({
-      where: { createdAt: { gte: prevStart, lt: weekStart } },
+      where: { createdAt: { gte: prevFrom, lt: prevToExclusive } },
       select: { grandTotal: true },
     }),
     prisma.order.groupBy({ by: ["status"], _count: { _all: true } }),
-    prisma.order.count({ where: { createdAt: { gte: weekStart } } }),
-    prisma.order.count({ where: { createdAt: { gte: prevStart, lt: weekStart } } }),
-    prisma.user.count({ where: { role: "customer", createdAt: { gte: weekStart } } }),
-    prisma.user.count({ where: { role: "customer", createdAt: { gte: prevStart, lt: weekStart } } }),
-    prisma.product.count({ where: { createdAt: { gte: weekStart } } }),
-    prisma.product.count({ where: { createdAt: { gte: prevStart, lt: weekStart } } }),
+    prisma.order.count({ where: { createdAt: { gte: periodFrom, lt: periodToExclusive } } }),
+    prisma.order.count({ where: { createdAt: { gte: prevFrom, lt: prevToExclusive } } }),
+    prisma.user.count({ where: { role: "customer", createdAt: { gte: periodFrom, lt: periodToExclusive } } }),
+    prisma.user.count({ where: { role: "customer", createdAt: { gte: prevFrom, lt: prevToExclusive } } }),
+    prisma.product.count({ where: { createdAt: { gte: periodFrom, lt: periodToExclusive } } }),
+    prisma.product.count({ where: { createdAt: { gte: prevFrom, lt: prevToExclusive } } }),
   ]);
 
   const topIds = topGroups.map((row) => row.productId);
@@ -214,9 +248,7 @@ export default async function AdminHomePage() {
   const totalStatus = statusSummary.reduce((sum, item) => sum + item.count, 0) || 1;
 
   const last7 = Array.from({ length: 7 }, (_, index) => {
-    const day = new Date();
-    day.setHours(0, 0, 0, 0);
-    day.setDate(day.getDate() - (6 - index));
+    const day = addDays(periodFrom, index);
     const rows = weekOrders.filter((row) => dayKey(row.createdAt) === dayKey(day));
     return {
       label: day.toLocaleDateString("tr-TR", { day: "2-digit", month: "short" }),
@@ -233,8 +265,10 @@ export default async function AdminHomePage() {
     .join(" ");
   const stockMax = Math.max(1, ...stockProducts.map((item) => item.stockTotal));
 
-  const dateFrom = weekStart.toLocaleDateString("tr-TR", { day: "2-digit", month: "long", year: "numeric" });
-  const dateTo = now.toLocaleDateString("tr-TR", { day: "2-digit", month: "long", year: "numeric" });
+  const dateFrom = periodFrom.toLocaleDateString("tr-TR", { day: "2-digit", month: "long", year: "numeric" });
+  const dateTo = periodTo.toLocaleDateString("tr-TR", { day: "2-digit", month: "long", year: "numeric" });
+  const fromYmd = toYmd(periodFrom);
+  const toYmdValue = toYmd(periodTo);
 
   const actions = [
     { href: "/admin/urunler", label: "Ürün Ekle", hint: "Yeni ürün oluşturun", Icon: Plus, color: "bg-[#2f6bff]" },
@@ -301,11 +335,41 @@ export default async function AdminHomePage() {
             Hızlı İşlemler
             <ChevronDown className="size-3.5" />
           </a>
-          <span className="inline-flex h-9 items-center gap-2 rounded-xl border border-[#e8edf3] bg-white px-3 text-[12px] font-semibold text-[#475569]">
-            <CalendarDays className="size-3.5" />
-            {dateFrom} - {dateTo}
-            <ChevronDown className="size-3.5" />
-          </span>
+          <details className="relative">
+            <summary className="inline-flex cursor-pointer list-none h-9 items-center gap-2 rounded-xl border border-[#e8edf3] bg-white px-3 text-[12px] font-semibold text-[#475569]">
+              <CalendarDays className="size-3.5" />
+              {dateFrom} - {dateTo}
+              <ChevronDown className="size-3.5" />
+            </summary>
+            <div className="absolute right-0 z-30 mt-2 w-72 rounded-xl border border-[#e8edf3] bg-white p-3 shadow-[0_10px_24px_rgba(15,23,42,0.12)]">
+              <form method="get" className="flex flex-col gap-3">
+                <label className="block text-[12px] font-bold text-[#1e293b]">
+                  Başlangıç
+                  <input
+                    type="date"
+                    name="from"
+                    defaultValue={fromYmd}
+                    className="mt-1 h-10 w-full rounded-lg border border-[#dbe3ee] bg-white px-3 text-[13px] outline-none"
+                  />
+                </label>
+                <label className="block text-[12px] font-bold text-[#1e293b]">
+                  Bitiş
+                  <input
+                    type="date"
+                    name="to"
+                    defaultValue={toYmdValue}
+                    className="mt-1 h-10 w-full rounded-lg border border-[#dbe3ee] bg-white px-3 text-[13px] outline-none"
+                  />
+                </label>
+                <button
+                  type="submit"
+                  className="h-10 rounded-lg bg-[#2f6bff] px-4 text-[13px] font-semibold text-white hover:bg-[#2758d3]"
+                >
+                  Uygula
+                </button>
+              </form>
+            </div>
+          </details>
         </div>
       </header>
 
@@ -460,7 +524,7 @@ export default async function AdminHomePage() {
               Tümü ›
             </Link>
           </div>
-          <div className="mb-2 grid grid-cols-[20px_minmax(0,1fr)_72px] gap-3 text-[11px] font-bold tracking-wide text-[#94a3b8] uppercase">
+          <div className="mb-2 grid grid-cols-[20px_minmax(0,1fr)_92px] gap-3 text-[11px] font-bold tracking-wide text-[#94a3b8] uppercase">
             <span>#</span>
             <span>Ürün</span>
             <span className="text-right">Satış Adedi</span>
@@ -472,7 +536,7 @@ export default async function AdminHomePage() {
               topGroups.map((item, index) => {
                 const src = imageMap.get(item.productId);
                 return (
-                  <div key={`${item.productId}-${item.sku}`} className="grid grid-cols-[20px_minmax(0,1fr)_72px] items-center gap-3">
+                  <div key={`${item.productId}-${item.sku}`} className="grid grid-cols-[20px_minmax(0,1fr)_92px] items-center gap-3">
                     <span className="text-[12px] font-bold text-[#94a3b8]">{index + 1}</span>
                     <div className="flex min-w-0 items-center gap-3">
                       <div className="relative size-10 shrink-0 overflow-hidden rounded-lg bg-[#f1f5f9]">

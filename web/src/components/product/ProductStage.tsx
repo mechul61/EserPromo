@@ -94,107 +94,105 @@ export function ProductStage({
           ))}
         </dl>
 
-        {colors.length > 0 ? (
-          <div className="mt-4">
-            <p className="text-[12px] font-extrabold tracking-wide text-[#111]">RENK SEÇENEKLERİ</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {colors.map((color) => (
-                <Link
-                  key={color.href + color.name}
-                  href={color.href}
-                  title={color.name}
-                  className={`size-7 rounded-[3px] ${
-                    color.active ? "border-2 border-orange" : "border border-[#cfd3d8]"
-                  }`}
-                  style={{ background: color.hex }}
-                />
-              ))}
-            </div>
-          </div>
-        ) : null}
+        <div className="mt-4 grid items-start gap-4 md:grid-cols-[minmax(0,1fr)_minmax(220px,248px)]">
+          <div>
+            {colors.length > 0 ? (
+              <div>
+                <p className="text-[12px] font-extrabold tracking-wide text-[#111]">RENK SEÇENEKLERİ</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {colors.map((color) => (
+                    <Link
+                      key={color.href + color.name}
+                      href={color.href}
+                      title={color.name}
+                      className={`size-7 rounded-[3px] ${
+                        color.active ? "border-2 border-orange" : "border border-[#cfd3d8]"
+                      }`}
+                      style={{ background: color.hex }}
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : null}
 
-        <div className="mt-4">
-          <p className="text-[12px] font-extrabold tracking-wide text-[#111]">BASKI TÜRÜ</p>
-          <p className="mt-1 text-[12px] text-[#8b919a]">İsteğe bağlı — baskısız da sipariş verebilirsiniz.</p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {(["UV Baskı", "Tampon Baskı"] as const).map((item) => {
-              const selected = printType === item;
-              return (
-                <button
-                  key={item}
-                  type="button"
-                  aria-pressed={selected}
-                  onClick={() => {
-                    if (selected) {
-                      setPrintType(null);
-                      setPickedPrintTier(false);
-                    } else {
-                      setPrintType(item);
-                      setPickedPrintTier(false);
-                    }
-                  }}
-                  className={`h-9 min-w-[108px] rounded-md bg-white px-3 text-[12px] font-bold ${
-                    selected
-                      ? "border-2 border-orange text-orange"
-                      : "border border-[#d5d8de] text-[#111]"
-                  }`}
-                >
-                  {item}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div
-          className={`mt-4 grid items-start gap-4 ${
-            printType ? "md:grid-cols-[minmax(0,1fr)_minmax(220px,248px)]" : ""
-          }`}
-        >
-          {printType ? (
-            <div>
-              <p className="mb-2 text-[12px] font-extrabold tracking-wide text-[#111]">
-                ADET SEÇİNİZ - BİRİM FİYAT
-              </p>
-              <div className="border border-[#e6e8ec]">
-                {tiers.map((tier) => {
-                  const selected = pickedPrintTier && qty >= tier.min && qty <= tier.max;
+            <div className={colors.length > 0 ? "mt-4" : ""}>
+              <p className="text-[12px] font-extrabold tracking-wide text-[#111]">BASKI TÜRÜ</p>
+              <p className="mt-1 text-[12px] text-[#8b919a]">İsteğe bağlı — baskısız da sipariş verebilirsiniz.</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {(["UV Baskı", "Tampon Baskı"] as const).map((item) => {
+                  const selected = printType === item;
                   return (
-                    <label
-                      key={tier.min}
-                      className={`flex cursor-pointer items-center justify-between gap-3 border-b border-[#ececec] px-3 py-2 text-[13px] last:border-b-0 ${
-                        selected ? "bg-[#fff4e5]" : "bg-white"
+                    <button
+                      key={item}
+                      type="button"
+                      aria-pressed={selected}
+                      onClick={() => {
+                        if (selected) {
+                          setPrintType(null);
+                          setPickedPrintTier(false);
+                        } else {
+                          setPrintType(item);
+                          setPickedPrintTier(false);
+                        }
+                      }}
+                      className={`h-9 min-w-[108px] rounded-md bg-white px-3 text-[12px] font-bold ${
+                        selected
+                          ? "border-2 border-orange text-orange"
+                          : "border border-[#d5d8de] text-[#111]"
                       }`}
                     >
-                      <span className="flex items-center gap-2.5">
-                        <span
-                          className={`flex size-[15px] items-center justify-center rounded-full border-2 ${
-                            selected ? "border-orange" : "border-[#c5c5c5]"
-                          }`}
-                        >
-                          {selected ? <span className="size-2 rounded-full bg-orange" /> : null}
-                        </span>
-                        <input
-                          type="radio"
-                          name="adet-dilim"
-                          className="sr-only"
-                          checked={selected}
-                          onChange={() => {
-                            setPickedPrintTier(true);
-                            setQty(tier.min);
-                          }}
-                        />
-                        {tier.min.toLocaleString("tr-TR")} - {tier.max.toLocaleString("tr-TR")} Adet
-                      </span>
-                      <span className="font-bold text-[#111]">₺{formatPriceTry(tier.unit)}</span>
-                    </label>
+                      {item}
+                    </button>
                   );
                 })}
               </div>
             </div>
-          ) : null}
 
-          <div className={printType ? "" : "md:ml-auto md:w-[248px]"}>
+            {printType ? (
+              <div className="mt-4">
+                <p className="mb-2 text-[12px] font-extrabold tracking-wide text-[#111]">
+                  ADET SEÇİNİZ - BİRİM FİYAT
+                </p>
+                <div className="border border-[#e6e8ec]">
+                  {tiers.map((tier) => {
+                    const selected = pickedPrintTier && qty >= tier.min && qty <= tier.max;
+                    return (
+                      <label
+                        key={tier.min}
+                        className={`flex cursor-pointer items-center justify-between gap-3 border-b border-[#ececec] px-3 py-2 text-[13px] last:border-b-0 ${
+                          selected ? "bg-[#fff4e5]" : "bg-white"
+                        }`}
+                      >
+                        <span className="flex items-center gap-2.5">
+                          <span
+                            className={`flex size-[15px] items-center justify-center rounded-full border-2 ${
+                              selected ? "border-orange" : "border-[#c5c5c5]"
+                            }`}
+                          >
+                            {selected ? <span className="size-2 rounded-full bg-orange" /> : null}
+                          </span>
+                          <input
+                            type="radio"
+                            name="adet-dilim"
+                            className="sr-only"
+                            checked={selected}
+                            onChange={() => {
+                              setPickedPrintTier(true);
+                              setQty(tier.min);
+                            }}
+                          />
+                          {tier.min.toLocaleString("tr-TR")} - {tier.max.toLocaleString("tr-TR")} Adet
+                        </span>
+                        <span className="font-bold text-[#111]">₺{formatPriceTry(tier.unit)}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
+          </div>
+
+          <div>
             <ProductBuyBox
               productId={productId}
               name={heading}

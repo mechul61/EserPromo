@@ -10,6 +10,7 @@ import { MainNav } from "@/components/layout/MainNav";
 import { getVariantSiblings, resolveProduct } from "@/lib/catalog";
 import { mediaUrl, formatPriceTry, formatStock } from "@/lib/media";
 import { colorToHex, grossPrice, parseProductCopy, stripHtml } from "@/lib/product-detail";
+import { buildPageMetadata } from "@/lib/seo/metadata";
 import { canonicalPath, categoryPath, productPath } from "@/lib/seo/urls";
 import { siteUrl } from "@/lib/env";
 import { getSiteSettings, stockAllowsSale, stockMaxQty } from "@/lib/site-settings";
@@ -26,17 +27,14 @@ export async function generateMetadata({ params }: PageProps) {
   if (resolved.kind === "redirect") return { title: "Yönlendiriliyor" };
   const p = resolved.product;
   const title = p.title || p.name;
-  return {
+  const description = stripHtml(p.description).slice(0, 160) || `${title} logolu promosyon ürünü.`;
+  const image = mediaUrl(p.images[0]?.localPath) || undefined;
+  return buildPageMetadata({
     title,
-    description:
-      stripHtml(p.description).slice(0, 160) || `${title} logolu promosyon ürünü.`,
-    alternates: { canonical: canonicalPath(productPath(p.slug)) },
-    openGraph: {
-      title,
-      url: canonicalPath(productPath(p.slug)),
-      type: "website",
-    },
-  };
+    description,
+    path: productPath(p.slug),
+    image,
+  });
 }
 
 export default async function ProductPage({ params }: PageProps) {

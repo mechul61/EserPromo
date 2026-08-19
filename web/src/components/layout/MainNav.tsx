@@ -1,16 +1,25 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { ChevronDown, ClipboardPen, Menu, Stamp } from "lucide-react";
 
 const links = [
-  { href: "/", label: "ANA SAYFA", active: true },
+  { href: "/", label: "ANA SAYFA" },
   { href: "/hakkimizda", label: "HAKKIMIZDA" },
   { href: "/kurumsal", label: "KURUMSAL", hasDropdown: true },
   { href: "/baski-teknikleri", label: "BASKI TEKNİKLERİ" },
   { href: "/iletisim", label: "İLETİŞİM" },
 ];
 
-/** Yatay menü + CTA — KATEGORİLER sol sidebar’da (tek parça) */
 export function MainNav() {
+  const pathname = usePathname();
+
+  function isActive(href: string) {
+    if (href === "/") return pathname === "/" || pathname === "";
+    return pathname.startsWith(href);
+  }
+
   return (
     <nav className="border-b border-line bg-white">
       <div className="flex h-12 items-center justify-between gap-3">
@@ -30,7 +39,7 @@ export function MainNav() {
               <Link
                 href={link.href}
                 className={`inline-flex h-12 items-center gap-1 whitespace-nowrap px-2.5 xl:px-3.5 ${
-                  link.active
+                  isActive(link.href)
                     ? "border-b-[3px] border-brand-red text-brand-red"
                     : "border-b-[3px] border-transparent hover:text-brand-red"
                 }`}

@@ -3,9 +3,14 @@ import { ChevronRight, Home } from "lucide-react";
 import { ShopChrome } from "@/components/layout/ShopChrome";
 import { FOOTER_COLS, SHOP_SITEMAP } from "@/data/info-pages";
 import { getCategoryTree } from "@/lib/catalog";
+import { buildPageMetadata } from "@/lib/seo/metadata";
 import { categoryPath } from "@/lib/seo/urls";
 
-export const metadata = { title: "Site Haritası" };
+export const metadata = buildPageMetadata({
+  title: "Site Haritası",
+  description: "Sitedeki tüm temel sayfalar, kurumsal içerikler ve kategori bağlantılarının listesi.",
+  path: "/site-haritasi",
+});
 
 function MapGroup({
   title,

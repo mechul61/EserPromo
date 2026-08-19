@@ -17,10 +17,13 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
         userAgent: "*",
         allow: "/",
         disallow: [
+          "/admin",
           "/api/",
           "/hesabim",
           "/giris",
           "/kayit",
+          "/sifremi-unuttum",
+          "/sifre-yenile",
           "/sepet",
           "/odeme",
           "/siparislerim",
