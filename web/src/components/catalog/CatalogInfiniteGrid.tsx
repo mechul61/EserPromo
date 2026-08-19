@@ -15,8 +15,17 @@ type Props = {
   emptyMessage?: string;
 };
 
-function scopeParam(scope: CatalogListingScope) {
-  return scope.kind === "all" ? "all" : scope.slug;
+function applyScopeParams(params: URLSearchParams, scope: CatalogListingScope) {
+  if (scope.kind === "all") {
+    params.set("scope", "all");
+    return;
+  }
+  if (scope.kind === "search") {
+    params.set("scope", "search");
+    params.set("q", scope.q);
+    return;
+  }
+  params.set("scope", scope.slug);
 }
 
 export function CatalogInfiniteGrid({
@@ -50,7 +59,7 @@ export function CatalogInfiniteGrid({
     setLoading(true);
     try {
       const params = new URLSearchParams(searchParams.toString());
-      params.set("scope", scopeParam(scope));
+      applyScopeParams(params, scope);
       params.set("page", String(page + 1));
       const res = await fetch(`/api/catalog/listing/?${params.toString()}`, {
         credentials: "same-origin",

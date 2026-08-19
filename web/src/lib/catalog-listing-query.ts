@@ -9,8 +9,27 @@ import {
 import { categoryIdsWithChildren, resolveCategory } from "@/lib/catalog";
 import { catalogProductInclude, mapProductsToListing } from "@/lib/catalog-listing";
 import { prisma } from "@/lib/db";
+import { normalizeSearchQuery } from "@/lib/product-search";
 
-export type CatalogListingScope = { kind: "all" } | { kind: "category"; slug: string };
+export type CatalogListingScope =
+  | { kind: "all" }
+  | { kind: "category"; slug: string }
+  | { kind: "search"; q: string };
+
+function buildTextSearchWhere(q: string): Prisma.ProductWhereInput {
+  return {
+    OR: [
+      { name: { contains: q, mode: "insensitive" } },
+      { title: { contains: q, mode: "insensitive" } },
+      { sku: { contains: q, mode: "insensitive" } },
+      { description: { contains: q, mode: "insensitive" } },
+      { slug: { contains: q, mode: "insensitive" } },
+      { color: { contains: q, mode: "insensitive" } },
+      { category: { name: { contains: q, mode: "insensitive" } } },
+      { group: { name: { contains: q, mode: "insensitive" } } },
+    ],
+  };
+}
 
 export type CatalogListingFilters = {
   renk?: string[];
@@ -35,6 +54,12 @@ const resolveScopeConfig = cache(async (scope: CatalogListingScope): Promise<Sco
 
   if (scope.kind === "all") {
     return { baseWhere: active };
+  }
+
+  if (scope.kind === "search") {
+    const q = normalizeSearchQuery(scope.q);
+    if (!q) return null;
+    return { baseWhere: { ...active, ...buildTextSearchWhere(q) } };
   }
 
   const slug = scope.slug;
@@ -72,6 +97,9 @@ function buildListingOrderBy(
     case "ad":
       return [inStockFirst, { name: "asc" }, { id: "asc" }];
     default:
+      if (scope.kind === "search") {
+        return [inStockFirst, { name: "asc" }, { id: "asc" }];
+      }
       if (scope.kind === "category" && scope.slug === "yeni-urunler") {
         return [inStockFirst, { createdAt: "desc" }, { id: "desc" }];
       }
@@ -232,7 +260,14 @@ export async function getCatalogListingResult(
   };
 }
 
-export function parseCatalogListingScope(scopeParam: string | null): CatalogListingScope | null {
+export function parseCatalogListingScope(
+  scopeParam: string | null,
+  qParam?: string | null,
+): CatalogListingScope | null {
+  if (scopeParam === "search") {
+    const q = normalizeSearchQuery(qParam ?? "");
+    return q ? { kind: "search", q } : null;
+  }
   if (!scopeParam || scopeParam === "all") return { kind: "all" };
   if (scopeParam.length > 0 && scopeParam.length < 200) {
     return { kind: "category", slug: scopeParam };

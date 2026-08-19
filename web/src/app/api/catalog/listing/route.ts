@@ -8,7 +8,7 @@ export const runtime = "nodejs";
 
 export async function GET(req: NextRequest) {
   const params = req.nextUrl.searchParams;
-  const scope = parseCatalogListingScope(params.get("scope"));
+  const scope = parseCatalogListingScope(params.get("scope"), params.get("q"));
   if (!scope) {
     return Response.json({ error: "Geçersiz kapsam" }, { status: 400 });
   }

@@ -1,19 +1,19 @@
 import Link from "next/link";
 import {
   Phone,
-  Search,
   ShoppingCart,
   UserRound,
 } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { FavoriteHeaderLink } from "@/components/favorites/FavoriteHeaderLink";
+import { SiteSearchForm } from "@/components/layout/SiteSearchForm";
 import { getCurrentUser } from "@/lib/auth/session";
 import { peekCartCount } from "@/lib/commerce/cart";
 import { getSiteContact } from "@/lib/site-settings";
 import { phoneTelFrom } from "@/lib/site-settings-copy";
 
-export async function SiteHeader() {
+export async function SiteHeader({ searchQuery = "" }: { searchQuery?: string }) {
   const [user, cartCount, contact] = await Promise.all([
     getCurrentUser(),
     peekCartCount(),
@@ -27,26 +27,7 @@ export async function SiteHeader() {
           <Logo size="md" />
         </div>
 
-        <form
-          className="relative w-full"
-          action="/arama"
-          method="get"
-          role="search"
-        >
-          <input
-            name="q"
-            type="search"
-            placeholder="Ürün adı, kodu veya kategori ile arayın..."
-            className="h-12 w-full rounded-md border border-[#cfd6e0] bg-white pr-14 pl-4 text-sm outline-none transition focus:border-navy"
-          />
-          <button
-            type="submit"
-            className="absolute top-1 right-1 flex h-10 w-11 items-center justify-center rounded bg-navy text-white hover:bg-navy-deep"
-            aria-label="Ara"
-          >
-            <Search className="size-4" />
-          </button>
-        </form>
+        <SiteSearchForm defaultQuery={searchQuery} />
 
         <div className="flex min-w-0 flex-wrap items-center justify-center gap-3 sm:gap-4 lg:justify-end lg:gap-5">
           <div className="hidden items-start gap-2 xl:flex">

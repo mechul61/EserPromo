@@ -7,6 +7,7 @@ type Props = {
   query: Record<string, string | string[] | undefined>;
   colors: FilterOption[];
   sizes: FilterOption[];
+  clearHref?: string;
 };
 
 function hrefWith(basePath: string, query: Props["query"], patch: Record<string, string | string[] | null>) {
@@ -51,7 +52,7 @@ function FilterGroup({
   );
 }
 
-export function CatalogFilters({ basePath, query, colors, sizes }: Props) {
+export function CatalogFilters({ basePath, query, colors, sizes, clearHref }: Props) {
   const renk = asParamList(query.renk);
   const ebat = asParamList(query.ebat);
 
@@ -118,7 +119,7 @@ export function CatalogFilters({ basePath, query, colors, sizes }: Props) {
 
       <div className="p-3.5">
         <Link
-          href={basePath}
+          href={clearHref ?? basePath}
           className="flex h-9 items-center justify-center rounded-sm border border-[#d5d8de] bg-white text-[11px] font-extrabold tracking-wide text-[#6b7280] hover:border-navy hover:text-navy"
         >
           FİLTRELERİ TEMİZLE

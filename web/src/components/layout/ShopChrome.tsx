@@ -15,6 +15,7 @@ export async function ShopChrome({
   className = "",
   skipMaintenance = false,
   hideNav = false,
+  searchQuery = "",
 }: {
   children: React.ReactNode;
   extra?: React.ReactNode;
@@ -22,6 +23,7 @@ export async function ShopChrome({
   className?: string;
   skipMaintenance?: boolean;
   hideNav?: boolean;
+  searchQuery?: string;
 }) {
   if (!skipMaintenance) {
     const [settings, user] = await Promise.all([getSiteSettings(), getCurrentUser()]);
@@ -42,7 +44,7 @@ export async function ShopChrome({
     <FavoritesProvider>
       <div className={`flex min-h-dvh flex-col ${className}`}>
         <TopBar />
-        <SiteHeader />
+        <SiteHeader searchQuery={searchQuery} />
         {!hideNav && (
           <div className="container-ep">
             <MainNav />
