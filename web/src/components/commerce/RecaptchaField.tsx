@@ -22,16 +22,17 @@ function recaptchaApi(): Grecaptcha | undefined {
 }
 
 export function RecaptchaField({
+  siteKey,
   token,
   onToken,
 }: {
+  siteKey: string;
   token: string;
   onToken: (token: string) => void;
 }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const widgetId = useRef<number | null>(null);
   const onTokenRef = useRef(onToken);
-  const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || "";
 
   useEffect(() => {
     onTokenRef.current = onToken;

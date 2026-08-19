@@ -10,7 +10,15 @@ import { isStaffRole } from "@/lib/admin/staff-copy";
 
 type Mode = "login" | "register";
 
-export function AuthForm({ mode, recaptchaEnabled = true }: { mode: Mode; recaptchaEnabled?: boolean }) {
+export function AuthForm({
+  mode,
+  recaptchaEnabled = true,
+  recaptchaSiteKey = "",
+}: {
+  mode: Mode;
+  recaptchaEnabled?: boolean;
+  recaptchaSiteKey?: string;
+}) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -188,7 +196,9 @@ export function AuthForm({ mode, recaptchaEnabled = true }: { mode: Mode; recapt
           </Link>
         </div>
       ) : null}
-      {recaptchaEnabled ? <RecaptchaField token={captcha} onToken={setCaptcha} /> : null}
+      {recaptchaEnabled && recaptchaSiteKey ? (
+        <RecaptchaField siteKey={recaptchaSiteKey} token={captcha} onToken={setCaptcha} />
+      ) : null}
       {error ? <p className="text-[13px] text-brand-red">{error}</p> : null}
       <button
         type="submit"

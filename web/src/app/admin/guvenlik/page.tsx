@@ -1,11 +1,14 @@
 import { AdminHeading } from "@/components/admin/AdminChrome";
 import { RecaptchaSetting } from "@/components/admin/RecaptchaSetting";
-import { isRecaptchaEnabled } from "@/lib/security/recaptcha";
+import { isRecaptchaEnabled, isRecaptchaConfigured } from "@/lib/security/recaptcha";
 
 export const metadata = { title: "Güvenlik | Yönetim" };
 
 export default async function AdminSecurityPage() {
-  const recaptchaEnabled = await isRecaptchaEnabled();
+  const [recaptchaEnabled, recaptchaConfigured] = await Promise.all([
+    isRecaptchaEnabled(),
+    Promise.resolve(isRecaptchaConfigured()),
+  ]);
 
   return (
     <div>
@@ -13,7 +16,7 @@ export default async function AdminSecurityPage() {
         title="Güvenlik"
         subtitle="Giriş ve üyelik korumasını buradan açıp kapatabilirsiniz."
       />
-      <RecaptchaSetting enabled={recaptchaEnabled} />
+      <RecaptchaSetting enabled={recaptchaEnabled} configured={recaptchaConfigured} />
     </div>
   );
 }

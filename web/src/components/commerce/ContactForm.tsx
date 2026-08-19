@@ -7,11 +7,13 @@ import { SUPPORT_CATEGORY_LABEL, type SupportCategoryId } from "@/lib/commerce/s
 
 export function ContactForm({
   recaptchaEnabled = true,
+  recaptchaSiteKey = "",
   defaultName = "",
   defaultEmail = "",
   defaultPhone = "",
 }: {
   recaptchaEnabled?: boolean;
+  recaptchaSiteKey?: string;
   defaultName?: string;
   defaultEmail?: string;
   defaultPhone?: string;
@@ -159,9 +161,9 @@ export function ContactForm({
         />
       </label>
 
-      {recaptchaEnabled ? (
+      {recaptchaEnabled && recaptchaSiteKey ? (
         <div className="mt-3">
-          <RecaptchaField token={captcha} onToken={setCaptcha} />
+          <RecaptchaField siteKey={recaptchaSiteKey} token={captcha} onToken={setCaptcha} />
         </div>
       ) : null}
 

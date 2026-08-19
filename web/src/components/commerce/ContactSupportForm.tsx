@@ -6,11 +6,13 @@ import { SUPPORT_CATEGORY_LABEL, type SupportCategoryId } from "@/lib/commerce/s
 
 export function ContactSupportForm({
   recaptchaEnabled = true,
+  recaptchaSiteKey = "",
   defaultName = "",
   defaultEmail = "",
   defaultPhone = "",
 }: {
   recaptchaEnabled?: boolean;
+  recaptchaSiteKey?: string;
   defaultName?: string;
   defaultEmail?: string;
   defaultPhone?: string;
@@ -112,9 +114,9 @@ export function ContactSupportForm({
         Mesajınız
         <textarea name="body" required minLength={10} rows={5} className="mt-1 w-full rounded-md border border-line px-3 py-2 text-sm" />
       </label>
-      {recaptchaEnabled ? (
+      {recaptchaEnabled && recaptchaSiteKey ? (
         <div className="mt-4">
-          <RecaptchaField token={captcha} onToken={setCaptcha} />
+          <RecaptchaField siteKey={recaptchaSiteKey} token={captcha} onToken={setCaptcha} />
         </div>
       ) : null}
       {error ? <p className="mt-3 text-[13px] font-semibold text-brand-red">{error}</p> : null}

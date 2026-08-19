@@ -3,7 +3,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { requireAdminApi } from "@/lib/auth/admin";
 import { assertSameOrigin, jsonError } from "@/lib/security/origin";
-import { isRecaptchaEnabled, setRecaptchaEnabled } from "@/lib/security/recaptcha";
+import { isRecaptchaEnabled, isRecaptchaConfigured, setRecaptchaEnabled } from "@/lib/security/recaptcha";
 
 const schema = z.object({
   recaptchaEnabled: z.boolean(),
@@ -12,7 +12,10 @@ const schema = z.object({
 export async function GET() {
   const admin = await requireAdminApi();
   if (admin instanceof Response) return admin;
-  return Response.json({ recaptchaEnabled: await isRecaptchaEnabled() });
+  return Response.json({
+    recaptchaEnabled: await isRecaptchaEnabled(),
+    recaptchaConfigured: isRecaptchaConfigured(),
+  });
 }
 
 export async function PATCH(req: NextRequest) {
@@ -31,6 +34,8 @@ export async function PATCH(req: NextRequest) {
   revalidatePath("/");
   revalidatePath("/giris");
   revalidatePath("/kayit");
+  revalidatePath("/sifremi-unuttum");
+  revalidatePath("/iletisim");
   revalidatePath("/admin/guvenlik");
   return Response.json({ ok: true, recaptchaEnabled: body.data.recaptchaEnabled });
 }

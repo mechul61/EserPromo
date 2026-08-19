@@ -5,7 +5,13 @@ import Link from "next/link";
 import { RecaptchaField } from "@/components/commerce/RecaptchaField";
 import { SITE_CONTACT } from "@/data/catalog-page";
 
-export function ForgotPasswordForm({ recaptchaEnabled = true }: { recaptchaEnabled?: boolean }) {
+export function ForgotPasswordForm({
+  recaptchaEnabled = true,
+  recaptchaSiteKey = "",
+}: {
+  recaptchaEnabled?: boolean;
+  recaptchaSiteKey?: string;
+}) {
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [resetUrl, setResetUrl] = useState<string | null>(null);
@@ -89,7 +95,9 @@ export function ForgotPasswordForm({ recaptchaEnabled = true }: { recaptchaEnabl
           className="mt-1 h-11 w-full rounded-md border border-line px-3 text-sm"
         />
       </label>
-      {recaptchaEnabled ? <RecaptchaField token={captcha} onToken={setCaptcha} /> : null}
+      {recaptchaEnabled && recaptchaSiteKey ? (
+        <RecaptchaField siteKey={recaptchaSiteKey} token={captcha} onToken={setCaptcha} />
+      ) : null}
       {error ? <p className="text-[13px] text-brand-red">{error}</p> : null}
       <button
         type="submit"

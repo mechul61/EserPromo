@@ -1,6 +1,10 @@
 import { prisma } from "@/lib/db";
+import { isRecaptchaConfigured, recaptchaSecretKeyFromEnv } from "@/lib/security/recaptcha-config";
+
+export { isRecaptchaConfigured, recaptchaSiteKeyForClient } from "@/lib/security/recaptcha-config";
 
 export async function isRecaptchaEnabled() {
+  if (!isRecaptchaConfigured()) return false;
   const row = await prisma.siteSetting.findUnique({
     where: { key: "recaptchaEnabled" },
     select: { value: true },
@@ -17,8 +21,8 @@ export async function setRecaptchaEnabled(enabled: boolean) {
 }
 
 export async function verifyRecaptcha(token: string, ip?: string | null) {
-  const secret = process.env.RECAPTCHA_SECRET_KEY;
-  if (!secret || !token.trim()) return false;
+  const secret = recaptchaSecretKeyFromEnv();
+  if (!isRecaptchaConfigured() || !secret || !token.trim()) return false;
 
   const body = new URLSearchParams({
     secret,

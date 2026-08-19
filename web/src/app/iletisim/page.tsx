@@ -14,7 +14,7 @@ import { ShopChrome } from "@/components/layout/ShopChrome";
 import { ContactForm } from "@/components/commerce/ContactForm";
 import { INFO_PAGES } from "@/data/info-pages";
 import { getCurrentUser } from "@/lib/auth/session";
-import { isRecaptchaEnabled } from "@/lib/security/recaptcha";
+import { isRecaptchaEnabled, recaptchaSiteKeyForClient } from "@/lib/security/recaptcha";
 import { buildPageMetadata } from "@/lib/seo/metadata";
 import { getSiteContact } from "@/lib/site-settings";
 
@@ -47,6 +47,7 @@ export default async function Page() {
     isRecaptchaEnabled(),
     getSiteContact(),
   ]);
+  const recaptchaSiteKey = recaptchaSiteKeyForClient();
 
   const mapsUrl =
     contact.mapsUrl ||
@@ -173,6 +174,7 @@ export default async function Page() {
           </p>
           <ContactForm
             recaptchaEnabled={recaptchaEnabled}
+            recaptchaSiteKey={recaptchaSiteKey}
             defaultName={user?.name ?? ""}
             defaultEmail={user?.email ?? ""}
           />
