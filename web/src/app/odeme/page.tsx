@@ -30,26 +30,32 @@ export default async function CheckoutPage() {
   if (!cart || cart.items.length === 0) redirect("/sepet");
   const coupon = await appliedCouponFor(cart);
 
-  let subtotal = 0;
-  let vat = 0;
-  const vatRates = new Set<number>();
-  const items: CheckoutLine[] = cart.items.map((item) => {
-    const net = Number(item.product.price);
-    const vatRate = Number(item.product.vatRate);
-    const t = lineTotals(net, vatRate, item.quantity);
-    subtotal += t.subtotal;
-    vat += t.vatTotal;
-    vatRates.add(vatRate);
-    return {
-      name: item.product.title || item.product.name,
-      color: item.product.color,
-      quantity: item.quantity,
-      image: mediaUrl(item.product.images[0]?.localPath) ?? "/brand/logo.png",
-      lineGross: grossPrice(net, vatRate) * item.quantity,
-    };
-  });
+  const checkout = cart.items.reduce<{
+    items: CheckoutLine[];
+    subtotal: number;
+    vat: number;
+    vatRates: Set<number>;
+  }>(
+    (acc, item) => {
+      const net = Number(item.product.price);
+      const vatRate = Number(item.product.vatRate);
+      const t = lineTotals(net, vatRate, item.quantity);
+      acc.items.push({
+        name: item.product.title || item.product.name,
+        color: item.product.color,
+        quantity: item.quantity,
+        image: mediaUrl(item.product.images[0]?.localPath) ?? "/brand/logo.png",
+        lineGross: grossPrice(net, vatRate) * item.quantity,
+      });
+      acc.subtotal += t.subtotal;
+      acc.vat += t.vatTotal;
+      acc.vatRates.add(vatRate);
+      return acc;
+    },
+    { items: [], subtotal: 0, vat: 0, vatRates: new Set<number>() },
+  );
 
-  const vatLabel = vatRates.size === 1 ? `KDV (%${[...vatRates][0]})` : "KDV";
+  const vatLabel = checkout.vatRates.size === 1 ? `KDV (%${[...checkout.vatRates][0]})` : "KDV";
 
   return (
     <ShopChrome mainClassName="py-6">
@@ -75,9 +81,9 @@ export default async function CheckoutPage() {
         paymentMethods={paymentMethods}
         userName={user?.name}
         userEmail={user?.email}
-        items={items}
-        subtotal={subtotal}
-        vat={vat}
+        items={checkout.items}
+        subtotal={checkout.subtotal}
+        vat={checkout.vat}
         vatLabel={vatLabel}
         coupon={coupon}
         transferBanks={transferBanks}

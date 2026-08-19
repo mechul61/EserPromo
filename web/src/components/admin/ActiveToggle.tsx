@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useOptimistic, useState } from "react";
 import { useRouter } from "next/navigation";
 
 export function ActiveToggle({
@@ -20,11 +20,7 @@ export function ActiveToggle({
 }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
-  const [value, setValue] = useState(active);
-
-  useEffect(() => {
-    setValue(active);
-  }, [active]);
+  const [value, setValue] = useOptimistic(active);
 
   async function toggle() {
     setPending(true);

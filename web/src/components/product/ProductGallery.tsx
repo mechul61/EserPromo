@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight, Search, X, ZoomIn, ZoomOut } from "lucide-react";
 
@@ -23,15 +23,35 @@ export function ProductGallery({
   const current = thumbs[index] ?? thumbs[0];
   const hasMany = thumbs.length > 1;
 
+  function selectIndex(next: number) {
+    setIndex(next);
+    setLbZoom(1);
+  }
+
+  const goPrev = useCallback(() => {
+    setIndex((i) => (i - 1 + thumbs.length) % thumbs.length);
+    setLbZoom(1);
+  }, [thumbs.length]);
+
+  const goNext = useCallback(() => {
+    setIndex((i) => (i + 1) % thumbs.length);
+    setLbZoom(1);
+  }, [thumbs.length]);
+
+  function openLightbox() {
+    setLbZoom(1);
+    setLightbox(true);
+  }
+
   useEffect(() => {
     if (!lightbox) return;
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") setLightbox(false);
       if (e.key === "ArrowLeft" && thumbs.length > 1) {
-        setIndex((i) => (i - 1 + thumbs.length) % thumbs.length);
+        goPrev();
       }
       if (e.key === "ArrowRight" && thumbs.length > 1) {
-        setIndex((i) => (i + 1) % thumbs.length);
+        goNext();
       }
     }
     window.addEventListener("keydown", onKey);
@@ -41,11 +61,7 @@ export function ProductGallery({
       window.removeEventListener("keydown", onKey);
       document.body.style.overflow = prev;
     };
-  }, [lightbox, thumbs.length]);
-
-  useEffect(() => {
-    setLbZoom(1);
-  }, [index, lightbox]);
+  }, [goNext, goPrev, lightbox, thumbs.length]);
 
   function onMove(e: React.MouseEvent<HTMLDivElement>) {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -66,7 +82,7 @@ export function ProductGallery({
         }}
         onMouseLeave={() => setHoverZoom(false)}
         onMouseMove={onMove}
-        onClick={() => setLightbox(true)}
+        onClick={openLightbox}
       >
         {isNew ? (
           <span
@@ -86,7 +102,7 @@ export function ProductGallery({
               aria-label="Önceki görsel"
               onClick={(e) => {
                 e.stopPropagation();
-                setIndex((i) => (i - 1 + thumbs.length) % thumbs.length);
+                goPrev();
               }}
               className="absolute top-1/2 left-2 z-10 flex size-8 -translate-y-1/2 items-center justify-center rounded-full bg-[#eceff3] text-[#5b616a]"
             >
@@ -97,7 +113,7 @@ export function ProductGallery({
               aria-label="Sonraki görsel"
               onClick={(e) => {
                 e.stopPropagation();
-                setIndex((i) => (i + 1) % thumbs.length);
+                goNext();
               }}
               className="absolute top-1/2 right-2 z-10 flex size-8 -translate-y-1/2 items-center justify-center rounded-full bg-[#eceff3] text-[#5b616a]"
             >
@@ -129,7 +145,7 @@ export function ProductGallery({
           <button
             key={`${src}-${i}`}
             type="button"
-            onClick={() => setIndex(i)}
+            onClick={() => selectIndex(i)}
             className={`relative aspect-square bg-white ${
               i === index ? "border-2 border-orange" : "border border-[#e6e8ec]"
             }`}
@@ -186,7 +202,7 @@ export function ProductGallery({
                 aria-label="Önceki görsel"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setIndex((i) => (i - 1 + thumbs.length) % thumbs.length);
+                  goPrev();
                 }}
                 className="absolute top-1/2 left-4 flex size-10 -translate-y-1/2 items-center justify-center rounded-full bg-white text-navy"
               >
@@ -197,7 +213,7 @@ export function ProductGallery({
                 aria-label="Sonraki görsel"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setIndex((i) => (i + 1) % thumbs.length);
+                  goNext();
                 }}
                 className="absolute top-1/2 right-4 flex size-10 -translate-y-1/2 items-center justify-center rounded-full bg-white text-navy"
               >

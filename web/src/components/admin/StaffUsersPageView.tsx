@@ -689,13 +689,13 @@ export function StaffUsersPageView({
 
 function RoleDonut({ slices, total }: { slices: Array<{ color: string; count: number }>; total: number }) {
   const safe = total || 1;
-  let acc = 0;
-  const stops = slices.map((slice) => {
-    const start = (acc / safe) * 100;
-    acc += slice.count;
-    const end = (acc / safe) * 100;
-    return `${slice.color} ${start}% ${end}%`;
-  });
+  const stops = slices.reduce<string[]>((parts, slice, index) => {
+    const previous = slices.slice(0, index).reduce((sum, item) => sum + item.count, 0);
+    const start = (previous / safe) * 100;
+    const end = ((previous + slice.count) / safe) * 100;
+    parts.push(`${slice.color} ${start}% ${end}%`);
+    return parts;
+  }, []);
   return (
     <div
       className="relative size-[120px] shrink-0 rounded-full"

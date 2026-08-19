@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -138,8 +138,8 @@ export function CheckoutView({
   const [step, setStep] = useState<Step>("delivery");
   const [delivery, setDelivery] = useState<DeliveryMethod>("address");
   const [invoice, setInvoice] = useState<InvoiceType>("individual");
-  const [payment, setPayment] = useState<PaymentMethod>(paymentMethods[0]?.key ?? "card");
-  const [transferBank, setTransferBank] = useState("");
+  const [payment, setPayment] = useState<PaymentMethod>(() => paymentMethods[0]?.key ?? "card");
+  const [transferBank, setTransferBank] = useState(() => (transferBanks.length === 1 ? transferBanks[0].id : ""));
   const selectedAccount = transferBanks.find((bank) => bank.id === transferBank) ?? null;
   const [billingDifferent, setBillingDifferent] = useState(false);
   const [createAccount, setCreateAccount] = useState(false);
@@ -177,12 +177,6 @@ export function CheckoutView({
   const grand = Math.max(0, goods - (applied?.amount ?? 0));
   const office = delivery === "office";
   const selectedMethod = paymentMethods.find((method) => method.key === payment) ?? paymentMethods[0] ?? null;
-
-  useEffect(() => {
-    if (!paymentMethods.some((method) => method.key === payment)) {
-      setPayment(paymentMethods[0]?.key ?? "card");
-    }
-  }, [paymentMethods, payment]);
 
   async function applyCoupon() {
     setPending(true);
@@ -230,16 +224,6 @@ export function CheckoutView({
       setPending(false);
     }
   }
-
-  useEffect(() => {
-    if (transferBanks.length === 1) {
-      setTransferBank(transferBanks[0].id);
-      return;
-    }
-    if (transferBank && !transferBanks.some((bank) => bank.id === transferBank)) {
-      setTransferBank("");
-    }
-  }, [transferBanks, transferBank]);
 
   const payload = useMemo(
     () => ({

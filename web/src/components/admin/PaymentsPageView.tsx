@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useOptimistic, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowRight,
@@ -100,13 +100,11 @@ export function PaymentsPageView({
   const router = useRouter();
   const headerSearchRef = useRef<HTMLInputElement>(null);
   const [tab, setTab] = useState<TabId>("methods");
-  const [rows, setRows] = useState(methods);
+  const [rows, setRows] = useOptimistic(methods);
   const [edit, setEdit] = useState<PaymentMethodRow | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [query, setQuery] = useState("");
-
-  useEffect(() => setRows(methods), [methods]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {

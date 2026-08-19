@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useOptimistic, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Bell,
@@ -137,19 +137,14 @@ export function SupportPageView({ tickets, kpis }: { tickets: SupportTicketRow[]
   const [tab, setTab] = useState<TabId>("all");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<(typeof PAGE_SIZES)[number]>(10);
-  const [rows, setRows] = useState(tickets);
-  const [selectedId, setSelectedId] = useState(tickets[0]?.id ?? "");
+  const [rows] = useOptimistic(tickets);
+  const [selectedId, setSelectedId] = useState("");
   const [checked, setChecked] = useState<Set<string>>(new Set());
   const [menuId, setMenuId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [replyOpen, setReplyOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
-
-  useEffect(() => {
-    setRows(tickets);
-    if (!tickets.some((row) => row.id === selectedId)) setSelectedId(tickets[0]?.id ?? "");
-  }, [tickets, selectedId]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -200,7 +195,7 @@ export function SupportPageView({ tickets, kpis }: { tickets: SupportTicketRow[]
   const currentPage = Math.min(page, pageCount);
   const start = (currentPage - 1) * pageSize;
   const pageRows = filtered.slice(start, start + pageSize);
-  const selected = rows.find((row) => row.id === selectedId) ?? filtered[0] ?? null;
+  const selected = rows.find((row) => row.id === selectedId) ?? filtered[0] ?? rows[0] ?? null;
   const lastAdmin = selected?.messages.filter((item) => item.author === "admin").at(-1) ?? null;
   const allSelected = pageRows.length > 0 && pageRows.every((row) => checked.has(row.id));
 

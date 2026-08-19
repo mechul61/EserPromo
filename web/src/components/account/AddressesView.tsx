@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatPhoneTR, isValidTRPhone, phoneDigits } from "@/lib/phone";
 import { CityDistrictFields } from "@/components/forms/CityDistrictFields";
@@ -60,15 +60,15 @@ export function AddressesView({
   userEmail: string;
 }) {
   const router = useRouter();
-  const [items, setItems] = useState(initial);
+  const [removedIds, setRemovedIds] = useState<Set<string>>(new Set());
   const [editingId, setEditingId] = useState<string | "new" | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm(userEmail));
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setItems(initial);
-  }, [initial]);
+  const items = useMemo(
+    () => initial.filter((item) => !removedIds.has(item.id)),
+    [initial, removedIds],
+  );
 
   function setField<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -147,7 +147,7 @@ export function AddressesView({
         setError(data.error || "Silinemedi");
         return;
       }
-      setItems((prev) => prev.filter((item) => item.id !== id));
+      setRemovedIds((prev) => new Set(prev).add(id));
       if (editingId === id) setEditingId(null);
       router.refresh();
     } catch {

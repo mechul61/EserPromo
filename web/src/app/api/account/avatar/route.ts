@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
   const ext = ALLOWED[file.type];
   if (!ext) return jsonError("JPG, PNG veya GIF yükleyin.");
 
-  const root = path.resolve(process.cwd(), process.env.STORAGE_PATH || "./storage");
+  const root = path.resolve(/*turbopackIgnore: true*/ process.cwd(), process.env.STORAGE_PATH || "./storage");
   const dir = path.join(root, "avatars");
   await mkdir(dir, { recursive: true });
   const relative = `avatars/${user.id}.${ext}`;

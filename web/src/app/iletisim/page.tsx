@@ -8,7 +8,6 @@ import {
   MessageSquare,
   Phone,
   Plus,
-  Send,
   Smartphone,
 } from "lucide-react";
 import { ShopChrome } from "@/components/layout/ShopChrome";

@@ -11,7 +11,7 @@ export async function assertIyzicoConfigured() {
   }
 }
 
-export async function startIyzicoPayment(_orderId: string): Promise<never> {
+export async function startIyzicoPayment(): Promise<never> {
   await assertIyzicoConfigured();
   throw new Error("Iyzico entegrasyonu anahtarlar eklendikten sonra açılacak");
 }

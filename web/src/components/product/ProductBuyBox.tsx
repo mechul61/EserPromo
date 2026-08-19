@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Minus, Plus } from "lucide-react";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
@@ -32,13 +32,11 @@ export function ProductBuyBox({
   const [pending, setPending] = useState<"cart" | "buy" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [draft, setDraft] = useState(String(qty));
+  const [editing, setEditing] = useState(false);
   const inStock = sellable ?? stock > 0;
   const limit = Math.max(0, maxQty ?? stock);
   const total = unit * qty;
-
-  useEffect(() => {
-    setDraft(String(qty));
-  }, [qty]);
+  const inputValue = editing ? draft : String(qty);
 
   function clamp(next: number) {
     if (!Number.isFinite(next)) return 1;
@@ -105,10 +103,11 @@ export function ProductBuyBox({
           pattern="[0-9]*"
           min={1}
           max={limit || undefined}
-          value={draft}
+          value={inputValue}
           disabled={!inStock}
           onChange={(e) => {
             const raw = e.target.value.replace(/\D/g, "");
+            setEditing(true);
             setDraft(raw);
             if (raw === "") return;
             onQty(clamp(Number.parseInt(raw, 10)));
@@ -117,6 +116,7 @@ export function ProductBuyBox({
             const next = clamp(Number.parseInt(draft, 10));
             onQty(next);
             setDraft(String(next));
+            setEditing(false);
           }}
           className="h-12 min-w-0 flex-1 border-x border-[#d5d8de] text-center text-[18px] font-bold outline-none disabled:bg-[#f7f8fa]"
         />

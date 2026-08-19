@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
   Bell,
-  CalendarDays,
   ChevronDown,
   ChevronLeft,
   ChevronRight,

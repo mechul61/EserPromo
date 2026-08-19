@@ -1,22 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { CatalogProductCard } from "@/components/catalog/CatalogProductCard";
 import { useFavorites } from "@/components/favorites/FavoritesProvider";
 import type { ListingProduct } from "@/data/catalog-page";
 
 export function FavoritesView({ initial }: { initial: ListingProduct[] }) {
   const { ids, ready, authenticated } = useFavorites();
-  const [items, setItems] = useState(initial);
-
-  useEffect(() => {
-    setItems(initial);
-  }, [initial]);
 
   const visible =
     ready && authenticated
-      ? items.filter((product) => ids.has(Number(product.id)))
-      : items;
+      ? initial.filter((product) => ids.has(Number(product.id)))
+      : initial;
 
   if (visible.length === 0) {
     return (

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useOptimistic, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowDownToLine,
@@ -130,15 +130,13 @@ export function CustomersPageView({
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<(typeof PAGE_SIZES)[number]>(10);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [rows, setRows] = useState(customers);
+  const [rows] = useOptimistic(customers);
   const [edit, setEdit] = useState<CustomerRow | "new" | null>(null);
   const [segmentOpen, setSegmentOpen] = useState(false);
   const [segmentGroup, setSegmentGroup] = useState<CustomerGroupId>("vip");
   const [menu, setMenu] = useState<{ id: string; el: HTMLElement } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [spendFocus, setSpendFocus] = useState(false);
-
-  useEffect(() => setRows(customers), [customers]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {

@@ -67,6 +67,7 @@ async function track(id: string, type: "view" | "click" | "convert") {
 export function SitePopup() {
   const pathname = usePathname();
   const [popup, setPopup] = useState<ActivePopup | null>(null);
+  const [popupPath, setPopupPath] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [done, setDone] = useState(false);
@@ -75,10 +76,6 @@ export function SitePopup() {
   useEffect(() => {
     let timer = 0;
     let cancelled = false;
-    setOpen(false);
-    setPopup(null);
-    setDone(false);
-    setError(null);
 
     async function load() {
       const res = await fetch(`/api/popups/current/?path=${encodeURIComponent(pathname || "/")}`);
@@ -90,7 +87,11 @@ export function SitePopup() {
         return;
       }
       setPopup(next);
+      setPopupPath(pathname || "/");
       timer = window.setTimeout(() => {
+        setEmail("");
+        setDone(false);
+        setError(null);
         setOpen(true);
         markSeen(next.id);
         void track(next.id, "view");
@@ -104,7 +105,7 @@ export function SitePopup() {
     };
   }, [pathname]);
 
-  if (!popup || !open) return null;
+  if (!popup || !open || popupPath !== (pathname || "/")) return null;
 
   async function subscribe(e: React.FormEvent) {
     e.preventDefault();

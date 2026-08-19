@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useOptimistic, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Bell,
@@ -191,14 +191,12 @@ export function ReportsPageView({
   const [tab, setTab] = useState<TabId>("all");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<(typeof PAGE_SIZES)[number]>(10);
-  const [rows, setRows] = useState(reports);
+  const [rows] = useOptimistic(reports);
   const [menuId, setMenuId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [edit, setEdit] = useState<SavedReportRow | "new" | "scheduled" | null>(null);
   const [preview, setPreview] = useState<{ name: string; headers: string[]; rows: Array<Array<string | number>>; total: number; source: string } | null>(null);
   const [sourcesOpen, setSourcesOpen] = useState(false);
-
-  useEffect(() => setRows(reports), [reports]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {

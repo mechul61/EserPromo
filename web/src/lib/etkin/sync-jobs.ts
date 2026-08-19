@@ -350,7 +350,7 @@ export async function syncSingleProduct(productId: number) {
 // ─── STOK & FİYAT GÜNCELLEME ────────────────────────────────────
 
 export async function syncStockPrices(onProgress: OnProgress = noop) {
-  const { env, client } = makeClient();
+  const { client } = makeClient();
   const run = await createRun("stock_prices");
   let updated = 0;
 

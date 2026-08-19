@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useOptimistic, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowDownToLine,
@@ -118,15 +118,13 @@ export function CouponsPageView({
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<(typeof PAGE_SIZES)[number]>(10);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [rows, setRows] = useState(coupons);
+  const [rows, setRows] = useOptimistic(coupons);
   const [edit, setEdit] = useState<CouponRow | "new" | null>(null);
   const [view, setView] = useState<CouponRow | null>(null);
   const [remove, setRemove] = useState<CouponRow | null>(null);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [menu, setMenu] = useState<{ id: string; el: HTMLElement } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-
-  useEffect(() => setRows(coupons), [coupons]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {

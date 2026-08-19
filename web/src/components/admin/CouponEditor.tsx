@@ -11,6 +11,25 @@ function toLocalInput(iso: string) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+function defaultCouponForm() {
+  const now = new Date();
+  return {
+    code: "",
+    name: "",
+    description: "",
+    kind: "general",
+    discountKind: "percent",
+    discountValue: "10",
+    minOrderAmount: "0",
+    startsAt: toLocalInput(now.toISOString()),
+    endsAt: toLocalInput(new Date(now.getTime() + 30 * 86400000).toISOString()),
+    usageLimit: "",
+    perUserLimit: "1",
+    isActive: true,
+    productIds: "",
+  };
+}
+
 const inputClass = "h-11 w-full rounded-lg border border-[#dbe3ee] px-3 text-[13px] outline-none disabled:bg-[#f8fafc]";
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
@@ -35,21 +54,25 @@ export function CouponEditor({
 }) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [form, setForm] = useState({
-    code: coupon?.code ?? "",
-    name: coupon?.name ?? "",
-    description: coupon?.description ?? "",
-    kind: coupon?.kind ?? "general",
-    discountKind: coupon?.discountKind ?? "percent",
-    discountValue: coupon ? String(coupon.discountValue) : "10",
-    minOrderAmount: coupon ? String(coupon.minOrderAmount) : "0",
-    startsAt: coupon ? toLocalInput(coupon.startsAt) : toLocalInput(new Date().toISOString()),
-    endsAt: coupon ? toLocalInput(coupon.endsAt) : toLocalInput(new Date(Date.now() + 30 * 86400000).toISOString()),
-    usageLimit: coupon?.usageLimit != null ? String(coupon.usageLimit) : "",
-    perUserLimit: String(coupon?.perUserLimit ?? 1),
-    isActive: coupon?.isActive ?? true,
-    productIds: coupon?.productIds.join(", ") ?? "",
-  });
+  const [form, setForm] = useState(() =>
+    coupon
+      ? {
+          code: coupon.code,
+          name: coupon.name,
+          description: coupon.description ?? "",
+          kind: coupon.kind,
+          discountKind: coupon.discountKind,
+          discountValue: String(coupon.discountValue),
+          minOrderAmount: String(coupon.minOrderAmount),
+          startsAt: toLocalInput(coupon.startsAt),
+          endsAt: toLocalInput(coupon.endsAt),
+          usageLimit: coupon.usageLimit != null ? String(coupon.usageLimit) : "",
+          perUserLimit: String(coupon.perUserLimit ?? 1),
+          isActive: coupon.isActive,
+          productIds: coupon.productIds.join(", "),
+        }
+      : defaultCouponForm(),
+  );
 
   async function save() {
     setPending(true);

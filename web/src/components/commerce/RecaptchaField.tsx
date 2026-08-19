@@ -31,8 +31,11 @@ export function RecaptchaField({
   const hostRef = useRef<HTMLDivElement>(null);
   const widgetId = useRef<number | null>(null);
   const onTokenRef = useRef(onToken);
-  onTokenRef.current = onToken;
   const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || "";
+
+  useEffect(() => {
+    onTokenRef.current = onToken;
+  }, [onToken]);
 
   useEffect(() => {
     if (!siteKey) return;
@@ -83,7 +86,6 @@ export function RecaptchaField({
         }
       }
       widgetId.current = null;
-      if (hostRef.current) hostRef.current.innerHTML = "";
     };
   }, [siteKey]);
 

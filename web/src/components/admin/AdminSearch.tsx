@@ -18,10 +18,6 @@ export function AdminSearch({
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    setValue(q);
-  }, [q]);
-
-  useEffect(() => {
     return () => {
       if (timer.current) clearTimeout(timer.current);
     };

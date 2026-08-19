@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
     return jsonError("Favicon için PNG, SVG veya ICO kullanın");
   }
 
-  const root = path.resolve(process.cwd(), process.env.STORAGE_PATH || "./storage");
+  const root = path.resolve(/*turbopackIgnore: true*/ process.cwd(), process.env.STORAGE_PATH || "./storage");
   const dir = path.join(root, "site");
   await mkdir(dir, { recursive: true });
   const relative = `site/${kind}-${randomToken(8)}.${ext}`;

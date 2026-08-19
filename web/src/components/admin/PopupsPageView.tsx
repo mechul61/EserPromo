@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useOptimistic, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Bell,
@@ -126,19 +126,14 @@ export function PopupsPageView({
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<(typeof PAGE_SIZES)[number]>(10);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [previewId, setPreviewId] = useState(popups[0]?.id ?? null);
+  const [previewId, setPreviewId] = useState<string | null>(null);
   const [previewMode, setPreviewMode] = useState<"desktop" | "mobile">("desktop");
-  const [rows, setRows] = useState(popups);
+  const [rows, setRows] = useOptimistic(popups);
   const [edit, setEdit] = useState<PopupRow | "new" | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [menuId, setMenuId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-
-  useEffect(() => {
-    setRows(popups);
-    if (!previewId && popups[0]) setPreviewId(popups[0].id);
-  }, [popups, previewId]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -193,7 +188,7 @@ export function PopupsPageView({
   const start = (currentPage - 1) * pageSize;
   const pageRows = filtered.slice(start, start + pageSize);
   const allSelected = pageRows.length > 0 && pageRows.every((row) => selected.has(row.id));
-  const preview = rows.find((row) => row.id === previewId) ?? pageRows[0] ?? null;
+  const preview = rows.find((row) => row.id === previewId) ?? pageRows[0] ?? rows[0] ?? null;
 
   function live(setter: (value: string) => void, value: string) {
     setter(value);

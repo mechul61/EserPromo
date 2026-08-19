@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useOptimistic, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowUpFromLine,
@@ -94,16 +94,11 @@ export function BannersPageView({
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<(typeof PAGE_SIZES)[number]>(10);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [previewId, setPreviewId] = useState(banners[0]?.id ?? null);
-  const [rows, setRows] = useState(banners);
+  const [previewId, setPreviewId] = useState<string | null>(null);
+  const [rows, setRows] = useOptimistic(banners);
   const [edit, setEdit] = useState<BannerRow | "new" | "slider" | null>(null);
   const [menuId, setMenuId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-
-  useEffect(() => {
-    setRows(banners);
-    if (!previewId && banners[0]) setPreviewId(banners[0].id);
-  }, [banners, previewId]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -144,7 +139,7 @@ export function BannersPageView({
   const start = (currentPage - 1) * pageSize;
   const pageRows = filtered.slice(start, start + pageSize);
   const allSelected = pageRows.length > 0 && pageRows.every((row) => selected.has(row.id));
-  const preview = rows.find((row) => row.id === previewId) ?? pageRows[0] ?? null;
+  const preview = rows.find((row) => row.id === previewId) ?? pageRows[0] ?? rows[0] ?? null;
   const distTotal = Math.max(1, shares.reduce((sum, item) => sum + item.count, 0));
 
   const previewIndex = preview ? filtered.findIndex((row) => row.id === preview.id) : -1;

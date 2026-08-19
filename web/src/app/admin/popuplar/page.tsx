@@ -71,7 +71,7 @@ export default async function AdminPopupsPage() {
     draft: rows.filter((row) => row.status === "draft").length,
   };
 
-  const [monthViews, prevViews, monthClicks, prevClicks, monthConv, prevConv, monthSubs, prevSubs] = await Promise.all([
+  const [monthViews, prevViews, monthClicks, prevClicks, monthConv, prevConv, monthSubs] = await Promise.all([
     prisma.popup.aggregate({ _sum: { views: true }, where: { createdAt: { gte: monthStart } } }),
     prisma.popup.aggregate({ _sum: { views: true }, where: { createdAt: { gte: prevMonthStart, lt: monthStart } } }),
     prisma.popup.aggregate({ _sum: { clicks: true }, where: { createdAt: { gte: monthStart } } }),
@@ -79,7 +79,6 @@ export default async function AdminPopupsPage() {
     prisma.popup.aggregate({ _sum: { conversions: true }, where: { createdAt: { gte: monthStart } } }),
     prisma.popup.aggregate({ _sum: { conversions: true }, where: { createdAt: { gte: prevMonthStart, lt: monthStart } } }),
     prisma.popupSubscriber.count({ where: { createdAt: { gte: monthStart } } }),
-    prisma.popupSubscriber.count({ where: { createdAt: { gte: prevMonthStart, lt: monthStart } } }),
   ]);
 
   const views = rows.reduce((sum, row) => sum + row.views, 0);

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useOptimistic, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowRight,
@@ -158,19 +158,14 @@ export function EmailTemplatesPageView({
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<(typeof PAGE_SIZES)[number]>(10);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [rows, setRows] = useState(templates);
-  const [previewId, setPreviewId] = useState(templates[0]?.id ?? "");
+  const [rows, setRows] = useOptimistic(templates);
+  const [previewId, setPreviewId] = useState("");
   const [showPreview, setShowPreview] = useState(true);
   const varsRef = useRef<HTMLElement>(null);
   const [smtpOpen, setSmtpOpen] = useState(false);
   const [edit, setEdit] = useState<EmailTemplateRow | "new" | null>(null);
   const [menuId, setMenuId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-
-  useEffect(() => {
-    setRows(templates);
-    if (!templates.some((row) => row.id === previewId)) setPreviewId(templates[0]?.id ?? "");
-  }, [templates, previewId]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {

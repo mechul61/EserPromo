@@ -45,21 +45,14 @@ const LABEL = "block text-[12px] font-semibold text-[#64748b]";
 export function SiteSettingsPageView({ initial, logoPreview, faviconPreview }: Props) {
   const router = useRouter();
   const headerSearchRef = useRef<HTMLInputElement>(null);
-  const [form, setForm] = useState(initial);
-  const [logo, setLogo] = useState(logoPreview);
-  const [favicon, setFavicon] = useState(faviconPreview);
+  const [form, setForm] = useState(() => initial);
+  const [logo, setLogo] = useState(() => logoPreview);
+  const [favicon, setFavicon] = useState(() => faviconPreview);
   const [pending, setPending] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [leaveHref, setLeaveHref] = useState<string | null>(null);
   const dirty = useRef(false);
-
-  useEffect(() => {
-    setForm(initial);
-    setLogo(logoPreview);
-    setFavicon(faviconPreview);
-    dirty.current = false;
-  }, [initial, logoPreview, faviconPreview]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {

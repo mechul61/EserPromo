@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   BadgePercent,
   ChevronRight,
@@ -84,12 +84,14 @@ export function AdminSidebar({
   ordersWaiting?: number;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const section = searchParams.get("section");
 
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
-    window.location.href = "/";
+    router.replace("/");
+    router.refresh();
   }
 
   return (

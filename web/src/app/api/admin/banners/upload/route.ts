@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
   const ext = ALLOWED[file.type];
   if (!ext) return jsonError("JPG, PNG, WEBP veya GIF yükleyin");
 
-  const root = path.resolve(process.cwd(), process.env.STORAGE_PATH || "./storage");
+  const root = path.resolve(/*turbopackIgnore: true*/ process.cwd(), process.env.STORAGE_PATH || "./storage");
   const dir = path.join(root, "banners");
   await mkdir(dir, { recursive: true });
   const relative = `banners/${randomToken(8)}.${ext}`;

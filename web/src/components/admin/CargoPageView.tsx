@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useOptimistic, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Bell,
@@ -113,14 +113,12 @@ export function CargoPageView({ orders, kpis }: { orders: CargoRow[]; kpis: Carg
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<(typeof PAGE_SIZES)[number]>(10);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [rows, setRows] = useState(orders);
+  const [rows, setRows] = useOptimistic(orders);
   const [menuId, setMenuId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkCompany, setBulkCompany] = useState<CargoCompanyId | "">("");
   const [linkId, setLinkId] = useState<string | null>(null);
-
-  useEffect(() => setRows(orders), [orders]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {

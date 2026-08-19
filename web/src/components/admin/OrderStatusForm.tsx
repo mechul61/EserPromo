@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CARGO_STATUS_OPTIONS, ORDER_STATUS_LABEL, PAYMENT_STATUS_LABEL } from "@/lib/commerce/orders-copy";
 
@@ -55,11 +55,6 @@ export function OrderStatusForm({
   const [cargo, setCargo] = useState(currentCargo);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setPay(boxValue(status, paymentStatus));
-    setCargo(cargoValue(status));
-  }, [status, paymentStatus]);
 
   const dirty = pay !== currentPay || (pay === "success" && cargo !== currentCargo);
 

@@ -224,7 +224,7 @@ export function SyncPageView({ initialRuns }: { initialRuns: SyncRun[] }) {
           Tekil Ürün Çekme
         </h2>
         <p className="mb-3 text-[12px] text-[#6b7280]">
-          Etkin'deki ürün ID'sini girerek tek bir ürünü varyantlarıyla ve görselleriyle çekebilirsiniz.
+          Etkin&apos;deki ürün ID&apos;sini girerek tek bir ürünü varyantlarıyla ve görselleriyle çekebilirsiniz.
         </p>
         <div className="flex items-center gap-2">
           <div className="relative flex-1 max-w-[300px]">

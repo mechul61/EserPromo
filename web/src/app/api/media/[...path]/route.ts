@@ -18,7 +18,7 @@ const MIME: Record<string, string> = {
 };
 
 function storageRoot() {
-  return path.resolve(process.cwd(), process.env.STORAGE_PATH || "./storage");
+  return path.resolve(/*turbopackIgnore: true*/ process.cwd(), process.env.STORAGE_PATH || "./storage");
 }
 
 export async function GET(
@@ -36,7 +36,7 @@ export async function GET(
   }
 
   const root = storageRoot();
-  const absolute = path.resolve(root, ...parts);
+  const absolute = path.resolve(/*turbopackIgnore: true*/ root, ...parts);
   if (!absolute.startsWith(root)) {
     return new Response("Forbidden", { status: 403 });
   }
