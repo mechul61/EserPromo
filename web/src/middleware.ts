@@ -19,7 +19,7 @@ function clientIp(req: NextRequest) {
   return req.headers.get("x-real-ip") || "unknown";
 }
 
-  if (WRITE_METHODS.has(method) && pathname.startsWith("/api/") && !isSameOriginRequest(req)) {
+function isAuthEndpoint(pathname: string) {
   return pathname.startsWith("/api/auth/");
 }
 
@@ -64,7 +64,7 @@ export function middleware(req: NextRequest) {
     return new NextResponse(null, { status: 405 });
   }
 
-  if (WRITE_METHODS.has(method) && pathname.startsWith("/api/") && !sameOrigin(req)) {
+  if (WRITE_METHODS.has(method) && pathname.startsWith("/api/") && !isSameOriginRequest(req)) {
     return NextResponse.json({ error: "Geçersiz origin." }, { status: 403 });
   }
 
