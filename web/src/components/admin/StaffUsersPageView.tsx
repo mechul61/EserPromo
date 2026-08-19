@@ -27,6 +27,7 @@ import {
   X,
 } from "lucide-react";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
+import { FloatingMenu } from "@/components/admin/FloatingMenu";
 import { SITE_CONTACT } from "@/data/catalog-page";
 import {
   STAFF_ROLE_COLOR,
@@ -134,7 +135,7 @@ export function StaffUsersPageView({
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<(typeof PAGE_SIZES)[number]>(10);
   const [checked, setChecked] = useState<Set<string>>(new Set());
-  const [menuId, setMenuId] = useState<string | null>(null);
+  const [menu, setMenu] = useState<{ id: string; el: HTMLElement } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [editUser, setEditUser] = useState<StaffUserRow | null>(null);
@@ -182,6 +183,7 @@ export function StaffUsersPageView({
   const currentPage = Math.min(page, pageCount);
   const start = (currentPage - 1) * pageSize;
   const pageRows = filtered.slice(start, start + pageSize);
+  const menuRow = menu ? users.find((row) => row.id === menu.id) : null;
   const allSelected = pageRows.length > 0 && pageRows.every((row) => checked.has(row.id));
 
   const roleSlices = (Object.keys(STAFF_ROLE_LABEL) as StaffRoleId[])
@@ -356,7 +358,7 @@ export function StaffUsersPageView({
             <div className="border-b border-[#e8edf3] px-5 py-4">
               <p className="text-[15px] font-extrabold text-[#2f6bff]">Kullanıcı Listesi ({filtered.length})</p>
             </div>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto overflow-y-hidden">
               <table className="min-w-[960px] w-full text-left text-[13px]">
                 <thead className="border-b border-[#eef2f7] bg-[#fafbfc] text-[11px] font-bold tracking-wide text-[#94a3b8] uppercase">
                   <tr>
@@ -441,7 +443,7 @@ export function StaffUsersPageView({
                             <p className="font-semibold text-[#0f172a]">{last.date}</p>
                             <p className="text-[12px] text-[#94a3b8]">{last.time || "—"}</p>
                           </td>
-                          <td className="relative px-3 py-4">
+                          <td className="px-3 py-4">
                             <div className="flex items-center justify-end gap-1">
                               <button type="button" className="grid size-8 place-items-center rounded-lg text-[#94a3b8] hover:bg-[#f8fafc]" onClick={() => setViewUser(row)}>
                                 <Eye className="size-4" />
@@ -451,31 +453,17 @@ export function StaffUsersPageView({
                                   <Pencil className="size-4" />
                                 </button>
                               ) : null}
-                              <button type="button" className="grid size-8 place-items-center rounded-lg text-[#94a3b8] hover:bg-[#f8fafc]" onClick={() => setMenuId(menuId === row.id ? null : row.id)}>
+                              <button
+                                type="button"
+                                className="grid size-8 place-items-center rounded-lg text-[#94a3b8] hover:bg-[#f8fafc]"
+                                onClick={(e) => {
+                                  const el = e.currentTarget;
+                                  setMenu((prev) => (prev?.id === row.id ? null : { id: row.id, el }));
+                                }}
+                              >
                                 <MoreVertical className="size-4" />
                               </button>
                             </div>
-                            {menuId === row.id ? (
-                              <div className="absolute right-3 top-12 z-20 w-48 overflow-hidden rounded-xl border border-[#e8edf3] bg-white py-1 shadow-lg">
-                                {canManage ? (
-                                  <>
-                                    <button type="button" className="flex w-full px-3 py-2 text-left text-[12px] hover:bg-[#f8fafc]" onClick={() => { setMenuId(null); void patch(row.id, { isActive: !row.isActive }).then((ok) => { if (ok) router.refresh(); }); }}>
-                                      {row.isActive ? "Pasifleştir" : "Aktifleştir"}
-                                    </button>
-                                    <button type="button" className="flex w-full px-3 py-2 text-left text-[12px] hover:bg-[#f8fafc]" onClick={() => { setMenuId(null); void patch(row.id, { revokeSessions: true }).then((ok) => { if (ok) { setNotice("Oturumlar kapatıldı."); router.refresh(); } }); }}>
-                                      Oturumları kapat
-                                    </button>
-                                    {row.id !== currentUserId ? (
-                                      <button type="button" className="flex w-full px-3 py-2 text-left text-[12px] text-[#dc2626] hover:bg-[#f8fafc]" onClick={() => { setMenuId(null); void remove(row.id); }}>
-                                        Sil
-                                      </button>
-                                    ) : null}
-                                  </>
-                                ) : (
-                                  <p className="px-3 py-2 text-[12px] text-[#94a3b8]">Yetkiniz yok</p>
-                                )}
-                              </div>
-                            ) : null}
                           </td>
                         </tr>
                       );
@@ -642,6 +630,54 @@ export function StaffUsersPageView({
             ))}
           </ul>
         </Modal>
+      ) : null}
+
+      {menu && menuRow ? (
+        <FloatingMenu anchor={menu.el} onClose={() => setMenu(null)}>
+          {canManage ? (
+            <>
+              <button
+                type="button"
+                className="flex w-full px-3 py-2 text-left text-[12px] hover:bg-[#f8fafc]"
+                onClick={() => {
+                  setMenu(null);
+                  void patch(menuRow.id, { isActive: !menuRow.isActive }).then((ok) => { if (ok) router.refresh(); });
+                }}
+              >
+                {menuRow.isActive ? "Pasifleştir" : "Aktifleştir"}
+              </button>
+              <button
+                type="button"
+                className="flex w-full px-3 py-2 text-left text-[12px] hover:bg-[#f8fafc]"
+                onClick={() => {
+                  setMenu(null);
+                  void patch(menuRow.id, { revokeSessions: true }).then((ok) => {
+                    if (ok) {
+                      setNotice("Oturumlar kapatıldı.");
+                      router.refresh();
+                    }
+                  });
+                }}
+              >
+                Oturumları kapat
+              </button>
+              {menuRow.id !== currentUserId ? (
+                <button
+                  type="button"
+                  className="flex w-full px-3 py-2 text-left text-[12px] text-[#dc2626] hover:bg-[#f8fafc]"
+                  onClick={() => {
+                    setMenu(null);
+                    void remove(menuRow.id);
+                  }}
+                >
+                  Sil
+                </button>
+              ) : null}
+            </>
+          ) : (
+            <p className="px-3 py-2 text-[12px] text-[#94a3b8]">Yetkiniz yok</p>
+          )}
+        </FloatingMenu>
       ) : null}
 
       {createOpen ? (

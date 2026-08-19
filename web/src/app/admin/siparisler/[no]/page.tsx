@@ -76,7 +76,7 @@ export default async function AdminOrderDetailPage({
   const note = parseNote(order.customerNote);
 
   return (
-    <div>
+    <div className="flex min-h-full flex-col">
       <Link
         href="/admin/siparisler"
         className="mb-4 inline-flex items-center gap-1 text-[13px] font-bold text-navy hover:text-orange"

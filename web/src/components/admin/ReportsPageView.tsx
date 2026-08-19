@@ -37,6 +37,7 @@ import {
   X,
 } from "lucide-react";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
+import { FloatingMenu } from "@/components/admin/FloatingMenu";
 import { SITE_CONTACT } from "@/data/catalog-page";
 import { downloadCsv } from "@/lib/admin/csv";
 import {
@@ -192,7 +193,7 @@ export function ReportsPageView({
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<(typeof PAGE_SIZES)[number]>(10);
   const [rows] = useOptimistic(reports);
-  const [menuId, setMenuId] = useState<string | null>(null);
+  const [menu, setMenu] = useState<{ id: string; el: HTMLElement } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [edit, setEdit] = useState<SavedReportRow | "new" | "scheduled" | null>(null);
   const [preview, setPreview] = useState<{ name: string; headers: string[]; rows: Array<Array<string | number>>; total: number; source: string } | null>(null);
@@ -238,6 +239,7 @@ export function ReportsPageView({
   const currentPage = Math.min(page, pageCount);
   const start = (currentPage - 1) * pageSize;
   const pageRows = filtered.slice(start, start + pageSize);
+  const menuRow = menu ? rows.find((row) => row.id === menu.id) : null;
   const popular = [...rows].sort((a, b) => b.runCount - a.runCount).slice(0, 4);
   const totalCats = Math.max(1, categoryCounts.reduce((sum, row) => sum + row.count, 0));
 
@@ -482,7 +484,7 @@ export function ReportsPageView({
                 </button>
               ))}
             </div>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto overflow-y-hidden">
               <table className="min-w-[920px] w-full text-left text-[13px]">
                 <thead className="border-b border-[#eef2f7] text-[11px] font-bold tracking-wide text-[#94a3b8] uppercase">
                   <tr>
@@ -528,7 +530,7 @@ export function ReportsPageView({
                           </td>
                           <td className="px-3 py-4 text-[12px] text-[#64748b]">{fmtWhen(row.createdAt)}</td>
                           <td className="px-3 py-4 text-[12px] text-[#64748b]">{fmtWhen(row.lastRunAt)}</td>
-                          <td className="relative px-3 py-4">
+                          <td className="px-3 py-4">
                             <div className="flex items-center justify-end gap-1">
                               <button type="button" className="grid size-8 place-items-center rounded-lg text-[#94a3b8] hover:bg-[#f8fafc]" onClick={() => void previewReport(row)}>
                                 <Eye className="size-4" />
@@ -536,20 +538,17 @@ export function ReportsPageView({
                               <button type="button" className="grid size-8 place-items-center rounded-lg text-[#94a3b8] hover:bg-[#f8fafc]" onClick={() => void downloadReport(row)}>
                                 <Download className="size-4" />
                               </button>
-                              <button type="button" className="grid size-8 place-items-center rounded-lg text-[#94a3b8] hover:bg-[#f8fafc]" onClick={() => setMenuId(menuId === row.id ? null : row.id)}>
+                              <button
+                                type="button"
+                                className="grid size-8 place-items-center rounded-lg text-[#94a3b8] hover:bg-[#f8fafc]"
+                                onClick={(e) => {
+                                  const el = e.currentTarget;
+                                  setMenu((prev) => (prev?.id === row.id ? null : { id: row.id, el }));
+                                }}
+                              >
                                 <MoreVertical className="size-4" />
                               </button>
                             </div>
-                            {menuId === row.id ? (
-                              <div className="absolute right-3 top-12 z-20 w-44 overflow-hidden rounded-xl border border-[#e8edf3] bg-white py-1 shadow-lg">
-                                <button type="button" className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] hover:bg-[#f8fafc]" onClick={() => { setMenuId(null); setEdit(row); }}>
-                                  <Pencil className="size-3.5" /> Düzenle
-                                </button>
-                                <button type="button" className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] text-[#dc2626] hover:bg-[#fef2f2]" onClick={() => { setMenuId(null); void remove(row); }}>
-                                  <Trash2 className="size-3.5" /> Sil
-                                </button>
-                              </div>
-                            ) : null}
                           </td>
                         </tr>
                       );
@@ -634,6 +633,31 @@ export function ReportsPageView({
         </aside>
       </div>
 
+      {menu && menuRow ? (
+        <FloatingMenu anchor={menu.el} onClose={() => setMenu(null)}>
+          <button
+            type="button"
+            className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] hover:bg-[#f8fafc]"
+            onClick={() => {
+              setMenu(null);
+              setEdit(menuRow);
+            }}
+          >
+            <Pencil className="size-3.5" /> Düzenle
+          </button>
+          <button
+            type="button"
+            className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] text-[#dc2626] hover:bg-[#fef2f2]"
+            onClick={() => {
+              setMenu(null);
+              void remove(menuRow);
+            }}
+          >
+            <Trash2 className="size-3.5" /> Sil
+          </button>
+        </FloatingMenu>
+      ) : null}
+
       {preview ? (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
           <div className="max-h-[90vh] w-full max-w-4xl overflow-auto rounded-2xl bg-white p-5">
@@ -647,7 +671,7 @@ export function ReportsPageView({
             {preview.source === "revenue" ? (
               <Link href="/admin/ciro/" className="mt-3 inline-flex text-[13px] font-bold text-[#2f6bff]">Ciro ekranını aç →</Link>
             ) : null}
-            <div className="mt-4 overflow-x-auto">
+            <div className="mt-4 overflow-x-auto overflow-y-hidden">
               <table className="min-w-full text-left text-[12px]">
                 <thead>
                   <tr className="border-b border-[#eef2f7] text-[#94a3b8]">

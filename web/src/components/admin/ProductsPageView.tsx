@@ -620,7 +620,7 @@ export function ProductsPageView({
           )}
 
           <section className="overflow-hidden rounded-[18px] bg-white shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
-            <div className="overflow-x-auto border-b border-[#e8edf3]">
+            <div className="overflow-x-auto overflow-y-hidden border-b border-[#e8edf3]">
               <div className="flex min-w-max items-end gap-7 px-6">
                 {tabs.map((item) => {
                   const active = tab === item.id;
@@ -647,7 +647,7 @@ export function ProductsPageView({
               </div>
             </div>
 
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto overflow-y-hidden">
               {tab === "variants" ? (
                 <div className="p-4">
                   {pageFamilies.length === 0 ? (

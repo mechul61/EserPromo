@@ -508,7 +508,7 @@ export function CustomersPageView({
                 </button>
               ))}
             </div>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto overflow-y-hidden">
               <table className="w-full min-w-[1100px] text-left text-[13px]">
                 <thead className="border-b border-[#eef2f7] bg-[#fafbfc] text-[11px] font-bold tracking-wide text-[#94a3b8] uppercase">
                   <tr>

@@ -33,6 +33,7 @@ import {
 import { CategoryEditor, DeleteConfirm } from "@/components/admin/CatalogEditors";
 import type { CategoryDuplicateGroup } from "@/lib/admin/category-duplicates";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
+import { FloatingMenu } from "@/components/admin/FloatingMenu";
 import { SITE_CONTACT } from "@/data/catalog-page";
 import { downloadCsv, parseCsv } from "@/lib/admin/csv";
 
@@ -136,7 +137,7 @@ export function CategoriesPageView({
   const [edit, setEdit] = useState<CategoryRow | null>(null);
   const [remove, setRemove] = useState<CategoryRow | null>(null);
   const [creating, setCreating] = useState(false);
-  const [menuId, setMenuId] = useState<number | null>(null);
+  const [menu, setMenu] = useState<{ id: number; el: HTMLElement } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
@@ -186,6 +187,7 @@ export function CategoriesPageView({
   const start = (currentPage - 1) * pageSize;
   const pageRows = filtered.slice(start, start + pageSize);
   const allSelected = pageRows.length > 0 && pageRows.every((row) => selected.has(row.id));
+  const menuRow = menu ? rows.find((row) => row.id === menu.id) : null;
   const totalShare = Math.max(1, shares.reduce((sum, item) => sum + item.count, 0));
   const duplicateCategoryCount = duplicateGroups.reduce((sum, group) => sum + group.items.length, 0);
 
@@ -526,7 +528,7 @@ export function CategoriesPageView({
                         {group.kind === "same-parent" ? "Gerçek çift" : "Bağlantısız aynı isim"}
                       </span>
                     </div>
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto overflow-y-hidden">
                       <table className="min-w-full text-left text-[12px]">
                         <thead className="border-b border-[#eef2f7] bg-[#fafbfc] text-[10px] font-bold tracking-wide text-[#94a3b8] uppercase">
                           <tr>
@@ -580,7 +582,7 @@ export function CategoriesPageView({
                 Kategori Listesi ({filtered.length.toLocaleString("tr-TR")})
               </p>
             </div>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto overflow-y-hidden">
               <table className="min-w-[980px] w-full text-left text-[13px]">
                 <thead className="border-b border-[#eef2f7] bg-[#fafbfc] text-[11px] font-bold tracking-wide text-[#94a3b8] uppercase">
                   <tr>
@@ -683,46 +685,16 @@ export function CategoriesPageView({
                             >
                               <Pencil className="size-4" />
                             </button>
-                            <div className="relative">
-                              <button
-                                type="button"
-                                onClick={() => setMenuId((id) => (id === row.id ? null : row.id))}
-                                className="inline-flex size-8 items-center justify-center rounded-lg text-[#64748b] hover:bg-[#eef2f7]"
-                              >
-                                <MoreVertical className="size-4" />
-                              </button>
-                              {menuId === row.id ? (
-                                <div className="absolute right-0 z-10 mt-1 w-36 overflow-hidden rounded-lg border border-[#e8edf3] bg-white py-1 shadow-lg">
-                                  <button
-                                    type="button"
-                                    className="block w-full px-3 py-1.5 text-left text-[12px] hover:bg-[#f8fafc]"
-                                    onClick={() => {
-                                      setEdit(row);
-                                      setMenuId(null);
-                                    }}
-                                  >
-                                    Düzenle
-                                  </button>
-                                  <Link
-                                    href={`/product-category/${row.slug}/`}
-                                    className="block px-3 py-1.5 text-[12px] hover:bg-[#f8fafc]"
-                                    onClick={() => setMenuId(null)}
-                                  >
-                                    Sitede aç
-                                  </Link>
-                                  <button
-                                    type="button"
-                                    className="block w-full px-3 py-1.5 text-left text-[12px] text-[#dc2626] hover:bg-[#f8fafc]"
-                                    onClick={() => {
-                                      setRemove(row);
-                                      setMenuId(null);
-                                    }}
-                                  >
-                                    Sil
-                                  </button>
-                                </div>
-                              ) : null}
-                            </div>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                const el = e.currentTarget;
+                                setMenu((prev) => (prev?.id === row.id ? null : { id: row.id, el }));
+                              }}
+                              className="inline-flex size-8 items-center justify-center rounded-lg text-[#64748b] hover:bg-[#eef2f7]"
+                            >
+                              <MoreVertical className="size-4" />
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -854,6 +826,38 @@ export function CategoriesPageView({
           </section>
         </aside>
       </div>
+
+      {menu && menuRow ? (
+        <FloatingMenu anchor={menu.el} onClose={() => setMenu(null)}>
+          <button
+            type="button"
+            className="block w-full px-3 py-2 text-left text-[12px] hover:bg-[#f8fafc]"
+            onClick={() => {
+              setEdit(menuRow);
+              setMenu(null);
+            }}
+          >
+            Düzenle
+          </button>
+          <Link
+            href={`/product-category/${menuRow.slug}/`}
+            className="block px-3 py-2 text-[12px] hover:bg-[#f8fafc]"
+            onClick={() => setMenu(null)}
+          >
+            Sitede aç
+          </Link>
+          <button
+            type="button"
+            className="block w-full px-3 py-2 text-left text-[12px] text-[#dc2626] hover:bg-[#f8fafc]"
+            onClick={() => {
+              setRemove(menuRow);
+              setMenu(null);
+            }}
+          >
+            Sil
+          </button>
+        </FloatingMenu>
+      ) : null}
 
       {creating ? (
         <CreateCategoryDialog

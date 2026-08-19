@@ -38,6 +38,7 @@ import {
   X,
 } from "lucide-react";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
+import { FloatingMenu } from "@/components/admin/FloatingMenu";
 import { SITE_CONTACT } from "@/data/catalog-page";
 import {
   EMAIL_CATEGORY_LABEL,
@@ -164,7 +165,7 @@ export function EmailTemplatesPageView({
   const varsRef = useRef<HTMLElement>(null);
   const [smtpOpen, setSmtpOpen] = useState(false);
   const [edit, setEdit] = useState<EmailTemplateRow | "new" | null>(null);
-  const [menuId, setMenuId] = useState<string | null>(null);
+  const [menu, setMenu] = useState<{ id: string; el: HTMLElement } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
@@ -219,6 +220,7 @@ export function EmailTemplatesPageView({
   const start = (currentPage - 1) * pageSize;
   const pageRows = filtered.slice(start, start + pageSize);
   const allSelected = pageRows.length > 0 && pageRows.every((row) => selected.has(row.id));
+  const menuRow = menu ? rows.find((row) => row.id === menu.id) : null;
   const preview = rows.find((row) => row.id === previewId) ?? filtered[0] ?? rows[0] ?? null;
 
   function live(setter: (value: string) => void, value: string) {
@@ -434,7 +436,7 @@ export function EmailTemplatesPageView({
               </button>
             </div>
 
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto overflow-y-hidden">
               <table className="min-w-[860px] w-full text-left text-[13px]">
                 <thead className="border-y border-[#eef2f7] text-[11px] font-bold tracking-wide text-[#94a3b8] uppercase">
                   <tr>
@@ -512,7 +514,7 @@ export function EmailTemplatesPageView({
                             </span>
                           </td>
                           <td className="px-3 py-4 text-[12px] text-[#64748b]">{fmtWhen(row.updatedAt)}</td>
-                          <td className="relative px-3 py-4" onClick={(e) => e.stopPropagation()}>
+                          <td className="px-3 py-4" onClick={(e) => e.stopPropagation()}>
                             <div className="flex items-center justify-end gap-1">
                               <button type="button" className="grid size-8 place-items-center rounded-lg text-[#94a3b8] hover:bg-[#f8fafc]" onClick={() => { setPreviewId(row.id); setShowPreview(true); }}>
                                 <Eye className="size-4" />
@@ -520,20 +522,17 @@ export function EmailTemplatesPageView({
                               <button type="button" className="grid size-8 place-items-center rounded-lg text-[#94a3b8] hover:bg-[#f8fafc]" onClick={() => setEdit(row)}>
                                 <Pencil className="size-4" />
                               </button>
-                              <button type="button" className="grid size-8 place-items-center rounded-lg text-[#94a3b8] hover:bg-[#f8fafc]" onClick={() => setMenuId(menuId === row.id ? null : row.id)}>
+                              <button
+                                type="button"
+                                className="grid size-8 place-items-center rounded-lg text-[#94a3b8] hover:bg-[#f8fafc]"
+                                onClick={(e) => {
+                                  const el = e.currentTarget;
+                                  setMenu((prev) => (prev?.id === row.id ? null : { id: row.id, el }));
+                                }}
+                              >
                                 <MoreVertical className="size-4" />
                               </button>
                             </div>
-                            {menuId === row.id ? (
-                              <div className="absolute right-3 top-12 z-20 w-44 overflow-hidden rounded-xl border border-[#e8edf3] bg-white py-1 shadow-lg">
-                                <button type="button" className="flex w-full px-3 py-2 text-left text-[12px] hover:bg-[#f8fafc]" onClick={() => { setMenuId(null); void toggle(row); }}>
-                                  {row.isActive ? "Pasifleştir" : "Aktifleştir"}
-                                </button>
-                                <button type="button" className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] text-[#dc2626] hover:bg-[#fef2f2]" onClick={() => { setMenuId(null); void remove(row); }}>
-                                  <Trash2 className="size-3.5" /> Sil
-                                </button>
-                              </div>
-                            ) : null}
                           </td>
                         </tr>
                       );
@@ -629,6 +628,31 @@ export function EmailTemplatesPageView({
           </section>
         </aside>
       </div>
+
+      {menu && menuRow ? (
+        <FloatingMenu anchor={menu.el} onClose={() => setMenu(null)}>
+          <button
+            type="button"
+            className="flex w-full px-3 py-2 text-left text-[12px] hover:bg-[#f8fafc]"
+            onClick={() => {
+              setMenu(null);
+              void toggle(menuRow);
+            }}
+          >
+            {menuRow.isActive ? "Pasifleştir" : "Aktifleştir"}
+          </button>
+          <button
+            type="button"
+            className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] text-[#dc2626] hover:bg-[#fef2f2]"
+            onClick={() => {
+              setMenu(null);
+              void remove(menuRow);
+            }}
+          >
+            <Trash2 className="size-3.5" /> Sil
+          </button>
+        </FloatingMenu>
+      ) : null}
 
       {edit ? (
         <TemplateEditor

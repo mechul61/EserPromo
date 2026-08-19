@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { AdminScrollLock } from "@/components/admin/AdminScrollLock";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import type { AuthUser } from "@/lib/auth/session";
 
@@ -14,16 +15,19 @@ export function AdminChrome({
   ordersWaiting?: number;
 }) {
   return (
-    <div className="min-h-dvh overflow-x-hidden bg-[#171b22] p-2 sm:p-3">
-      <div className="grid min-h-[calc(100dvh-16px)] overflow-hidden rounded-[18px] bg-[#f5f7fb] grid-cols-1 grid-rows-[auto_minmax(0,1fr)] sm:min-h-[calc(100dvh-24px)] lg:grid-cols-[250px_minmax(0,1fr)] lg:grid-rows-none">
-        <div className="min-h-0 overflow-hidden lg:h-full">
-          <Suspense fallback={<aside className="h-full bg-[#0b1524]" />}>
-            <AdminSidebar name={user.name} supportWaiting={supportWaiting} ordersWaiting={ordersWaiting} />
-          </Suspense>
+    <>
+      <AdminScrollLock />
+      <div className="fixed inset-0 overflow-hidden bg-[#171b22] p-2 sm:p-3">
+        <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-[18px] bg-[#f5f7fb] lg:flex-row">
+          <aside className="min-h-0 shrink-0 overflow-hidden max-lg:max-h-[min(42vh,360px)] lg:h-full lg:w-[250px]">
+            <Suspense fallback={<div className="h-full bg-[#0b1524]" />}>
+              <AdminSidebar name={user.name} supportWaiting={supportWaiting} ordersWaiting={ordersWaiting} />
+            </Suspense>
+          </aside>
+          <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-y-contain p-4 lg:p-5">{children}</main>
         </div>
-        <div className="min-h-0 min-w-0 overflow-y-auto overscroll-contain p-4 lg:p-5">{children}</div>
       </div>
-    </div>
+    </>
   );
 }
 

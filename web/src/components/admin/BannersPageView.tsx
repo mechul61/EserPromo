@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { BannerEditor } from "@/components/admin/BannerEditor";
 import {
+  BANNER_KIND_LABEL,
   BANNER_PLACEMENT_LABEL,
   bannerAmountLabel,
   type BannerKpi,
@@ -40,14 +41,15 @@ import {
   type BannerShare,
 } from "@/components/admin/banner-types";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
+import { FloatingMenu } from "@/components/admin/FloatingMenu";
 import { SITE_CONTACT } from "@/data/catalog-page";
 import { downloadCsv } from "@/lib/admin/csv";
 
 const KPI_ICONS = {
   total: FileImage,
+  slider: SlidersHorizontal,
   active: LayoutGrid,
   passive: Layers,
-  places: MapPin,
   views: Eye,
 } as const;
 
@@ -97,7 +99,7 @@ export function BannersPageView({
   const [previewId, setPreviewId] = useState<string | null>(null);
   const [rows, setRows] = useOptimistic(banners);
   const [edit, setEdit] = useState<BannerRow | "new" | "slider" | null>(null);
-  const [menuId, setMenuId] = useState<string | null>(null);
+  const [menu, setMenu] = useState<{ id: string; el: HTMLElement } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
@@ -107,6 +109,10 @@ export function BannersPageView({
     }, 300);
     return () => window.clearTimeout(timer);
   }, [draftQuery]);
+
+  useEffect(() => {
+    setPreviewId(null);
+  }, [tab]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -134,12 +140,28 @@ export function BannersPageView({
     });
   }, [rows, tab, query, placement, status, fromDate, toDate]);
 
+  const counts = useMemo(
+    () => ({
+      banner: rows.filter((row) => row.kind === "banner").length,
+      slider: rows.filter((row) => row.kind === "slider").length,
+    }),
+    [rows],
+  );
+
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, pageCount);
   const start = (currentPage - 1) * pageSize;
   const pageRows = filtered.slice(start, start + pageSize);
   const allSelected = pageRows.length > 0 && pageRows.every((row) => selected.has(row.id));
-  const preview = rows.find((row) => row.id === previewId) ?? pageRows[0] ?? rows[0] ?? null;
+  const menuRow = menu ? rows.find((row) => row.id === menu.id) : null;
+  const preview = useMemo(() => {
+    if (!filtered.length) return null;
+    if (previewId) {
+      const hit = filtered.find((row) => row.id === previewId);
+      if (hit) return hit;
+    }
+    return filtered[0];
+  }, [filtered, previewId]);
   const distTotal = Math.max(1, shares.reduce((sum, item) => sum + item.count, 0));
 
   const previewIndex = preview ? filtered.findIndex((row) => row.id === preview.id) : -1;
@@ -280,9 +302,9 @@ export function BannersPageView({
             <ArrowUpFromLine className="size-4" />
             Dışa Aktar
           </button>
-          <button type="button" onClick={() => setEdit("new")} className="inline-flex h-10 items-center gap-2 rounded-xl bg-[#2f6bff] px-4 text-[13px] font-semibold text-white">
+          <button type="button" onClick={() => setEdit(tab === "slider" ? "slider" : "new")} className="inline-flex h-10 items-center gap-2 rounded-xl bg-[#2f6bff] px-4 text-[13px] font-semibold text-white">
             <Plus className="size-4" />
-            Yeni Banner Ekle
+            {tab === "slider" ? "Yeni Slider Ekle" : "Yeni Banner Ekle"}
           </button>
         </div>
       </div>
@@ -319,9 +341,9 @@ export function BannersPageView({
           <section className="rounded-[18px] bg-white p-5 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
             <div className="mb-4 flex gap-5 border-b border-[#e8edf3]">
               {([
-                ["banner", "Bannerlar"],
-                ["slider", "Sliderlar"],
-              ] as const).map(([id, label]) => (
+                ["banner", "Bannerlar", counts.banner],
+                ["slider", "Sliderlar", counts.slider],
+              ] as const).map(([id, label, count]) => (
                 <button
                   key={id}
                   type="button"
@@ -331,7 +353,7 @@ export function BannersPageView({
                   }}
                   className={`-mb-px border-b-[3px] py-3 text-[14px] font-bold ${tab === id ? "border-[#2f6bff] text-[#2f6bff]" : "border-transparent text-[#94a3b8]"}`}
                 >
-                  {label}
+                  {label} ({count.toLocaleString("tr-TR")})
                 </button>
               ))}
             </div>
@@ -344,7 +366,7 @@ export function BannersPageView({
                       <input
                         value={draftQuery}
                         onChange={(e) => setDraftQuery(e.target.value)}
-                        placeholder="Banner adı..."
+                        placeholder={tab === "slider" ? "Slider adı..." : "Banner adı..."}
                         className="h-11 w-full rounded-lg border border-[#dbe3ee] px-3 pr-10 text-[13px] outline-none placeholder:text-[#94a3b8]"
                       />
                       <Search className="pointer-events-none absolute right-3.5 top-1/2 size-4 -translate-y-1/2 text-[#94a3b8]" />
@@ -379,7 +401,7 @@ export function BannersPageView({
           </section>
 
           <section className="overflow-hidden rounded-[18px] bg-white shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto overflow-y-hidden">
               <table className="min-w-[1080px] w-full text-left text-[13px]">
                 <thead className="border-b border-[#eef2f7] bg-[#fafbfc] text-[11px] font-bold tracking-wide text-[#94a3b8] uppercase">
                   <tr>
@@ -397,7 +419,7 @@ export function BannersPageView({
                         }}
                       />
                     </th>
-                    <th className="px-3 py-3">Banner</th>
+                    <th className="px-3 py-3">{tab === "slider" ? "Slider" : "Banner"}</th>
                     <th className="px-3 py-3">Konum</th>
                     <th className="px-3 py-3">Durum</th>
                     <th className="px-3 py-3">Tarih Aralığı</th>
@@ -410,7 +432,11 @@ export function BannersPageView({
                 <tbody>
                   {pageRows.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="px-4 py-10 text-center text-[#94a3b8]">Kayıt bulunamadı.</td>
+                      <td colSpan={9} className="px-4 py-10 text-center text-[#94a3b8]">
+                        {tab === "slider"
+                          ? "Henüz slider kaydı yok. Sağdaki \"Yeni Slider\" veya üstteki \"Yeni Slider Ekle\" ile ekleyebilirsiniz."
+                          : "Henüz banner kaydı yok. \"Yeni Banner Ekle\" ile ekleyebilirsiniz."}
+                      </td>
                     </tr>
                   ) : (
                     pageRows.map((row) => (
@@ -440,7 +466,9 @@ export function BannersPageView({
                             </span>
                             <div>
                               <p className="font-bold text-[#0f172a]">{row.title}</p>
-                              <p className="text-[12px] text-[#94a3b8]">{row.width} x {row.height}</p>
+                              <p className="text-[12px] text-[#94a3b8]">
+                                {BANNER_KIND_LABEL[row.kind]} · {row.width} x {row.height}
+                              </p>
                             </div>
                           </div>
                         </td>
@@ -464,7 +492,7 @@ export function BannersPageView({
                             className="h-8 w-14 rounded-lg border border-[#e8edf3] px-2 text-center text-[13px] outline-none"
                           />
                         </td>
-                        <td className="relative px-3 py-4" onClick={(e) => e.stopPropagation()}>
+                        <td className="px-3 py-4" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-end gap-1">
                             <button type="button" className="grid size-8 place-items-center rounded-lg text-[#94a3b8] hover:bg-[#f8fafc]" onClick={() => setPreviewId(row.id)}>
                               <Eye className="size-4" />
@@ -472,20 +500,17 @@ export function BannersPageView({
                             <button type="button" className="grid size-8 place-items-center rounded-lg text-[#94a3b8] hover:bg-[#f8fafc]" onClick={() => setEdit(row)}>
                               <Pencil className="size-4" />
                             </button>
-                            <button type="button" className="grid size-8 place-items-center rounded-lg text-[#94a3b8] hover:bg-[#f8fafc]" onClick={() => setMenuId(menuId === row.id ? null : row.id)}>
+                            <button
+                              type="button"
+                              className="grid size-8 place-items-center rounded-lg text-[#94a3b8] hover:bg-[#f8fafc]"
+                              onClick={(e) => {
+                                const el = e.currentTarget;
+                                setMenu((prev) => (prev?.id === row.id ? null : { id: row.id, el }));
+                              }}
+                            >
                               <MoreVertical className="size-4" />
                             </button>
                           </div>
-                          {menuId === row.id ? (
-                            <div className="absolute right-3 top-12 z-20 w-40 overflow-hidden rounded-xl border border-[#e8edf3] bg-white py-1 shadow-lg">
-                              <button type="button" className="flex w-full px-3 py-2 text-left text-[12px] hover:bg-[#f8fafc]" onClick={() => { setMenuId(null); void fetch(`/api/admin/banners/${row.id}/`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ isActive: !row.isActive }) }).then(() => router.refresh()); }}>
-                                {row.isActive ? "Pasifleştir" : "Aktifleştir"}
-                              </button>
-                              <button type="button" className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] text-[#dc2626] hover:bg-[#fef2f2]" onClick={() => { setMenuId(null); void remove(row); }}>
-                                <Trash2 className="size-3.5" /> Sil
-                              </button>
-                            </div>
-                          ) : null}
                         </td>
                       </tr>
                     ))
@@ -525,7 +550,9 @@ export function BannersPageView({
 
         <aside className="space-y-4">
           <section className="rounded-[18px] bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
-            <h2 className="mb-3 text-[12px] font-extrabold tracking-wide text-[#94a3b8] uppercase">Seçilen Banner Önizleme</h2>
+            <h2 className="mb-3 text-[12px] font-extrabold tracking-wide text-[#94a3b8] uppercase">
+              Seçilen {tab === "slider" ? "Slider" : "Banner"} Önizleme
+            </h2>
             {preview ? (
               <>
                 <div className="relative h-40 overflow-hidden rounded-xl bg-[#1d4ed8]">
@@ -552,6 +579,7 @@ export function BannersPageView({
                   ) : null}
                 </div>
                 <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[12px]">
+                  <div><dt className="text-[#94a3b8]">Tür</dt><dd className="font-semibold">{BANNER_KIND_LABEL[preview.kind]}</dd></div>
                   <div><dt className="text-[#94a3b8]">Konum</dt><dd className="font-semibold">{BANNER_PLACEMENT_LABEL[preview.placement]}</dd></div>
                   <div><dt className="text-[#94a3b8]">Durum</dt><dd className="font-semibold">{preview.isActive ? "Aktif" : "Pasif"}</dd></div>
                   <div className="col-span-2"><dt className="text-[#94a3b8]">Tarih Aralığı</dt><dd className="font-semibold">{fmtRange(preview.startsAt, preview.endsAt)}</dd></div>
@@ -561,7 +589,9 @@ export function BannersPageView({
                 </dl>
               </>
             ) : (
-              <p className="text-[13px] text-[#94a3b8]">Önizleme için bir satır seçin.</p>
+              <p className="text-[13px] text-[#94a3b8]">
+                {tab === "slider" ? "Slider sekmesinde önizlenecek kayıt yok." : "Banner sekmesinde önizlenecek kayıt yok."}
+              </p>
             )}
           </section>
 
@@ -570,7 +600,7 @@ export function BannersPageView({
             <div className="grid grid-cols-4 gap-2">
               <Quick icon={Plus} label="Yeni Banner Ekle" tone="bg-[#e8f0ff] text-[#2f6bff]" onClick={() => setEdit("new")} />
               <Quick icon={SlidersHorizontal} label="Slider Yönetimi" tone="bg-[#f1e9ff] text-[#7c3aed]" onClick={() => { setTab("slider"); setPage(1); }} />
-              <Quick icon={MapPin} label="Konum Yönetimi" tone="bg-[#fff4e5] text-[#d97706]" onClick={() => setNotice("Konumlar: Ana Slider, Orta, Alt, Yan ve Kategori bannerları.")} />
+              <Quick icon={MapPin} label="Konum Yönetimi" tone="bg-[#fff4e5] text-[#d97706]" onClick={() => setNotice("Konumlar: Ana Sayfa Hero, Orta, Alt, Yan ve Kategori alanları.")} />
               <Quick icon={Settings2} label="Toplu Düzenle" tone="bg-[#e6fbf8] text-[#0f766e]" onClick={() => void bulk("activate")} />
               <Quick icon={LayoutGrid} label="Tümünü Aktif" tone="bg-[#e9f9ef] text-[#16a34a]" onClick={() => void bulk("activate", filtered.map((row) => row.id))} />
               <Quick icon={Layers} label="Tümünü Pasif" tone="bg-[#fff4e5] text-[#d97706]" onClick={() => void bulk("deactivate", filtered.map((row) => row.id))} />
@@ -595,7 +625,7 @@ export function BannersPageView({
                 }}
               >
                 <div className="grid size-[72px] place-items-center rounded-full bg-white text-center">
-                  <p className="text-[16px] font-extrabold leading-none text-[#0f172a]">{rows.length}</p>
+                  <p className="text-[16px] font-extrabold leading-none text-[#0f172a]">{counts.banner + counts.slider}</p>
                   <p className="text-[10px] text-[#94a3b8]">Toplam</p>
                 </div>
               </div>
@@ -614,6 +644,35 @@ export function BannersPageView({
           </section>
         </aside>
       </div>
+
+      {menu && menuRow ? (
+        <FloatingMenu anchor={menu.el} onClose={() => setMenu(null)}>
+          <button
+            type="button"
+            className="flex w-full px-3 py-2 text-left text-[12px] hover:bg-[#f8fafc]"
+            onClick={() => {
+              setMenu(null);
+              void fetch(`/api/admin/banners/${menuRow.id}/`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ isActive: !menuRow.isActive }),
+              }).then(() => router.refresh());
+            }}
+          >
+            {menuRow.isActive ? "Pasifleştir" : "Aktifleştir"}
+          </button>
+          <button
+            type="button"
+            className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] text-[#dc2626] hover:bg-[#fef2f2]"
+            onClick={() => {
+              setMenu(null);
+              void remove(menuRow);
+            }}
+          >
+            <Trash2 className="size-3.5" /> Sil
+          </button>
+        </FloatingMenu>
+      ) : null}
 
       {edit ? (
         <BannerEditor

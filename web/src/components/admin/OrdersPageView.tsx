@@ -565,7 +565,7 @@ export function OrdersPageView({
       </section>
 
       <section className="mt-4 overflow-hidden rounded-[18px] bg-white shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
-        <div className="overflow-x-auto border-b border-[#e8edf3]">
+        <div className="overflow-x-auto overflow-y-hidden border-b border-[#e8edf3]">
           <div className="flex min-w-max items-end gap-8 px-6">
             {tabs.map((item) => {
               const active = tab === item.id;
@@ -590,7 +590,7 @@ export function OrdersPageView({
           </div>
         </div>
 
-        <div className="overflow-x-auto overflow-y-visible">
+        <div className="overflow-x-auto overflow-y-hidden">
           <table className="w-full min-w-[1100px] text-left text-[13px]">
             <thead className="border-b border-[#eef2f7] bg-[#fafbfc] text-[11px] font-bold tracking-wide text-[#94a3b8] uppercase">
               <tr>

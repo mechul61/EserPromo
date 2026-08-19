@@ -26,6 +26,7 @@ import {
   X,
 } from "lucide-react";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
+import { FloatingMenu } from "@/components/admin/FloatingMenu";
 import { SITE_CONTACT } from "@/data/catalog-page";
 import {
   SUPPORT_CATEGORY_LABEL,
@@ -140,7 +141,7 @@ export function SupportPageView({ tickets, kpis }: { tickets: SupportTicketRow[]
   const [rows] = useOptimistic(tickets);
   const [selectedId, setSelectedId] = useState("");
   const [checked, setChecked] = useState<Set<string>>(new Set());
-  const [menuId, setMenuId] = useState<string | null>(null);
+  const [menu, setMenu] = useState<{ id: string; el: HTMLElement } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [replyOpen, setReplyOpen] = useState(false);
@@ -195,6 +196,7 @@ export function SupportPageView({ tickets, kpis }: { tickets: SupportTicketRow[]
   const currentPage = Math.min(page, pageCount);
   const start = (currentPage - 1) * pageSize;
   const pageRows = filtered.slice(start, start + pageSize);
+  const menuRow = menu ? rows.find((row) => row.id === menu.id) : null;
   const selected = rows.find((row) => row.id === selectedId) ?? filtered[0] ?? rows[0] ?? null;
   const lastAdmin = selected?.messages.filter((item) => item.author === "admin").at(-1) ?? null;
   const allSelected = pageRows.length > 0 && pageRows.every((row) => checked.has(row.id));
@@ -384,7 +386,7 @@ export function SupportPageView({ tickets, kpis }: { tickets: SupportTicketRow[]
                 </button>
               ))}
             </div>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto overflow-y-hidden">
               <table className="min-w-[960px] w-full text-left text-[13px]">
                 <thead className="border-b border-[#eef2f7] bg-[#fafbfc] text-[11px] font-bold tracking-wide text-[#94a3b8] uppercase">
                   <tr>
@@ -457,25 +459,22 @@ export function SupportPageView({ tickets, kpis }: { tickets: SupportTicketRow[]
                           <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold ${STATUS_TONE[row.status]}`}>{row.statusLabel}</span>
                         </td>
                         <td className="px-3 py-4 text-[12px] text-[#64748b]">{fmtWhen(row.createdAt)}</td>
-                        <td className="relative px-3 py-4" onClick={(e) => e.stopPropagation()}>
+                        <td className="px-3 py-4" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-end gap-1">
                             <button type="button" className="grid size-8 place-items-center rounded-lg text-[#94a3b8] hover:bg-[#f8fafc]" onClick={() => setSelectedId(row.id)}>
                               <Eye className="size-4" />
                             </button>
-                            <button type="button" className="grid size-8 place-items-center rounded-lg text-[#94a3b8] hover:bg-[#f8fafc]" onClick={() => setMenuId(menuId === row.id ? null : row.id)}>
+                            <button
+                              type="button"
+                              className="grid size-8 place-items-center rounded-lg text-[#94a3b8] hover:bg-[#f8fafc]"
+                              onClick={(e) => {
+                                const el = e.currentTarget;
+                                setMenu((prev) => (prev?.id === row.id ? null : { id: row.id, el }));
+                              }}
+                            >
                               <MoreVertical className="size-4" />
                             </button>
                           </div>
-                          {menuId === row.id ? (
-                            <div className="absolute right-3 top-12 z-20 w-48 overflow-hidden rounded-xl border border-[#e8edf3] bg-white py-1 shadow-lg">
-                              <button type="button" className="flex w-full px-3 py-2 text-left text-[12px] hover:bg-[#f8fafc]" onClick={() => { setMenuId(null); void resolve(row); }}>Çözüldü işaretle</button>
-                              <button type="button" className="flex w-full px-3 py-2 text-left text-[12px] hover:bg-[#f8fafc]" onClick={() => { setMenuId(null); void patch(row.id, { status: "archived" }).then((ok) => { if (ok) router.refresh(); }); }}>Arşivle</button>
-                              {row.status === "resolved" || row.status === "archived" ? (
-                                <button type="button" className="flex w-full px-3 py-2 text-left text-[12px] hover:bg-[#f8fafc]" onClick={() => { setMenuId(null); void patch(row.id, { status: "waiting" }).then((ok) => { if (ok) router.refresh(); }); }}>Yeniden aç</button>
-                              ) : null}
-                              <button type="button" className="flex w-full px-3 py-2 text-left text-[12px] hover:bg-[#f8fafc]" onClick={() => { setMenuId(null); void patch(row.id, { priority: "high" }).then((ok) => { if (ok) router.refresh(); }); }}>Yüksek öncelik</button>
-                            </div>
-                          ) : null}
                         </td>
                       </tr>
                     ))
@@ -568,6 +567,46 @@ export function SupportPageView({ tickets, kpis }: { tickets: SupportTicketRow[]
           )}
         </aside>
       </div>
+
+      {menu && menuRow ? (
+        <FloatingMenu anchor={menu.el} onClose={() => setMenu(null)}>
+          <button type="button" className="flex w-full px-3 py-2 text-left text-[12px] hover:bg-[#f8fafc]" onClick={() => { setMenu(null); void resolve(menuRow); }}>
+            Çözüldü işaretle
+          </button>
+          <button
+            type="button"
+            className="flex w-full px-3 py-2 text-left text-[12px] hover:bg-[#f8fafc]"
+            onClick={() => {
+              setMenu(null);
+              void patch(menuRow.id, { status: "archived" }).then((ok) => { if (ok) router.refresh(); });
+            }}
+          >
+            Arşivle
+          </button>
+          {menuRow.status === "resolved" || menuRow.status === "archived" ? (
+            <button
+              type="button"
+              className="flex w-full px-3 py-2 text-left text-[12px] hover:bg-[#f8fafc]"
+              onClick={() => {
+                setMenu(null);
+                void patch(menuRow.id, { status: "waiting" }).then((ok) => { if (ok) router.refresh(); });
+              }}
+            >
+              Yeniden aç
+            </button>
+          ) : null}
+          <button
+            type="button"
+            className="flex w-full px-3 py-2 text-left text-[12px] hover:bg-[#f8fafc]"
+            onClick={() => {
+              setMenu(null);
+              void patch(menuRow.id, { priority: "high" }).then((ok) => { if (ok) router.refresh(); });
+            }}
+          >
+            Yüksek öncelik
+          </button>
+        </FloatingMenu>
+      ) : null}
 
       {historyOpen && selected ? (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">

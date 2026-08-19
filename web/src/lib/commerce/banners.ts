@@ -8,7 +8,7 @@ export const BANNER_KIND_LABEL = {
 } as const;
 
 export const BANNER_PLACEMENT_LABEL = {
-  hero: "Ana Slider",
+  hero: "Ana Sayfa Hero",
   middle_1: "Orta Banner 1",
   middle_2: "Orta Banner 2",
   bottom: "Alt Banner",

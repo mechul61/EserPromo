@@ -290,7 +290,7 @@ export function PaymentsPageView({
                 Sıralamayı Güncelle
               </button>
             </div>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto overflow-y-hidden">
               <table className="min-w-[760px] w-full text-left text-[13px]">
                 <thead className="border-b border-[#eef2f7] text-[11px] font-bold tracking-wide text-[#94a3b8] uppercase">
                   <tr>

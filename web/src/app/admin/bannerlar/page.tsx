@@ -72,15 +72,17 @@ export default async function AdminBannersPage() {
     sortOrder: row.sortOrder,
   }));
 
+  const bannerRows = rows.filter((row) => row.kind === "banner");
+  const sliderRows = rows.filter((row) => row.kind === "slider");
   const active = rows.filter((row) => row.isActive).length;
-  const placements = new Set(rows.map((row) => row.placement)).size;
+  const passive = rows.length - active;
   const views = rows.reduce((sum, row) => sum + row.views, 0);
 
   const kpis: BannerKpi[] = [
-    { label: "Toplam Banner", value: rows.length.toLocaleString("tr-TR"), color: "bg-[#2f6bff]", icon: "total" },
-    { label: "Aktif Banner", value: active.toLocaleString("tr-TR"), delta: pct(monthActive, prevActive), color: "bg-[#22c55e]", icon: "active" },
-    { label: "Pasif Banner", value: (rows.length - active).toLocaleString("tr-TR"), delta: pct(monthPassive, prevPassive), color: "bg-[#f59e0b]", icon: "passive" },
-    { label: "Konum Sayısı", value: String(placements), color: "bg-[#7c3aed]", icon: "places" },
+    { label: "Toplam Banner", value: bannerRows.length.toLocaleString("tr-TR"), color: "bg-[#2f6bff]", icon: "total" },
+    { label: "Toplam Slider", value: sliderRows.length.toLocaleString("tr-TR"), color: "bg-[#7c3aed]", icon: "slider" },
+    { label: "Aktif İçerik", value: active.toLocaleString("tr-TR"), delta: pct(monthActive, prevActive), color: "bg-[#22c55e]", icon: "active" },
+    { label: "Pasif İçerik", value: passive.toLocaleString("tr-TR"), delta: pct(monthPassive, prevPassive), color: "bg-[#f59e0b]", icon: "passive" },
     {
       label: "Görüntülenme",
       value: views.toLocaleString("tr-TR"),

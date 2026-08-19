@@ -48,6 +48,7 @@ import {
   type PopupStatusId,
 } from "@/components/admin/popup-types";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
+import { FloatingMenu } from "@/components/admin/FloatingMenu";
 import { SITE_CONTACT } from "@/data/catalog-page";
 import { downloadCsv } from "@/lib/admin/csv";
 import { conversionRate } from "@/lib/commerce/popups";
@@ -132,7 +133,7 @@ export function PopupsPageView({
   const [edit, setEdit] = useState<PopupRow | "new" | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
-  const [menuId, setMenuId] = useState<string | null>(null);
+  const [menu, setMenu] = useState<{ id: string; el: HTMLElement } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
@@ -149,12 +150,9 @@ export function PopupsPageView({
         e.preventDefault();
         headerSearchRef.current?.focus();
       }
-      if (e.key === "Escape") setMenuId(null);
     }
-    function onClick() { setMenuId(null); }
     window.addEventListener("keydown", onKey);
-    window.addEventListener("click", onClick, true);
-    return () => { window.removeEventListener("keydown", onKey); window.removeEventListener("click", onClick, true); };
+    return () => window.removeEventListener("keydown", onKey);
   }, []);
 
   const counts = useMemo(
@@ -188,6 +186,7 @@ export function PopupsPageView({
   const start = (currentPage - 1) * pageSize;
   const pageRows = filtered.slice(start, start + pageSize);
   const allSelected = pageRows.length > 0 && pageRows.every((row) => selected.has(row.id));
+  const menuRow = menu ? rows.find((row) => row.id === menu.id) : null;
   const preview = rows.find((row) => row.id === previewId) ?? pageRows[0] ?? rows[0] ?? null;
 
   function live(setter: (value: string) => void, value: string) {
@@ -424,7 +423,7 @@ export function PopupsPageView({
                 </button>
               ))}
             </div>
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto overflow-y-hidden">
               <table className="min-w-[1180px] w-full text-left text-[13px]">
                 <thead className="border-b border-[#eef2f7] bg-[#fafbfc] text-[11px] font-bold tracking-wide text-[#94a3b8] uppercase">
                   <tr>
@@ -510,29 +509,23 @@ export function PopupsPageView({
                           <p>{fmtDate(row.endsAt)}</p>
                         </td>
                         <td className="px-3 py-4" onClick={(e) => e.stopPropagation()}>
-                          <div className="relative flex items-center justify-end gap-1">
+                          <div className="flex items-center justify-end gap-1">
                             <button type="button" className="grid size-8 place-items-center rounded-lg text-[#94a3b8] hover:bg-[#f8fafc]" onClick={() => setPreviewId(row.id)}>
                               <Eye className="size-4" />
                             </button>
                             <button type="button" className="grid size-8 place-items-center rounded-lg text-[#94a3b8] hover:bg-[#f8fafc]" onClick={() => setEdit(row)}>
                               <Pencil className="size-4" />
                             </button>
-                            <button type="button" className="grid size-8 place-items-center rounded-lg text-[#94a3b8] hover:bg-[#f8fafc]" onClick={() => setMenuId(menuId === row.id ? null : row.id)}>
+                            <button
+                              type="button"
+                              className="grid size-8 place-items-center rounded-lg text-[#94a3b8] hover:bg-[#f8fafc]"
+                              onClick={(e) => {
+                                const el = e.currentTarget;
+                                setMenu((prev) => (prev?.id === row.id ? null : { id: row.id, el }));
+                              }}
+                            >
                               <MoreVertical className="size-4" />
                             </button>
-                            {menuId === row.id ? (
-                              <div className="absolute right-0 top-full z-50 mt-1 w-40 overflow-hidden rounded-xl border border-[#e8edf3] bg-white py-1 shadow-lg">
-                                <button type="button" className="flex w-full px-3 py-2 text-left text-[12px] hover:bg-[#f8fafc]" onClick={() => { setMenuId(null); void patchOne(row.id, { isActive: row.status !== "active", isDraft: false }); }}>
-                                  {row.status === "active" ? "Pasifleştir" : "Yayınla"}
-                                </button>
-                                <button type="button" className="flex w-full px-3 py-2 text-left text-[12px] hover:bg-[#f8fafc]" onClick={() => { setMenuId(null); void patchOne(row.id, { isDraft: true, isActive: false }); }}>
-                                  Taslağa al
-                                </button>
-                                <button type="button" className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] text-[#dc2626] hover:bg-[#fef2f2]" onClick={() => { setMenuId(null); void remove(row); }}>
-                                  <Trash2 className="size-3.5" /> Sil
-                                </button>
-                              </div>
-                            ) : null}
                           </div>
                         </td>
                       </tr>
@@ -617,6 +610,41 @@ export function PopupsPageView({
           </section>
         </aside>
       </div>
+
+      {menu && menuRow ? (
+        <FloatingMenu anchor={menu.el} onClose={() => setMenu(null)}>
+          <button
+            type="button"
+            className="flex w-full px-3 py-2 text-left text-[12px] hover:bg-[#f8fafc]"
+            onClick={() => {
+              setMenu(null);
+              void patchOne(menuRow.id, { isActive: menuRow.status !== "active", isDraft: false });
+            }}
+          >
+            {menuRow.status === "active" ? "Pasifleştir" : "Yayınla"}
+          </button>
+          <button
+            type="button"
+            className="flex w-full px-3 py-2 text-left text-[12px] hover:bg-[#f8fafc]"
+            onClick={() => {
+              setMenu(null);
+              void patchOne(menuRow.id, { isDraft: true, isActive: false });
+            }}
+          >
+            Taslağa al
+          </button>
+          <button
+            type="button"
+            className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] text-[#dc2626] hover:bg-[#fef2f2]"
+            onClick={() => {
+              setMenu(null);
+              void remove(menuRow);
+            }}
+          >
+            <Trash2 className="size-3.5" /> Sil
+          </button>
+        </FloatingMenu>
+      ) : null}
 
       {edit ? (
         <PopupEditor
