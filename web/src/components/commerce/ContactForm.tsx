@@ -11,18 +11,24 @@ export function ContactForm({
   defaultName = "",
   defaultEmail = "",
   defaultPhone = "",
+  defaultCategory = "other",
+  defaultSubject = "İletişim formu",
+  bodyPlaceholder = "Mesajınızı buraya yazabilirsiniz…",
 }: {
   recaptchaEnabled?: boolean;
   recaptchaSiteKey?: string;
   defaultName?: string;
   defaultEmail?: string;
   defaultPhone?: string;
+  defaultCategory?: SupportCategoryId;
+  defaultSubject?: string;
+  bodyPlaceholder?: string;
 }) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
   const [captcha, setCaptcha] = useState("");
-  const [category, setCategory] = useState<SupportCategoryId>("other");
+  const [category, setCategory] = useState<SupportCategoryId>(defaultCategory);
   const [kvkk, setKvkk] = useState(false);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -46,7 +52,7 @@ export function ContactForm({
           name: String(form.get("name") || ""),
           email: String(form.get("email") || ""),
           phone: String(form.get("phone") || ""),
-          subject: String(form.get("subject") || "İletişim formu"),
+          subject: String(form.get("subject") || defaultSubject),
           body: String(form.get("body") || ""),
           category,
           recaptchaToken: recaptchaEnabled ? captcha : undefined,
@@ -156,7 +162,7 @@ export function ContactForm({
           required
           minLength={10}
           rows={4}
-          placeholder="Mesajınızı buraya yazabilirsiniz…"
+          placeholder={bodyPlaceholder}
           className="mt-1 w-full rounded-lg border border-[#dbe3ee] px-3 py-2.5 text-[13px] outline-none placeholder:text-[#94a3b8] focus:border-navy"
         />
       </label>
