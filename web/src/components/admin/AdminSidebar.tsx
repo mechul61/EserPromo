@@ -89,7 +89,7 @@ export function AdminSidebar({
   const section = searchParams.get("section");
 
   async function logout() {
-    await fetch("/api/auth/logout", { method: "POST" });
+    await fetch("/api/auth/logout/", { method: "POST" });
     router.replace("/");
     router.refresh();
   }

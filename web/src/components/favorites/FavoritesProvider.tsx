@@ -48,7 +48,7 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
     async function load() {
       const guest = readGuestIds();
       try {
-        const res = await fetch("/api/favorites", { cache: "no-store" });
+        const res = await fetch("/api/favorites/", { cache: "no-store" });
         const data = (await res.json()) as {
           authenticated?: boolean;
           productIds?: number[];
@@ -61,7 +61,7 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
         if (loggedIn) {
           let next = new Set(data.productIds ?? []);
           if (guest.length) {
-            const sync = await fetch("/api/favorites", {
+            const sync = await fetch("/api/favorites/", {
               method: "PUT",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ productIds: guest }),
@@ -111,7 +111,7 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
       }
 
       try {
-        const res = await fetch("/api/favorites", {
+        const res = await fetch("/api/favorites/", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ productId }),

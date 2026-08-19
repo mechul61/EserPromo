@@ -55,7 +55,7 @@ export function ProfileView({ initial }: { initial: ProfileFormValues }) {
     setError(null);
     setMessage(null);
     try {
-      const res = await fetch("/api/account/profile", {
+      const res = await fetch("/api/account/profile/", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -90,7 +90,7 @@ export function ProfileView({ initial }: { initial: ProfileFormValues }) {
     setError(null);
     setMessage(null);
     try {
-      const res = await fetch("/api/account/profile", {
+      const res = await fetch("/api/account/profile/", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -124,7 +124,7 @@ export function ProfileView({ initial }: { initial: ProfileFormValues }) {
     try {
       const body = new FormData();
       body.append("file", file);
-      const res = await fetch("/api/account/avatar", { method: "POST", body });
+      const res = await fetch("/api/account/avatar/", { method: "POST", body });
       const data = (await res.json()) as { error?: string; url?: string };
       if (!res.ok || !data.url) {
         setError(data.error || "Fotoğraf yüklenemedi");

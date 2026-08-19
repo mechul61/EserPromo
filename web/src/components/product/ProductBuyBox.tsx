@@ -60,9 +60,10 @@ export function ProductBuyBox({
     setPending(redirectTo ? "buy" : "cart");
     setError(null);
     try {
-      const res = await fetch("/api/cart", {
+      const res = await fetch("/api/cart/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
         body: JSON.stringify({ productId, quantity: qty }),
       });
       const data = (await res.json()) as { error?: string };

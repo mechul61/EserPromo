@@ -62,7 +62,7 @@ export function OrderStatusForm({
     setPending(true);
     setError(null);
     try {
-      const res = await fetch(`/api/admin/orders/${orderId}`, {
+      const res = await fetch(`/api/admin/orders/${orderId}/`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payloadFor(pay, cargo)),

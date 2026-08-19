@@ -24,7 +24,7 @@ export function NotificationsView({ initial }: { initial: AccountNotificationIte
   async function markRead(id?: string) {
     setPending(true);
     try {
-      const res = await fetch("/api/account/notifications", {
+      const res = await fetch("/api/account/notifications/", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(id ? { id } : {}),

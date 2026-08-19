@@ -12,9 +12,10 @@ export function AddToCartButton({ productId }: { productId: number }) {
     setPending(true);
     setError(null);
     try {
-      const res = await fetch("/api/cart", {
+      const res = await fetch("/api/cart/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
         body: JSON.stringify({ productId, quantity: 1 }),
       });
       const data = (await res.json()) as { error?: string };

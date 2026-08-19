@@ -117,7 +117,7 @@ export function AddressesView({
     };
     try {
       const isNew = editingId === "new";
-      const res = await fetch(isNew ? "/api/account/addresses" : `/api/account/addresses/${editingId}`, {
+      const res = await fetch(isNew ? "/api/account/addresses/" : `/api/account/addresses/${editingId}/`, {
         method: isNew ? "POST" : "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -141,7 +141,7 @@ export function AddressesView({
     setPending(true);
     setError(null);
     try {
-      const res = await fetch(`/api/account/addresses/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/account/addresses/${id}/`, { method: "DELETE" });
       const data = (await res.json()) as { error?: string };
       if (!res.ok) {
         setError(data.error || "Silinemedi");

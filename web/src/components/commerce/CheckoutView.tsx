@@ -182,9 +182,10 @@ export function CheckoutView({
     setPending(true);
     setError(null);
     try {
-      const res = await fetch("/api/cart/coupon", {
+      const res = await fetch("/api/cart/coupon/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
         body: JSON.stringify({ code: couponCode }),
       });
       const data = (await res.json()) as {
@@ -209,7 +210,7 @@ export function CheckoutView({
     setPending(true);
     setError(null);
     try {
-      const res = await fetch("/api/cart/coupon", { method: "DELETE" });
+      const res = await fetch("/api/cart/coupon/", { method: "DELETE", credentials: "same-origin" });
       if (!res.ok) {
         const data = (await res.json()) as { error?: string };
         setError(data.error || "Kupon kaldırılamadı");
@@ -312,7 +313,7 @@ export function CheckoutView({
       setPending(true);
       setError(null);
       try {
-        const res = await fetch("/api/auth/register", {
+        const res = await fetch("/api/auth/register/", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -372,7 +373,7 @@ export function CheckoutView({
     setPending(true);
     setError(null);
     try {
-      const res = await fetch("/api/checkout", {
+      const res = await fetch("/api/checkout/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

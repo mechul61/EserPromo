@@ -30,7 +30,7 @@ export function PasswordView() {
     setError(null);
     setMessage(null);
     try {
-      const res = await fetch("/api/account/password", {
+      const res = await fetch("/api/account/password/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ currentPassword, password }),

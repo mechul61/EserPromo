@@ -38,6 +38,14 @@ function money(n: number) {
   return `₺${formatPriceTry(n)}`;
 }
 
+async function readCartResponse(res: Response) {
+  try {
+    return (await res.json()) as { error?: string };
+  } catch {
+    return null;
+  }
+}
+
 export type AppliedCoupon = {
   code: string;
   name: string;
@@ -91,38 +99,41 @@ export function CartView({ items, coupon }: { items: CartLineView[]; coupon: App
     setPending(true);
     setError(null);
     try {
-      const res = await fetch("/api/cart", {
+      const res = await fetch("/api/cart/", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
         body: JSON.stringify({ productId, quantity }),
       });
-      const data = (await res.json()) as { error?: string };
+      const data = await readCartResponse(res);
+      if (!data) {
+        setError("Sunucu yanıtı okunamadı");
+        return;
+      }
       if (!res.ok) {
         setError(data.error || "Güncellenemedi");
         return;
       }
       if (quantity < 1) {
-        setQty((prev) => {
-          const next = { ...prev };
-          delete next[productId];
-          return next;
-        });
+        setQty((prev) => ({ ...prev, [productId]: 0 }));
       }
-      router.refresh();
     } catch {
       setError("Bağlantı hatası");
+      return;
     } finally {
       setPending(false);
     }
+    router.refresh();
   }
 
   async function saveAll() {
     setPending(true);
     setError(null);
     try {
-      const res = await fetch("/api/cart", {
+      const res = await fetch("/api/cart/", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
         body: JSON.stringify({
           items: items.map((item) => ({
             productId: item.productId,
@@ -130,7 +141,11 @@ export function CartView({ items, coupon }: { items: CartLineView[]; coupon: App
           })),
         }),
       });
-      const data = (await res.json()) as { error?: string };
+      const data = await readCartResponse(res);
+      if (!data) {
+        setError("Sunucu yanıtı okunamadı");
+        return false;
+      }
       if (!res.ok) {
         setError(data.error || "Sepet güncellenemedi");
         return false;
@@ -150,8 +165,12 @@ export function CartView({ items, coupon }: { items: CartLineView[]; coupon: App
     setPending(true);
     setError(null);
     try {
-      const res = await fetch("/api/cart", { method: "DELETE" });
-      const data = (await res.json()) as { error?: string };
+      const res = await fetch("/api/cart/", { method: "DELETE", credentials: "same-origin" });
+      const data = await readCartResponse(res);
+      if (!data) {
+        setError("Sunucu yanıtı okunamadı");
+        return;
+      }
       if (!res.ok) {
         setError(data.error || "Sepet temizlenemedi");
         return;
@@ -174,9 +193,10 @@ export function CartView({ items, coupon }: { items: CartLineView[]; coupon: App
     setPending(true);
     setError(null);
     try {
-      const res = await fetch("/api/cart/coupon", {
+      const res = await fetch("/api/cart/coupon/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
         body: JSON.stringify({ code: couponCode }),
       });
       const data = (await res.json()) as { error?: string; coupon?: AppliedCoupon | null };
@@ -198,7 +218,7 @@ export function CartView({ items, coupon }: { items: CartLineView[]; coupon: App
     setPending(true);
     setError(null);
     try {
-      const res = await fetch("/api/cart/coupon", { method: "DELETE" });
+      const res = await fetch("/api/cart/coupon/", { method: "DELETE", credentials: "same-origin" });
       const data = (await res.json()) as { error?: string };
       if (!res.ok) {
         setError(data.error || "Kupon kaldırılamadı");
@@ -364,7 +384,7 @@ export function CartView({ items, coupon }: { items: CartLineView[]; coupon: App
                     type="button"
                     aria-label="Ürünü sil"
                     disabled={pending}
-                    onClick={() => patchOne(item.productId, 0)}
+                    onClick={() => void patchOne(item.productId, 0)}
                     className="justify-self-end text-[#b0b4ba] hover:text-brand-red disabled:opacity-40 md:justify-self-center"
                   >
                     <X className="size-4" strokeWidth={2.5} />

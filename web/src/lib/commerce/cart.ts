@@ -176,6 +176,10 @@ export async function setCartItemQuantity(productId: number, quantity: number) {
   const cart = await getOrCreateCart();
   if (quantity < 1) {
     await prisma.cartItem.deleteMany({ where: { cartId: cart.id, productId } });
+    const remaining = await prisma.cartItem.count({ where: { cartId: cart.id } });
+    if (remaining === 0 && cart.couponId) {
+      await prisma.cart.update({ where: { id: cart.id }, data: { couponId: null } });
+    }
   } else {
     const product = await prisma.product.findUnique({ where: { id: productId } });
     const settings = await getSiteSettings();

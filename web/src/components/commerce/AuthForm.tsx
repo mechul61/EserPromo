@@ -55,7 +55,7 @@ export function AuthForm({ mode, recaptchaEnabled = true }: { mode: Mode; recapt
           };
 
     try {
-      const res = await fetch(`/api/auth/${mode}`, {
+      const res = await fetch(`/api/auth/${mode}/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

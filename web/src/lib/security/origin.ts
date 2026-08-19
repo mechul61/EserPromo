@@ -1,14 +1,16 @@
-import { siteUrl } from "../env";
-
 export function assertSameOrigin(req: Request): void {
   const origin = req.headers.get("origin");
   if (!origin) return;
-  const allowed = new Set([
-    siteUrl(),
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-  ]);
-  if (!allowed.has(origin.replace(/\/$/, ""))) {
+  try {
+    const requestHost = new URL(req.url).host;
+    const originHost = new URL(origin).host;
+    if (requestHost !== originHost) {
+      throw new Error("Geçersiz istek kaynağı");
+    }
+  } catch (error) {
+    if (error instanceof Error && error.message === "Geçersiz istek kaynağı") {
+      throw error;
+    }
     throw new Error("Geçersiz istek kaynağı");
   }
 }
