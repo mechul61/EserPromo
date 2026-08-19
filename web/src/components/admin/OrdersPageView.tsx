@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Bell,
   ChevronDown,
@@ -20,11 +21,14 @@ import {
   ShoppingBag,
   TrendingDown,
   TrendingUp,
+  Trash2,
   UserRound,
   Users,
 } from "lucide-react";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
+import { ConfirmDialog } from "@/components/admin/CouponEditor";
 import { SITE_CONTACT } from "@/data/catalog-page";
+import { orderHasSuccessfulPayment } from "@/lib/commerce/orders-copy";
 import { formatPriceTry } from "@/lib/media";
 import { downloadCsv } from "@/lib/admin/csv";
 
@@ -156,6 +160,7 @@ export function OrdersPageView({
   kpis: OrdersKpiCard[];
   tabCounts: Record<TabId, number>;
 }) {
+  const router = useRouter();
   const [tab, setTab] = useState<TabId>("all");
   const [draftQuery, setDraftQuery] = useState("");
   const [query, setQuery] = useState("");
@@ -171,6 +176,15 @@ export function OrdersPageView({
   const [pageSize, setPageSize] = useState<(typeof PAGE_SIZES)[number]>(10);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [sortDesc, setSortDesc] = useState(true);
+  const [menuId, setMenuId] = useState<string | null>(null);
+  const [remove, setRemove] = useState<AdminOrderRow | null>(null);
+  const [deletePending, setDeletePending] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [rows, setRows] = useState(orders);
+
+  useEffect(() => {
+    setRows(orders);
+  }, [orders]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -187,7 +201,7 @@ export function OrdersPageView({
     const from = dateFrom ? new Date(`${dateFrom}T00:00:00`) : null;
     const to = dateTo ? new Date(`${dateTo}T23:59:59`) : null;
 
-    return orders
+    return rows
       .filter((row) => tabFilter(tab, row))
       .filter((row) => {
         if (!q) return true;
@@ -215,7 +229,7 @@ export function OrdersPageView({
         const diff = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
         return sortDesc ? -diff : diff;
       });
-  }, [orders, tab, query, orderStatus, paymentStatus, cargoStatus, minTotal, maxTotal, dateFrom, dateTo, sortDesc]);
+  }, [rows, tab, query, orderStatus, paymentStatus, cargoStatus, minTotal, maxTotal, dateFrom, dateTo, sortDesc]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, pageCount);
@@ -271,6 +285,42 @@ export function OrdersPageView({
       source.map((row) => [row.publicNumber, row.customer, row.email, row.status, row.paymentStatus, row.grandTotal, row.createdAt]),
     );
     setNotice(`${source.length} sipariş dışa aktarıldı.`);
+  }
+
+  async function deleteOrder() {
+    if (!remove) return;
+    const paid = orderHasSuccessfulPayment({
+      status: remove.status,
+      paymentStatus: remove.paymentStatus,
+    });
+    setDeletePending(true);
+    setDeleteError(null);
+    try {
+      const res = await fetch(`/api/admin/orders/${remove.id}/`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirmPaidDeletion: paid }),
+      });
+      const data = (await res.json()) as { error?: string };
+      if (!res.ok) {
+        setDeleteError(data.error || "Sipariş silinemedi");
+        setDeletePending(false);
+        return;
+      }
+      setRows((current) => current.filter((row) => row.id !== remove.id));
+      setSelected((prev) => {
+        const next = new Set(prev);
+        next.delete(remove.id);
+        return next;
+      });
+      setNotice(`#${remove.publicNumber} silindi.`);
+      setRemove(null);
+      router.refresh();
+    } catch {
+      setDeleteError("Bağlantı hatası");
+    } finally {
+      setDeletePending(false);
+    }
   }
 
   return (
@@ -626,12 +676,38 @@ export function OrdersPageView({
                         >
                           <Eye className="size-4" />
                         </Link>
-                        <button
-                          type="button"
-                          className="inline-flex size-8 items-center justify-center rounded-lg text-[#64748b] hover:bg-[#eef2f7]"
-                        >
-                          <MoreVertical className="size-4" />
-                        </button>
+                        <div className="relative">
+                          <button
+                            type="button"
+                            onClick={() => setMenuId((id) => (id === row.id ? null : row.id))}
+                            className="inline-flex size-8 items-center justify-center rounded-lg text-[#64748b] hover:bg-[#eef2f7]"
+                          >
+                            <MoreVertical className="size-4" />
+                          </button>
+                          {menuId === row.id ? (
+                            <div className="absolute right-0 z-10 mt-1 w-40 overflow-hidden rounded-lg border border-[#e8edf3] bg-white py-1 shadow-lg">
+                              <Link
+                                href={`/admin/siparisler/${row.publicNumber}`}
+                                className="block px-3 py-1.5 text-[12px] hover:bg-[#f8fafc]"
+                                onClick={() => setMenuId(null)}
+                              >
+                                Detayı aç
+                              </Link>
+                              <button
+                                type="button"
+                                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12px] text-[#dc2626] hover:bg-[#fef2f2]"
+                                onClick={() => {
+                                  setMenuId(null);
+                                  setDeleteError(null);
+                                  setRemove(row);
+                                }}
+                              >
+                                <Trash2 className="size-3.5" />
+                                Sil
+                              </button>
+                            </div>
+                          ) : null}
+                        </div>
                       </div>
                     </td>
                   </tr>
@@ -707,6 +783,29 @@ export function OrdersPageView({
           </div>
         </div>
       </section>
+
+      {remove ? (
+        <ConfirmDialog
+          title={
+            orderHasSuccessfulPayment({ status: remove.status, paymentStatus: remove.paymentStatus })
+              ? "Ödemeli siparişi sil"
+              : "Siparişi sil"
+          }
+          message={
+            orderHasSuccessfulPayment({ status: remove.status, paymentStatus: remove.paymentStatus })
+              ? `#${remove.publicNumber} numaralı siparişin ödemesi yapılmış. Silindiğinde sipariş kalemleri, ödeme kayıtları ve kupon kullanımı dahil tüm bilgiler kalıcı olarak kaldırılır. Yine de silmek istiyor musunuz?`
+              : `#${remove.publicNumber} numaralı siparişi kalıcı olarak silmek istediğinize emin misiniz?`
+          }
+          confirm={deletePending ? "Siliniyor…" : "Evet, sil"}
+          extra={deleteError ? <p className="mt-3 text-[13px] text-[#dc2626]">{deleteError}</p> : null}
+          onClose={() => {
+            if (deletePending) return;
+            setRemove(null);
+            setDeleteError(null);
+          }}
+          onConfirm={deletePending ? undefined : deleteOrder}
+        />
+      ) : null}
     </div>
   );
 }

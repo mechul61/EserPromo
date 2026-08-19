@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 import { AdminHeading } from "@/components/admin/AdminChrome";
 import { OrderStatusForm } from "@/components/admin/OrderStatusForm";
+import { OrderDeleteButton } from "@/components/admin/OrderDeleteButton";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { prisma } from "@/lib/db";
 import { formatDateTimeTr } from "@/lib/auth/login-meta";
@@ -87,6 +88,16 @@ export default async function AdminOrderDetailPage({
         title={order.publicNumber}
         subtitle={`${formatDateTimeTr(order.createdAt)} · ${order.user.email}`}
       />
+
+      <div className="mb-4 flex justify-end">
+        <OrderDeleteButton
+          orderId={order.id}
+          publicNumber={order.publicNumber}
+          orderStatus={order.status}
+          paymentStatus={payment?.status}
+          redirectToList
+        />
+      </div>
 
       <section className="mb-4 rounded-md border border-line bg-white p-5">
         <div className="flex flex-wrap items-center gap-2">

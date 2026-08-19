@@ -18,6 +18,20 @@ export const PAYMENT_STATUS_LABEL: Record<string, string> = {
 
 export const CARGO_STATUS_OPTIONS = ["paid", "preparing", "shipped", "completed"] as const;
 
+const PAID_ORDER_STATUSES = new Set(["paid", "preparing", "shipped", "completed"]);
+
+export function orderHasSuccessfulPayment(input: {
+  status: string;
+  paidAt?: Date | string | null;
+  payments?: { status: string }[];
+  paymentStatus?: string;
+}) {
+  if (input.paidAt) return true;
+  if (PAID_ORDER_STATUSES.has(input.status)) return true;
+  if (input.paymentStatus === "success") return true;
+  return input.payments?.some((payment) => payment.status === "success") ?? false;
+}
+
 const CARGO_RANK: Record<string, number> = {
   draft: 0,
   pending_payment: 0,
