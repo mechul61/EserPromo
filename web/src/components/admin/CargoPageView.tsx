@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useOptimistic, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Bell,
@@ -113,13 +113,17 @@ export function CargoPageView({ orders, kpis }: { orders: CargoRow[]; kpis: Carg
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<(typeof PAGE_SIZES)[number]>(10);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [rows, setRows] = useOptimistic(orders);
+  const [rows, setRows] = useState(orders);
   const [menuId, setMenuId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkCompany, setBulkCompany] = useState<CargoCompanyId | "">("");
   const [linkId, setLinkId] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setRows(orders);
+  }, [orders]);
 
   useEffect(() => {
     if (!menuId) return;
@@ -499,18 +503,28 @@ export function CargoPageView({ orders, kpis }: { orders: CargoRow[]; kpis: Carg
                               value={row.trackingNo}
                               placeholder="Kargo numarası girin"
                               onChange={(e) => patchLocal(row.id, { trackingNo: e.target.value })}
-                              onBlur={(e) => void saveCargo(row, { trackingNo: e.target.value })}
+                              onBlur={(e) => {
+                                const trackingNo = e.target.value;
+                                const current = rows.find((item) => item.id === row.id) ?? row;
+                                void saveCargo({ ...current, trackingNo }, { trackingNo });
+                              }}
                               className="h-9 w-[170px] rounded-lg border border-[#dbe3ee] px-2 text-[12px] outline-none"
                             />
                             {linkId === row.id ? (
                               <div className="mt-1 space-y-1">
                                 <input
+                                  autoFocus
                                   value={row.trackingUrl}
                                   placeholder="https://..."
                                   onChange={(e) => patchLocal(row.id, { trackingUrl: e.target.value })}
-                                  onBlur={(e) => void saveCargo(row, { trackingUrl: e.target.value })}
+                                  onBlur={(e) => {
+                                    const trackingUrl = e.target.value;
+                                    const current = rows.find((item) => item.id === row.id) ?? row;
+                                    void saveCargo({ ...current, trackingUrl }, { trackingUrl });
+                                  }}
                                   onKeyDown={(e) => {
                                     if (e.key === "Enter") {
+                                      e.preventDefault();
                                       e.currentTarget.blur();
                                       setLinkId(null);
                                     }
