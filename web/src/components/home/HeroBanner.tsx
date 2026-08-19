@@ -1,4 +1,5 @@
-import { getHeroSlides, heroSlideAspectStyle } from "@/lib/commerce/banners";
+import { getHeroSlides } from "@/lib/commerce/banners";
+import { heroSlideAspectStyle } from "@/lib/commerce/hero-slide";
 import { HomeHeroSlider } from "@/components/home/HomeHeroSlider";
 import Image from "next/image";
 import Link from "next/link";

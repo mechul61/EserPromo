@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { heroSlideAspectStyle, type HeroSlide } from "@/lib/commerce/banners";
+import { heroSlideAspectStyle, type HeroSlide } from "@/lib/commerce/hero-slide";
 
 export type { HeroSlide };
 
