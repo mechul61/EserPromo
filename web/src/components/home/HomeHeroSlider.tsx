@@ -3,12 +3,9 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { heroSlideAspectStyle, type HeroSlide } from "@/lib/commerce/banners";
 
-export type HeroSlide = {
-  src: string;
-  alt: string;
-  href: string;
-};
+export type { HeroSlide };
 
 export function HomeHeroSlider({ slides }: { slides: HeroSlide[] }) {
   const [index, setIndex] = useState(0);
@@ -17,14 +14,14 @@ export function HomeHeroSlider({ slides }: { slides: HeroSlide[] }) {
 
   return (
     <section className="relative overflow-hidden rounded-md border border-[#e5e7eb] shadow-sm">
-      <div className="relative aspect-[1024/313] w-full">
+      <div className="relative w-full" style={heroSlideAspectStyle(slide.width, slide.height)}>
         <Image
           src={slide.src}
           alt={slide.alt}
           fill
           priority
           unoptimized
-          className="object-contain object-center"
+          className="object-cover object-center"
           sizes="(max-width: 1400px) 100vw, 1400px"
         />
         <Link

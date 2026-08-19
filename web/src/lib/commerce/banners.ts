@@ -25,6 +25,20 @@ export function bannerImageUrl(imagePath: string | null | undefined) {
   return mediaUrl(imagePath) ?? "/brand/logo.png";
 }
 
+export type HeroSlide = {
+  src: string;
+  alt: string;
+  href: string;
+  width: number;
+  height: number;
+};
+
+export function heroSlideAspectStyle(width: number, height: number): { aspectRatio: string } {
+  const w = Math.max(1, width || 1920);
+  const h = Math.max(1, height || 600);
+  return { aspectRatio: `${w} / ${h}` };
+}
+
 export function bannerInWindow(banner: { isActive: boolean; startsAt: Date | null; endsAt: Date | null }, now = new Date()) {
   if (!banner.isActive) return false;
   if (banner.startsAt && now < banner.startsAt) return false;
@@ -43,7 +57,7 @@ export function bannerMatchesAmount(
   return true;
 }
 
-export async function getHeroSlides() {
+export async function getHeroSlides(): Promise<HeroSlide[]> {
   const now = new Date();
   const [rows, cart] = await Promise.all([
     prisma.banner.findMany({
@@ -71,6 +85,8 @@ export async function getHeroSlides() {
       src: bannerImageUrl(row.imagePath),
       alt: row.title,
       href: row.href || "/urunler",
+      width: row.width,
+      height: row.height,
     }));
   }
   return [
@@ -78,6 +94,8 @@ export async function getHeroSlides() {
       src: "/brand/hero-slide-1.jpg",
       alt: "Markanız Her Yerde Sizinle Olsun!",
       href: "/urunler",
+      width: 1024,
+      height: 313,
     },
   ];
 }
