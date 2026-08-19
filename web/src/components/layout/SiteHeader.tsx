@@ -10,10 +10,15 @@ import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { FavoriteHeaderLink } from "@/components/favorites/FavoriteHeaderLink";
 import { getCurrentUser } from "@/lib/auth/session";
 import { peekCartCount } from "@/lib/commerce/cart";
+import { getSiteContact } from "@/lib/site-settings";
+import { phoneTelFrom } from "@/lib/site-settings-copy";
 
 export async function SiteHeader() {
-  const user = await getCurrentUser();
-  const cartCount = await peekCartCount();
+  const [user, cartCount, contact] = await Promise.all([
+    getCurrentUser(),
+    peekCartCount(),
+    getSiteContact(),
+  ]);
 
   return (
     <header className="border-b border-line bg-white">
@@ -48,13 +53,17 @@ export async function SiteHeader() {
             <Phone className="mt-0.5 size-5 text-navy" />
             <div className="text-[12px] leading-tight">
               <p className="font-semibold text-navy">Müşteri Hattı</p>
-              <p className="font-bold text-[#111]">0212 000 00 00</p>
-              <p className="text-muted">0850 000 00 00</p>
+              <a href={contact.phoneTel} className="block font-bold text-[#111] hover:text-navy">
+                {contact.phone}
+              </a>
+              <a href={phoneTelFrom(contact.whatsapp)} className="block text-muted hover:text-navy">
+                {contact.whatsapp}
+              </a>
             </div>
           </div>
 
           <a
-            href="https://wa.me/905000000000"
+            href={contact.whatsappHref}
             className="hidden items-start gap-2 md:flex"
           >
             <span className="mt-0.5 flex size-8 items-center justify-center rounded-full bg-[#25D366] text-white">
