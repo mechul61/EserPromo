@@ -16,9 +16,6 @@ function PaymentMarks() {
       </svg>
       <span className="text-[14px] font-bold tracking-tight">troy</span>
       <span className="text-[14px] font-semibold tracking-tight">iyzico</span>
-      <span className="text-[14px] font-bold">
-        <span className="italic">Pay</span>Pal
-      </span>
     </div>
   );
 }
