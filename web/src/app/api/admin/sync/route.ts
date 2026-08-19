@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
+export const maxDuration = 300;
+
 export async function GET() {
   const runs = await prisma.syncRun.findMany({
     orderBy: { startedAt: "desc" },

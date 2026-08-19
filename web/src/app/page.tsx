@@ -12,6 +12,8 @@ import { grossPrice } from "@/lib/product-detail";
 import { buildPageMetadata } from "@/lib/seo/metadata";
 import { productPath } from "@/lib/seo/urls";
 
+function currentTimestamp() { return Date.now(); }
+
 export const dynamic = "force-dynamic";
 export const metadata = buildPageMetadata({
   title: "Promosyon Ürünleri ve Kurumsal Hediyeler",
@@ -28,7 +30,7 @@ export default async function HomePage() {
     take: 24,
   });
 
-  const now = Date.now();
+  const now = currentTimestamp();
   const products: HomeProduct[] = rows.map((product) => {
     const isNew = now - product.createdAt.getTime() < 1000 * 60 * 60 * 24 * 30;
     const badge: HomeProduct["badge"] = product.discountLocked

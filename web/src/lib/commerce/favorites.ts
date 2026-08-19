@@ -32,6 +32,8 @@ export function toListingProduct(product: {
     price: grossPrice(Number(product.price), Number(product.vatRate)),
     size: product.size ?? undefined,
     color: product.color ?? undefined,
+    skuGroup: "",
+    isGroupPrimary: true,
     stock: product.stockTotal,
     isNew: Date.now() - product.createdAt.getTime() < 1000 * 60 * 60 * 24 * 30,
   };

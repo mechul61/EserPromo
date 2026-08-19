@@ -109,7 +109,7 @@ export async function createOrderFromCart(user: AuthUser, address: CheckoutAddre
   if (address.paymentMethod === "transfer" && !transferAccount) {
     throw new Error("Listeden banka seçin");
   }
-  if (!(await isPaymentMethodActive(address.paymentMethod))) {
+  if (!(await isPaymentMethodActive(address.paymentMethod ?? "transfer"))) {
     throw new Error("Bu ödeme yöntemi kapalı");
   }
 

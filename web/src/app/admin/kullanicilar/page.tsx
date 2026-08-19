@@ -9,6 +9,8 @@ import {
   type StaffRoleId,
 } from "@/lib/admin/staff-copy";
 
+function currentTimestamp() { return Date.now(); }
+
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Kullanıcılar | Yönetim" };
 
@@ -16,7 +18,7 @@ export default async function AdminStaffPage() {
   const me = await requireAdmin();
   await ensureListedSuperAdmins();
 
-  const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const since = new Date(currentTimestamp() - 30 * 24 * 60 * 60 * 1000);
   const now = new Date();
 
   const [users, activities, sessions] = await Promise.all([

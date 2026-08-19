@@ -116,7 +116,7 @@ export function SyncPageView({ initialRuns }: { initialRuns: SyncRun[] }) {
   const [singleId, setSingleId] = useState("");
   const [singleLoading, setSingleLoading] = useState(false);
   const [singleResult, setSingleResult] = useState<{ ok: boolean; error?: string } | null>(null);
-  const pollRef = useRef<ReturnType<typeof setInterval>>();
+  const pollRef = useRef<ReturnType<typeof setInterval>>(undefined);
 
   const refresh = useCallback(async () => {
     try {

@@ -836,7 +836,7 @@ function Field({ label, value, onChange }: { label: string; value: string; onCha
 function SmtpEditor({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [form, setForm] = useState({ host: "", port: 587, user: "", pass: "", from: SITE_CONTACT.email });
+  const [form, setForm] = useState({ host: "", port: 587, user: "", pass: "", from: SITE_CONTACT.email as string });
 
   useEffect(() => {
     void (async () => {

@@ -23,7 +23,9 @@ import { categoryIdsWithChildren, resolveCategory } from "@/lib/catalog";
 import { prisma } from "@/lib/db";
 import { mediaUrl } from "@/lib/media";
 import { buildPageMetadata } from "@/lib/seo/metadata";
-import { canonicalPath, categoryPath, productPath } from "@/lib/seo/urls";
+import { categoryPath, productPath } from "@/lib/seo/urls";
+
+function currentTimestamp() { return Date.now(); }
 
 type Query = Record<string, string | string[] | undefined>;
 
@@ -113,7 +115,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
         stock: product.stockTotal,
         skuGroup: product.skuGroup,
         isGroupPrimary: product.isGroupPrimary,
-        isNew: Date.now() - product.createdAt.getTime() < 1000 * 60 * 60 * 24 * 30,
+        isNew: currentTimestamp() - product.createdAt.getTime() < 1000 * 60 * 60 * 24 * 30,
       }));
     } catch {
       products = [];
@@ -146,7 +148,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
         stock: product.stockTotal,
         skuGroup: product.skuGroup,
         isGroupPrimary: product.isGroupPrimary,
-        isNew: Date.now() - product.createdAt.getTime() < 1000 * 60 * 60 * 24 * 30,
+        isNew: currentTimestamp() - product.createdAt.getTime() < 1000 * 60 * 60 * 24 * 30,
       }));
     } catch {
       products = [];

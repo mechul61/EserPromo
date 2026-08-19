@@ -112,7 +112,7 @@ export function SitePopup() {
     const res = await fetch("/api/popups/subscribe/", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, popupId: popup.id }),
+      body: JSON.stringify({ email, popupId: popup!.id }),
     });
     const data = (await res.json()) as { error?: string };
     if (!res.ok) {

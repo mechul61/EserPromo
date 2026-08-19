@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { normalizeCouponCode, parseCouponProductIds } from "@/lib/commerce/coupons";
 
 export const couponWriteSchema = z.object({
@@ -41,6 +42,6 @@ export function couponDataFromBody(body: z.infer<typeof couponWriteSchema>) {
     usageLimit: body.usageLimit ?? null,
     perUserLimit: body.perUserLimit ?? 1,
     isActive: body.isActive ?? true,
-    productIds: productIds.length ? productIds : null,
+    productIds: productIds.length ? productIds : Prisma.JsonNull,
   };
 }

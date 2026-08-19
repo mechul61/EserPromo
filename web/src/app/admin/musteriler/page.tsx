@@ -131,12 +131,12 @@ export default async function AdminCustomersPage() {
   }));
 
   const sourceTotal = Math.max(1, rows.length);
-  const sources: CustomerSourceShare[] = [
-    { id: "website", name: "Web Sitesi", percent: 0 },
-    { id: "social", name: "Sosyal Medya", percent: 0 },
-    { id: "email", name: "E-posta Kampanyası", percent: 0 },
-    { id: "other", name: "Diğer", percent: 0 },
-  ].map((item) => ({
+  const sources: CustomerSourceShare[] = ([
+    { id: "website" as const, name: "Web Sitesi", percent: 0 },
+    { id: "social" as const, name: "Sosyal Medya", percent: 0 },
+    { id: "email" as const, name: "E-posta Kampanyası", percent: 0 },
+    { id: "other" as const, name: "Diğer", percent: 0 },
+  ]).map((item) => ({
     ...item,
     percent: Math.round((rows.filter((row) => row.source === item.id).length / sourceTotal) * 100),
   }));

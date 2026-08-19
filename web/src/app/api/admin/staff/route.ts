@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
   const body = schema.safeParse(await req.json().catch(() => null));
   if (!body.success) return jsonError("Ad, e-posta ve rol gerekli.");
 
-  let role: StaffRoleId = body.data.role;
+  const role: StaffRoleId = body.data.role;
   if (role === "super_admin" && admin.role !== "super_admin") {
     return jsonError("Super Admin yalnızca Super Admin tarafından atanır.");
   }

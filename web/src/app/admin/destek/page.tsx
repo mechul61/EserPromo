@@ -9,11 +9,13 @@ import {
   type SupportStatusId,
 } from "@/lib/commerce/support-copy";
 
+function currentTimestamp() { return Date.now(); }
+
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Destek Talepleri | Yönetim" };
 
 export default async function AdminSupportPage() {
-  const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const since = new Date(currentTimestamp() - 30 * 24 * 60 * 60 * 1000);
   const [tickets, rated] = await Promise.all([
     prisma.supportTicket.findMany({
       orderBy: { createdAt: "desc" },

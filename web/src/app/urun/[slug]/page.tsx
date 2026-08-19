@@ -16,6 +16,8 @@ import { siteUrl } from "@/lib/env";
 import { getSiteSettings, stockAllowsSale, stockMaxQty } from "@/lib/site-settings";
 import { prisma } from "@/lib/db";
 
+function currentTimestamp() { return Date.now(); }
+
 type PageProps = {
   params: Promise<{ slug: string }>;
 };
@@ -55,7 +57,7 @@ export default async function ProductPage({ params }: PageProps) {
   const heading = product.title || product.name;
   const vat = Number(product.vatRate);
   const unitGross = grossPrice(Number(product.price), vat);
-  const isNew = Date.now() - product.createdAt.getTime() < 1000 * 60 * 60 * 24 * 30;
+  const isNew = currentTimestamp() - product.createdAt.getTime() < 1000 * 60 * 60 * 24 * 30;
   const copy = parseProductCopy(product.description, product.features);
 
   let parentName: string | null = null;

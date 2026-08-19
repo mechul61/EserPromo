@@ -84,8 +84,18 @@ function normalizeProductList(
 }
 
 async function createRun(jobType: string) {
+  await cleanStaleRuns();
   return prisma.syncRun.create({
     data: { status: "running", errorMessage: jobType },
+  });
+}
+
+async function cleanStaleRuns() {
+  const STALE_MS = 30 * 60 * 1000;
+  const cutoff = new Date(Date.now() - STALE_MS);
+  await prisma.syncRun.updateMany({
+    where: { status: "running", startedAt: { lt: cutoff } },
+    data: { status: "failed", finishedAt: new Date(), errorMessage: "Zaman aşımı (30dk)" },
   });
 }
 
