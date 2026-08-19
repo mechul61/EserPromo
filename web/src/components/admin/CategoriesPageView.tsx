@@ -430,7 +430,7 @@ export function CategoriesPageView({
                   </div>
                 </label>
                 <label className="block min-w-0">
-                  <span className="mb-1.5 block text-[13px] font-bold text-[#1e293b]">Görünürlük</span>
+                  <span className="mb-1.5 block text-[13px] font-bold text-[#1e293b]">Anasayfa vitrini</span>
                   <div className="relative">
                     <select
                       value={visibleFilter}
@@ -441,7 +441,7 @@ export function CategoriesPageView({
                       className="h-11 w-full appearance-none rounded-lg border border-[#dbe3ee] bg-white px-3 pr-9 text-[13px] text-[#64748b] outline-none"
                     >
                       <option value="all">Tümü</option>
-                      <option value="visible">Görünür</option>
+                      <option value="visible">Anasayfada</option>
                       <option value="hidden">Gizli</option>
                     </select>
                     <ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-[#94a3b8]" />
@@ -603,7 +603,7 @@ export function CategoriesPageView({
                     <th className="px-3 py-3">Üst Kategori</th>
                     <th className="px-3 py-3">Ürün Sayısı</th>
                     <th className="px-3 py-3">Durum</th>
-                    <th className="px-3 py-3">Görünürlük</th>
+                    <th className="px-3 py-3">Anasayfa</th>
                     <th className="px-3 py-3">Sıralama</th>
                     <th className="px-3 py-3 text-right">İşlemler</th>
                   </tr>
@@ -664,7 +664,7 @@ export function CategoriesPageView({
                             onClick={() => void toggleVisible(row)}
                             className={`font-semibold ${row.showOnHomepage ? "text-[#16a34a]" : "text-[#94a3b8]"}`}
                           >
-                            {row.showOnHomepage ? "Görünür" : "Gizli"}
+                            {row.showOnHomepage ? "Anasayfada" : "Gizli"}
                           </button>
                         </td>
                         <td className="px-3 py-3 text-[#64748b]">{row.sortOrder}</td>
@@ -847,7 +847,8 @@ export function CategoriesPageView({
           <section className="rounded-[18px] border border-[#dbeafe] bg-[#eff6ff] p-4">
             <h2 className="text-[14px] font-extrabold text-[#1e3a8a]">Kategori Yönetimi Hakkında</h2>
             <p className="mt-2 text-[12px] leading-relaxed text-[#1e40af]">
-              Ana kategoriler sitede menü olarak görünür. Alt kategoriler ürün listesini daraltır. Görünürlük ana sayfa vitrinini kontrol eder.
+              Sol menüdeki kategori listesi tüm ana kategorileri gösterir. &quot;Anasayfa&quot; sütunu yalnızca
+              ana sayfadaki vitrin kartlarını açıp kapatır; istediğiniz kategoriye tıklayarak değiştirebilirsiniz.
             </p>
             <p className="mt-3 text-[12px] font-bold text-[#2f6bff]">Toplam {productTotal.toLocaleString("tr-TR")} ürün bu kategorilere bağlı.</p>
           </section>
