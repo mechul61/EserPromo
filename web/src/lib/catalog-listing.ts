@@ -1,6 +1,5 @@
 import type { ListingProduct } from "@/data/catalog-page";
 import { mediaUrl } from "@/lib/media";
-import { grossPrice } from "@/lib/product-detail";
 import { productPath } from "@/lib/seo/urls";
 
 type ProductRow = {
@@ -27,7 +26,7 @@ export function mapProductsToListing(rows: ProductRow[], now = Date.now()): List
     code: product.sku,
     name: product.title || product.name,
     image: mediaUrl(product.images[0]?.localPath) ?? "/brand/logo.png",
-    price: grossPrice(Number(product.price), Number(product.vatRate)),
+    price: Number(product.price),
     size: product.size ?? undefined,
     color: product.color ?? undefined,
     stock: product.stockTotal,

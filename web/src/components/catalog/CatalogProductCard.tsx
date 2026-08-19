@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { ListingProduct } from "@/data/catalog-page";
 import { quoteHref } from "@/data/catalog-page";
 import { FavoriteButton } from "@/components/favorites/FavoriteButton";
+import { PriceVatNote } from "@/components/pricing/PriceVatNote";
 import { formatPriceTry, formatStock } from "@/lib/media";
 
 export function CatalogProductCard({ product }: { product: ListingProduct }) {
@@ -57,7 +58,7 @@ export function CatalogProductCard({ product }: { product: ListingProduct }) {
         <p className="mt-3 text-[20px] leading-none font-extrabold text-[#111]">
           ₺{formatPriceTry(product.price)}
         </p>
-        <p className="mt-1 text-[11px] text-[#8b919a]">KDV Dahil</p>
+        <PriceVatNote className="mt-1 text-[11px] text-[#8b919a]" />
 
         <div className="mt-auto grid grid-cols-2 gap-2 pt-3">
           <Link

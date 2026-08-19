@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { Check } from "lucide-react";
+import { PriceVatNote } from "@/components/pricing/PriceVatNote";
 
 type Tab = "aciklama" | "ozellik" | "baski";
 
@@ -128,6 +129,7 @@ export function ProductTabs({
                   </span>
                   <span className="mt-2 block text-[12px] text-[#333]">{item.name}</span>
                   <span className="block text-[13px] font-extrabold text-[#111]">₺{item.price}</span>
+                  <PriceVatNote className="text-[10px] text-[#8b919a]" />
                 </Link>
               ))}
             </div>

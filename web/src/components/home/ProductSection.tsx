@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Check } from "lucide-react";
 import { FavoriteButton } from "@/components/favorites/FavoriteButton";
+import { PriceVatNote } from "@/components/pricing/PriceVatNote";
 
 const tabs = [
   "Yeni Ürünler",
@@ -112,9 +113,12 @@ export function ProductSection({ products }: { products: HomeProduct[] }) {
                 {product.name}
               </h3>
               <div className="flex items-end justify-between gap-2">
-                <p className="text-[16px] font-extrabold text-[#1a1a1a]">
-                  ₺{product.price}
-                </p>
+                <div>
+                  <p className="text-[16px] font-extrabold text-[#1a1a1a]">
+                    ₺{product.price}
+                  </p>
+                  <PriceVatNote className="text-[10px] text-[#8b919a]" />
+                </div>
                 {product.inStock ? (
                   <p className="flex flex-col items-end text-[11px] font-semibold leading-tight text-[#1f9d55]">
                     <span className="inline-flex items-center gap-1">

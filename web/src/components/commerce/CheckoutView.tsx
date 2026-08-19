@@ -30,7 +30,7 @@ export type CheckoutLine = {
   color: string | null;
   quantity: number;
   image: string;
-  lineGross: number;
+  lineNet: number;
 };
 
 type Step = "delivery" | "payment" | "confirm";
@@ -1002,7 +1002,7 @@ export function CheckoutView({
                     </p>
                   </div>
                   <p className="shrink-0 pt-0.5 text-[14px] font-extrabold whitespace-nowrap text-navy sm:text-[16px]">
-                    {money(item.lineGross)}
+                    {money(item.lineNet)}
                   </p>
                 </li>
               ))}
@@ -1053,7 +1053,7 @@ export function CheckoutView({
                   <span className="block text-[14px] font-extrabold tracking-wide text-navy uppercase sm:text-[16px]">
                     Genel Toplam
                   </span>
-                  <span className="mt-0.5 block text-[12px] font-normal text-[#8b919a]">KDV Dahil</span>
+                  <span className="mt-0.5 block text-[12px] font-normal text-[#8b919a]">KDV ve kargo dahil</span>
                 </dt>
                 <dd className="text-[22px] leading-none font-extrabold whitespace-nowrap text-navy sm:text-[26px]">
                   {money(grand)}

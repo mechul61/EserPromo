@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Minus, Plus } from "lucide-react";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
+import { PriceVatNote } from "@/components/pricing/PriceVatNote";
 import { SITE_CONTACT } from "@/data/catalog-page";
 import { formatPriceTry, formatStock } from "@/lib/media";
 
@@ -136,7 +137,7 @@ export function ProductBuyBox({
       <p className="mt-1 text-[24px] leading-none font-extrabold text-[#111]">
         ₺{formatPriceTry(total)}
       </p>
-      <p className="mt-1 text-[12px] text-[#8b919a]">KDV Dahil</p>
+      <PriceVatNote />
 
       <div className="mt-4 flex flex-col gap-2">
         <button

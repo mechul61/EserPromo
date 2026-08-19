@@ -10,7 +10,6 @@ import { getEnabledTransferBanks } from "@/lib/commerce/transfer-banks";
 import { getCheckoutPaymentMethods, iyzicoIsReady } from "@/lib/commerce/payments";
 import { getSiteSettings } from "@/lib/site-settings";
 import { mediaUrl } from "@/lib/media";
-import { grossPrice } from "@/lib/product-detail";
 
 export const metadata = {
   title: "Sipariş Tamamlama",
@@ -45,7 +44,7 @@ export default async function CheckoutPage() {
         color: item.product.color,
         quantity: item.quantity,
         image: mediaUrl(item.product.images[0]?.localPath) ?? "/brand/logo.png",
-        lineGross: grossPrice(net, vatRate) * item.quantity,
+        lineNet: t.subtotal,
       });
       acc.subtotal += t.subtotal;
       acc.vat += t.vatTotal;

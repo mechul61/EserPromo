@@ -1,7 +1,6 @@
 import { prisma } from "../db";
 import { getCurrentUser } from "../auth/session";
 import { mediaUrl } from "../media";
-import { grossPrice } from "../product-detail";
 import { productPath } from "../seo/urls";
 import type { ListingProduct } from "@/data/catalog-page";
 
@@ -29,7 +28,7 @@ export function toListingProduct(product: {
     code: product.sku,
     name: product.title || product.name,
     image: mediaUrl(product.images[0]?.localPath) ?? "/brand/logo.png",
-    price: grossPrice(Number(product.price), Number(product.vatRate)),
+    price: Number(product.price),
     size: product.size ?? undefined,
     color: product.color ?? undefined,
     skuGroup: "",

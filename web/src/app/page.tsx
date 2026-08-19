@@ -8,7 +8,6 @@ import { CategoryShowcase } from "@/components/home/CategoryShowcase";
 import { ProductSection, type HomeProduct } from "@/components/home/ProductSection";
 import { prisma } from "@/lib/db";
 import { formatPriceTry, mediaUrl } from "@/lib/media";
-import { grossPrice } from "@/lib/product-detail";
 import { buildPageMetadata } from "@/lib/seo/metadata";
 import { productPath } from "@/lib/seo/urls";
 
@@ -44,7 +43,7 @@ export default async function HomePage() {
       code: product.sku,
       name: product.title || product.name,
       image: mediaUrl(product.images[0]?.localPath) ?? "/brand/logo.png",
-      price: formatPriceTry(grossPrice(Number(product.price), Number(product.vatRate))),
+      price: formatPriceTry(Number(product.price)),
       inStock: product.stockTotal > 0,
       stock: product.stockTotal,
       badge,

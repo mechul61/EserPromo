@@ -9,7 +9,7 @@ import { ProductTrustBar } from "@/components/product/ProductTrustBar";
 import { MainNav } from "@/components/layout/MainNav";
 import { getVariantSiblings, resolveProduct } from "@/lib/catalog";
 import { mediaUrl, formatPriceTry, formatStock } from "@/lib/media";
-import { colorToHex, grossPrice, parseProductCopy, stripHtml } from "@/lib/product-detail";
+import { colorToHex, parseProductCopy, stripHtml } from "@/lib/product-detail";
 import { buildPageMetadata } from "@/lib/seo/metadata";
 import { canonicalPath, categoryPath, productPath } from "@/lib/seo/urls";
 import { siteUrl } from "@/lib/env";
@@ -56,7 +56,7 @@ export default async function ProductPage({ params }: PageProps) {
   const inStock = stockAllowsSale(product.stockTotal, settings);
   const heading = product.title || product.name;
   const vat = Number(product.vatRate);
-  const unitGross = grossPrice(Number(product.price), vat);
+  const unitNet = Number(product.price);
   const isNew = currentTimestamp() - product.createdAt.getTime() < 1000 * 60 * 60 * 24 * 30;
   const copy = parseProductCopy(product.description, product.features);
 
@@ -102,7 +102,7 @@ export default async function ProductPage({ params }: PageProps) {
       "@type": "Offer",
       url: canonicalPath(productPath(product.slug)),
       priceCurrency: "TRY",
-      price: unitGross.toFixed(2),
+      price: unitNet.toFixed(2),
       availability: inStock
         ? "https://schema.org/InStock"
         : "https://schema.org/OutOfStock",
@@ -156,7 +156,7 @@ export default async function ProductPage({ params }: PageProps) {
               isNew={isNew}
               inStock={inStock}
               stock={product.stockTotal}
-              unitPrice={unitGross}
+              unitPrice={unitNet}
               specs={specs}
               colors={colors}
               sellable={inStock}
@@ -175,7 +175,7 @@ export default async function ProductPage({ params }: PageProps) {
                 href: productPath(item.slug),
                 image: mediaUrl(item.images[0]?.localPath) ?? "/brand/logo.png",
                 name: item.color || item.sku,
-                price: formatPriceTry(grossPrice(Number(item.price), Number(item.vatRate))),
+                price: formatPriceTry(Number(item.price)),
               }))}
             />
           </div>

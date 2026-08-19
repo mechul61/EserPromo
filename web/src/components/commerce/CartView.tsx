@@ -18,7 +18,6 @@ import {
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { SITE_CONTACT } from "@/data/catalog-page";
 import { formatPriceTry } from "@/lib/media";
-import { grossPrice } from "@/lib/product-detail";
 
 export type CartLineView = {
   productId: number;
@@ -290,7 +289,10 @@ export function CartView({ items, coupon }: { items: CartLineView[]; coupon: App
         <div className="overflow-hidden rounded-md border border-line bg-white">
           <div className="hidden grid-cols-[minmax(0,1fr)_120px_150px_120px_36px] gap-3 border-b border-line bg-[#f7f8fa] px-4 py-2.5 text-[11px] font-extrabold tracking-wide text-[#777] uppercase md:grid">
             <span>Ürün</span>
-            <span className="text-right">Birim Fiyat</span>
+            <span className="text-right">
+              Birim Fiyat
+              <span className="mt-0.5 block text-[9px] font-normal normal-case text-[#8b919a]">+ KDV</span>
+            </span>
             <span className="text-center">Adet</span>
             <span className="text-right">Toplam</span>
             <span />
@@ -299,8 +301,7 @@ export function CartView({ items, coupon }: { items: CartLineView[]; coupon: App
           <ul className="divide-y divide-line">
             {lines.map((item) => {
               const quantity = qty[item.productId] ?? item.quantity;
-              const unitGross = grossPrice(item.unitNet, item.vatRate);
-              const lineGross = unitGross * quantity;
+              const lineNet = item.unitNet * quantity;
               return (
                 <li
                   key={item.productId}
@@ -329,7 +330,7 @@ export function CartView({ items, coupon }: { items: CartLineView[]; coupon: App
                     <span className="mr-2 text-[11px] font-bold tracking-wide text-[#8b919a] uppercase md:hidden">
                       Birim
                     </span>
-                    {money(unitGross)}
+                    {money(item.unitNet)}
                   </p>
 
                   <div className="flex justify-start md:justify-center">
@@ -377,7 +378,7 @@ export function CartView({ items, coupon }: { items: CartLineView[]; coupon: App
                     <span className="mr-2 text-[11px] font-bold tracking-wide text-[#8b919a] uppercase md:hidden">
                       Toplam
                     </span>
-                    {money(lineGross)}
+                    {money(lineNet)}
                   </p>
 
                   <button
@@ -473,7 +474,7 @@ export function CartView({ items, coupon }: { items: CartLineView[]; coupon: App
                   {money(Math.max(0, totals.grand - (applied?.amount ?? 0)))}
                 </dd>
               </div>
-              <p className="mt-1 text-right text-[11px] text-[#8b919a]">KDV Dahil</p>
+              <p className="mt-1 text-right text-[11px] text-[#8b919a]">KDV ve kargo dahil</p>
             </div>
           </dl>
 

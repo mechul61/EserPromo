@@ -99,7 +99,12 @@ export default async function OrderDetailPage({ params }: PageProps) {
                       {item.quantity.toLocaleString("tr-TR")} adet · SKU {item.sku}
                     </p>
                   </div>
-                  <p className="shrink-0 text-[14px] font-extrabold text-navy">₺{formatPriceTry(item.lineTotal)}</p>
+                  <div className="shrink-0 text-right">
+                    <p className="text-[14px] font-extrabold text-navy">
+                      ₺{formatPriceTry(Number(item.unitPrice) * item.quantity)}
+                    </p>
+                    <p className="text-[10px] text-[#8b919a]">+ KDV</p>
+                  </div>
                 </li>
               );
             })}
