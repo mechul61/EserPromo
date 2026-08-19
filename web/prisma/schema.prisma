@@ -260,6 +260,9 @@ model UserProfile {
   notifySms           Boolean   @default(false)
   notifyWhatsapp      Boolean   @default(false)
   notifyOrder         Boolean   @default(true)
+  cookieAnalytics     Boolean   @default(false)
+  cookieMarketing     Boolean   @default(false)
+  cookieConsentAt     DateTime?
   updatedAt           DateTime  @updatedAt
 }
 

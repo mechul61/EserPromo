@@ -14,6 +14,7 @@ import {
   Package,
   RefreshCcw,
   Shield,
+  Cookie,
   UserRound,
 } from "lucide-react";
 import { SITE_CONTACT } from "@/data/catalog-page";
@@ -28,6 +29,7 @@ const NAV = [
   { href: "/hesabim/iadeler", label: "İade & Değişim Taleplerim", icon: RefreshCcw },
   { href: "/hesabim/destek", label: "Destek Taleplerim", icon: Headphones },
   { href: "/hesabim/bildirimler", label: "Bildirimlerim", icon: Bell },
+  { href: "/hesabim/cerez-tercihleri", label: "Çerez Tercihleri", icon: Cookie },
   { href: "/hesabim/sifre", label: "Şifre Değiştir", icon: KeyRound },
   { href: "/hesabim/guvenlik", label: "Hesap Güvenliği", icon: Shield },
 ] as const;

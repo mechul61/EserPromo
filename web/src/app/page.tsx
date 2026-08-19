@@ -3,6 +3,7 @@ import { MainNav } from "@/components/layout/MainNav";
 import { FloatingActions } from "@/components/layout/FloatingActions";
 import { CategorySidebar } from "@/components/home/CategorySidebar";
 import { HeroBanner } from "@/components/home/HeroBanner";
+import { HomeSeoIntro } from "@/components/home/HomeSeoIntro";
 import { FeatureStrip } from "@/components/home/FeatureStrip";
 import { CategoryShowcase } from "@/components/home/CategoryShowcase";
 import { ProductSection, type HomeProduct } from "@/components/home/ProductSection";
@@ -15,9 +16,9 @@ function currentTimestamp() { return Date.now(); }
 
 export const dynamic = "force-dynamic";
 export const metadata = buildPageMetadata({
-  title: "Promosyon Ürünleri Tuzla | Kurumsal Hediyelik",
+  title: "Promosyon Ürünleri | Logolu Kurumsal Hediyelik",
   description:
-    "Tuzla merkezli Eser Promo: promosyon ürünleri, logolu kurumsal hediyelik, toplu alım teklifi. Pendik, Gebze, Kartal ve Anadolu Yakası'na hızlı tedarik.",
+    "Promosyon ürünleri, logolu kurumsal hediyelik ve toplu alım tedariki. Kalem, ajanda, tekstil ve teknoloji promosyonlarında hızlı üretim. Türkiye geneli kargo; Tuzla, Pendik, Gebze hattına hızlı sevkiyat.",
   path: "/",
 });
 
@@ -59,6 +60,7 @@ export default async function HomePage() {
           <MainNav />
           <div className="pt-4">
             <HeroBanner />
+            <HomeSeoIntro />
             <FeatureStrip />
             <CategoryShowcase />
             <ProductSection products={products} />

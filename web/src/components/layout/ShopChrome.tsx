@@ -3,6 +3,7 @@ import { SiteHeader } from "@/components/layout/SiteHeader";
 import { MainNav } from "@/components/layout/MainNav";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SitePopup } from "@/components/layout/SitePopup";
+import { CookieConsentRoot } from "@/components/cookies/CookieConsentRoot";
 import { FavoritesProvider } from "@/components/favorites/FavoritesProvider";
 import { getCurrentUser } from "@/lib/auth/session";
 import { isAdminUser } from "@/lib/auth/admin";
@@ -54,6 +55,7 @@ export async function ShopChrome({
         <SiteFooter />
         {extra}
         <SitePopup />
+        <CookieConsentRoot />
       </div>
     </FavoritesProvider>
   );

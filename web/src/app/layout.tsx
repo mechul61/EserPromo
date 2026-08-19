@@ -56,6 +56,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     "@context": "https://schema.org",
     "@type": "Organization",
     name: siteName,
+    alternateName: ["Eser Promosyon", "Eser Promosyon Ürünleri"],
     url: siteUrl(),
     logo: `${siteUrl()}/brand/logo.png`,
     sameAs: socialUrls.length > 0 ? socialUrls : undefined,

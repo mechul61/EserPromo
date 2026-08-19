@@ -2,9 +2,9 @@ import { AboutPageView } from "@/components/info/AboutPageView";
 import { buildPageMetadata } from "@/lib/seo/metadata";
 
 export const metadata = buildPageMetadata({
-  title: "Hakkımızda",
+  title: "Hakkımızda | Promosyon Ürünleri Tedarikçisi",
   description:
-    "Tuzla merkezli Eser Promo: promosyon ürünleri, logolu baskı ve kurumsal hediyelik tedarikçisi. Pendik, Gebze ve Anadolu Yakası'na hizmet.",
+    "Promosyon ürünleri ve logolu kurumsal hediyelik tedarikçisi Eser Promo. Tuzla merkezli üretim; Pendik, Gebze ve Türkiye geneline hizmet.",
   path: "/hakkimizda",
 });
 

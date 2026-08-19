@@ -28,7 +28,7 @@ export function buildLocalBusinessJsonLd(
     "@id": `${siteUrl()}/#localbusiness`,
     name: siteName || "Eser Promo",
     description:
-      "Tuzla merkezli promosyon ürünleri, kurumsal hediyelik, logolu baskı ve toplu alım tedarikçisi.",
+      "Promosyon ürünleri, kurumsal hediyelik, logolu baskı ve toplu alım tedarikçisi. Türkiye geneli gönderim; Tuzla merkezli üretim.",
     url: siteUrl(),
     logo: `${siteUrl()}/brand/logo.png`,
     image: `${siteUrl()}/brand/logo.png`,
@@ -73,6 +73,7 @@ export function buildWebsiteSearchJsonLd(siteName: string) {
     "@context": "https://schema.org",
     "@type": "WebSite",
     name: siteName || "Eser Promo",
+    alternateName: ["Eser Promosyon", "Promosyon Ürünleri"],
     url: siteUrl(),
     inLanguage: "tr-TR",
     potentialAction: {

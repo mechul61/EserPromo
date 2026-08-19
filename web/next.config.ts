@@ -3,6 +3,15 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   trailingSlash: true,
   poweredByHeader: false,
+  async redirects() {
+    return [
+      {
+        source: "/promosyon-urunleri/",
+        destination: "/promosyon/",
+        permanent: true,
+      },
+    ];
+  },
   images: {
     remotePatterns: [
       {

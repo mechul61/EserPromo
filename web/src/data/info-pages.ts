@@ -15,6 +15,7 @@ export type InfoPageContent = {
 
 export const FOOTER_COLS = {
   kurumsal: [
+    { href: "/promosyon", label: "Promosyon Ürünleri" },
     { href: "/hakkimizda", label: "Hakkımızda" },
     { href: "/kurumsal", label: "Kurumsal" },
     { href: "/baski-teknikleri", label: "Baskı Teknikleri" },
@@ -30,6 +31,7 @@ export const FOOTER_COLS = {
     { href: "/kargo-teslimat", label: "Kargo & Teslimat" },
     { href: "/iade-degisim", label: "İade & Değişim" },
     { href: "/gizlilik", label: "Gizlilik Politikası" },
+    { href: "/cerez-politikasi", label: "Çerez Politikası" },
   ],
   bilgilendirme: [
     { href: "/kullanim-sartlari", label: "Kullanım Şartları" },
@@ -286,7 +288,7 @@ export const INFO_PAGES: Record<string, InfoPageContent> = {
       {
         heading: "Çerezler",
         paragraphs: [
-          "Oturum, sepet ve güvenlik için zorunlu çerezler kullanılır. Performans ve tercih çerezleri deneyimi iyileştirmek içindir. Tarayıcı ayarlarından çerezleri sınırlayabilirsiniz; bu durumda bazı işlevler çalışmayabilir.",
+          "Oturum, sepet ve güvenlik için zorunlu çerezler kullanılır. Performans ve pazarlama çerezleri yalnızca izninizle etkinleştirilir. Ayrıntılı bilgi için Çerez Politikası sayfasına bakın.",
         ],
       },
       {
@@ -299,6 +301,58 @@ export const INFO_PAGES: Record<string, InfoPageContent> = {
         heading: "Haklarınız",
         paragraphs: [
           `KVKK kapsamındaki haklarınız için ${SITE_CONTACT.email} adresine başvurabilirsiniz. Ayrıntılar KVKK Aydınlatma Metni sayfasındadır.`,
+        ],
+      },
+    ],
+  },
+  cerez: {
+    title: "Çerez Politikası",
+    intro:
+      "Eser Promo olarak eserpromo.com sitesinde çerez ve benzeri teknolojileri, siteyi çalıştırmak, alışveriş deneyimini iyileştirmek ve — yalnızca izninizle — performans ile pazarlama amaçları için kullanıyoruz.",
+    sections: [
+      {
+        heading: "Çerez nedir?",
+        paragraphs: [
+          "Çerezler, ziyaret ettiğiniz web sitesi tarafından tarayıcınıza kaydedilen küçük metin dosyalarıdır. Oturumunuzun sürdürülmesi, sepetin hatırlanması ve site tercihlerinizin saklanması gibi işlevler için kullanılabilir.",
+        ],
+      },
+      {
+        heading: "Kullandığımız çerez türleri",
+        bullets: [
+          "Zorunlu çerezler: Oturum, güvenlik, sepet ve temel site işlevleri için gereklidir; devre dışı bırakılamaz.",
+          "Performans / analitik çerezler: Ziyaret sayısı, sayfa kullanımı ve hata analizi gibi istatistiksel veriler toplar; yalnızca izninizle etkinleştirilir.",
+          "Pazarlama çerezleri: Kampanya ve reklam performansını ölçmek veya kişiselleştirilmiş içerik sunmak için kullanılabilir; yalnızca izninizle etkinleştirilir.",
+        ],
+      },
+      {
+        heading: "Tercihlerinizi yönetme",
+        paragraphs: [
+          "Siteye ilk ziyaretinizde çerez bildirimi üzerinden tüm çerezleri kabul edebilir veya kategori bazında tercihlerinizi belirleyebilirsiniz. Bir kez yanıt verdiğinizde bildirim tekrar gösterilmez.",
+          "Üye girişi yaptıysanız çerez tercihlerinizi Hesabım > Çerez Tercihleri bölümünden istediğiniz zaman güncelleyebilirsiniz.",
+        ],
+      },
+      {
+        heading: "Saklama süresi",
+        paragraphs: [
+          "Oturum çerezleri tarayıcı kapatıldığında silinir. Kalıcı çerezler, amaçlarına göre sınırlı sürelerle veya tercihinizi değiştirene kadar saklanabilir. Çerez tercih kaydınız tarayıcınızda ve (üye iseniz) hesabınızda tutulur.",
+        ],
+      },
+      {
+        heading: "Üçüncü taraf çerezler",
+        paragraphs: [
+          "Ödeme (iyzico), analitik veya barındırma hizmetleri gibi üçüncü taraflar kendi çerezlerini kullanabilir. Bu çerezler ilgili sağlayıcıların gizlilik politikalarına tabidir.",
+        ],
+      },
+      {
+        heading: "Tarayıcı ayarları",
+        paragraphs: [
+          "Tarayıcı ayarlarınızdan çerezleri silebilir veya engelleyebilirsiniz. Zorunlu çerezlerin engellenmesi sepet, oturum ve ödeme gibi işlevlerin çalışmamasına yol açabilir.",
+        ],
+      },
+      {
+        heading: "İletişim",
+        paragraphs: [
+          `Çerez kullanımı hakkında sorularınız için ${SITE_CONTACT.email} adresine yazabilirsiniz. Kişisel verilerinizle ilgili haklarınız Gizlilik Politikası ve KVKK Aydınlatma Metni kapsamındadır.`,
         ],
       },
     ],
@@ -426,7 +480,8 @@ export const INFO_PAGES: Record<string, InfoPageContent> = {
 
 export const SHOP_SITEMAP = [
   { href: "/", label: "Ana Sayfa" },
-  { href: "/urunler", label: "Tüm Ürünler" },
+  { href: "/promosyon", label: "Promosyon Ürünleri" },
+  { href: "/urunler", label: "Promosyon Kataloğu" },
   { href: "/bolgeler/tuzla-promosyon-urunleri", label: "Tuzla Promosyon Ürünleri" },
   { href: "/bolgeler/pendik-promosyon-urunleri", label: "Pendik Promosyon Ürünleri" },
   { href: "/bolgeler/gebze-promosyon-urunleri", label: "Gebze Promosyon Ürünleri" },

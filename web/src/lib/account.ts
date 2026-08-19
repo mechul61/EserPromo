@@ -32,6 +32,20 @@ export async function listAccountNotifications(userId: string) {
   });
 }
 
+export async function getAccountCookiePreferences(userId: string) {
+  const profile = await prisma.userProfile.findUnique({
+    where: { userId },
+    select: {
+      cookieAnalytics: true,
+      cookieMarketing: true,
+    },
+  });
+  return {
+    analytics: profile?.cookieAnalytics ?? false,
+    marketing: profile?.cookieMarketing ?? false,
+  };
+}
+
 export async function getAccountOverview(userId: string) {
   const [user, orders, lastSession, lastLoginEvent] = await Promise.all([
     prisma.user.findUniqueOrThrow({

@@ -2,9 +2,9 @@ import { CorporatePageView } from "@/components/info/CorporatePageView";
 import { buildPageMetadata } from "@/lib/seo/metadata";
 
 export const metadata = buildPageMetadata({
-  title: "Kurumsal",
+  title: "Kurumsal Promosyon Çözümleri",
   description:
-    "Eser Promo kurumsal sayfasında üretim gücümüz, kalite yaklaşımımız, marka iş birliklerimiz ve hizmet süreçlerimizi inceleyin.",
+    "Kurumsal promosyon ve logolu hediyelik tedariki. Üretim gücü, baskı teknikleri, kalite süreçleri ve marka iş birlikleri — Eser Promo.",
   path: "/kurumsal",
 });
 

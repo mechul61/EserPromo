@@ -19,9 +19,9 @@ type PageProps = {
 };
 
 export const metadata = buildPageMetadata({
-  title: "Tüm Ürünler",
+  title: "Promosyon Ürünleri",
   description:
-    "Promosyon ve kurumsal hediye ürünlerimizin tamamını keşfedin. Kalem, ajanda, tekstil, teknoloji ürünleri ve daha fazlası.",
+    "Promosyon ürünleri kataloğu: kalem, ajanda, tekstil, termos, çanta ve teknoloji promosyonları. Logolu baskı ve kurumsal hediyelik için tüm ürünler.",
   path: allProductsPath(),
 });
 
@@ -63,16 +63,16 @@ export default async function AllProductsPage({ searchParams }: PageProps) {
                 Ana Sayfa
               </Link>
               <ChevronRight className="size-3" />
-              <span className="text-[#555]">Tüm Ürünler</span>
+              <span className="text-[#555]">Promosyon Ürünleri</span>
             </nav>
 
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h1 className="text-[28px] leading-none font-extrabold tracking-wide text-[#111] uppercase">
-                  Tüm Ürünler
+                  Promosyon Ürünleri
                 </h1>
                 <p className="mt-2 text-[13px] text-[#8b919a]">
-                  {listing.total} ürün bulundu
+                  {listing.total} promosyon ürünü
                 </p>
               </div>
               <Suspense fallback={<div className="h-9 w-[220px]" />}>
