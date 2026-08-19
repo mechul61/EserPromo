@@ -13,6 +13,7 @@ const nextConfig: NextConfig = {
   },
   async headers() {
     const isProd = process.env.NODE_ENV === "production";
+    const isHttps = (process.env.SITE_URL || "").startsWith("https://");
     const csp = [
       "default-src 'self'",
       "base-uri 'self'",
@@ -27,7 +28,7 @@ const nextConfig: NextConfig = {
         : "script-src 'self' 'unsafe-inline' 'unsafe-eval' https:",
       "connect-src 'self' https: wss:",
       "frame-src https:",
-      "upgrade-insecure-requests",
+      ...(isHttps ? ["upgrade-insecure-requests"] : []),
     ].join("; ");
     return [
       {
