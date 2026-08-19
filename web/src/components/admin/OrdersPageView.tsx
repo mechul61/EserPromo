@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { ConfirmDialog } from "@/components/admin/CouponEditor";
+import { FloatingMenu } from "@/components/admin/FloatingMenu";
 import { SITE_CONTACT } from "@/data/catalog-page";
 import { orderHasSuccessfulPayment } from "@/lib/commerce/orders-copy";
 import { formatPriceTry } from "@/lib/media";
@@ -176,7 +177,7 @@ export function OrdersPageView({
   const [pageSize, setPageSize] = useState<(typeof PAGE_SIZES)[number]>(10);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [sortDesc, setSortDesc] = useState(true);
-  const [menuId, setMenuId] = useState<string | null>(null);
+  const [menu, setMenu] = useState<{ id: string; el: HTMLElement } | null>(null);
   const [remove, setRemove] = useState<AdminOrderRow | null>(null);
   const [deletePending, setDeletePending] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -236,6 +237,7 @@ export function OrdersPageView({
   const start = (currentPage - 1) * pageSize;
   const pageRows = filtered.slice(start, start + pageSize);
   const allSelected = pageRows.length > 0 && pageRows.every((row) => selected.has(row.id));
+  const menuRow = menu ? rows.find((row) => row.id === menu.id) : null;
 
   const tabs: Array<{ id: TabId; label: string }> = [
     { id: "all", label: "Tüm Siparişler" },
@@ -588,7 +590,7 @@ export function OrdersPageView({
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto overflow-y-visible">
           <table className="w-full min-w-[1100px] text-left text-[13px]">
             <thead className="border-b border-[#eef2f7] bg-[#fafbfc] text-[11px] font-bold tracking-wide text-[#94a3b8] uppercase">
               <tr>
@@ -668,7 +670,7 @@ export function OrdersPageView({
                         {ORDER_STATUS_LABEL[row.status] ?? row.status}
                       </span>
                     </td>
-                    <td className="px-3 py-3">
+                    <td className="relative overflow-visible px-3 py-3 align-top">
                       <div className="flex items-center justify-end gap-1">
                         <Link
                           href={`/admin/siparisler/${row.publicNumber}`}
@@ -676,38 +678,16 @@ export function OrdersPageView({
                         >
                           <Eye className="size-4" />
                         </Link>
-                        <div className="relative">
-                          <button
-                            type="button"
-                            onClick={() => setMenuId((id) => (id === row.id ? null : row.id))}
-                            className="inline-flex size-8 items-center justify-center rounded-lg text-[#64748b] hover:bg-[#eef2f7]"
-                          >
-                            <MoreVertical className="size-4" />
-                          </button>
-                          {menuId === row.id ? (
-                            <div className="absolute right-0 bottom-full z-30 mb-1 w-40 overflow-hidden rounded-lg border border-[#e8edf3] bg-white py-1 shadow-lg">
-                              <Link
-                                href={`/admin/siparisler/${row.publicNumber}`}
-                                className="block px-3 py-1.5 text-[12px] hover:bg-[#f8fafc]"
-                                onClick={() => setMenuId(null)}
-                              >
-                                Detayı aç
-                              </Link>
-                              <button
-                                type="button"
-                                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12px] text-[#dc2626] hover:bg-[#fef2f2]"
-                                onClick={() => {
-                                  setMenuId(null);
-                                  setDeleteError(null);
-                                  setRemove(row);
-                                }}
-                              >
-                                <Trash2 className="size-3.5" />
-                                Sil
-                              </button>
-                            </div>
-                          ) : null}
-                        </div>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            const el = e.currentTarget;
+                            setMenu((prev) => (prev?.id === row.id ? null : { id: row.id, el }));
+                          }}
+                          className="inline-flex size-8 items-center justify-center rounded-lg text-[#64748b] hover:bg-[#eef2f7]"
+                        >
+                          <MoreVertical className="size-4" />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -783,6 +763,30 @@ export function OrdersPageView({
           </div>
         </div>
       </section>
+
+      {menu && menuRow ? (
+        <FloatingMenu anchor={menu.el} onClose={() => setMenu(null)}>
+          <Link
+            href={`/admin/siparisler/${menuRow.publicNumber}`}
+            className="block px-3 py-2 text-[12px] hover:bg-[#f8fafc]"
+            onClick={() => setMenu(null)}
+          >
+            Detayı aç
+          </Link>
+          <button
+            type="button"
+            className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] text-[#dc2626] hover:bg-[#fef2f2]"
+            onClick={() => {
+              setMenu(null);
+              setDeleteError(null);
+              setRemove(menuRow);
+            }}
+          >
+            <Trash2 className="size-3.5" />
+            Sil
+          </button>
+        </FloatingMenu>
+      ) : null}
 
       {remove ? (
         <ConfirmDialog
