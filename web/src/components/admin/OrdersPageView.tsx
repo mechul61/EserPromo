@@ -685,7 +685,7 @@ export function OrdersPageView({
                             <MoreVertical className="size-4" />
                           </button>
                           {menuId === row.id ? (
-                            <div className="absolute right-0 z-10 mt-1 w-40 overflow-hidden rounded-lg border border-[#e8edf3] bg-white py-1 shadow-lg">
+                            <div className="absolute right-0 bottom-full z-30 mb-1 w-40 overflow-hidden rounded-lg border border-[#e8edf3] bg-white py-1 shadow-lg">
                               <Link
                                 href={`/admin/siparisler/${row.publicNumber}`}
                                 className="block px-3 py-1.5 text-[12px] hover:bg-[#f8fafc]"

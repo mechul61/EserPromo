@@ -119,6 +119,16 @@ export function CargoPageView({ orders, kpis }: { orders: CargoRow[]; kpis: Carg
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkCompany, setBulkCompany] = useState<CargoCompanyId | "">("");
   const [linkId, setLinkId] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menuId) return;
+    function onPointerDown(event: MouseEvent) {
+      if (!menuRef.current?.contains(event.target as Node)) setMenuId(null);
+    }
+    window.addEventListener("mousedown", onPointerDown);
+    return () => window.removeEventListener("mousedown", onPointerDown);
+  }, [menuId]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -404,7 +414,7 @@ export function CargoPageView({ orders, kpis }: { orders: CargoRow[]; kpis: Carg
                 </button>
               ))}
             </div>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto overflow-y-visible">
               <table className="min-w-[1180px] w-full text-left text-[13px]">
                 <thead className="border-b border-[#eef2f7] bg-[#fafbfc] text-[11px] font-bold tracking-wide text-[#94a3b8] uppercase">
                   <tr>
@@ -484,7 +494,7 @@ export function CargoPageView({ orders, kpis }: { orders: CargoRow[]; kpis: Carg
                               ))}
                             </select>
                           </td>
-                          <td className="px-3 py-4">
+                          <td className="px-3 py-4 align-top">
                             <input
                               value={row.trackingNo}
                               placeholder="Kargo numarası girin"
@@ -493,25 +503,49 @@ export function CargoPageView({ orders, kpis }: { orders: CargoRow[]; kpis: Carg
                               className="h-9 w-[170px] rounded-lg border border-[#dbe3ee] px-2 text-[12px] outline-none"
                             />
                             {linkId === row.id ? (
-                              <input
-                                autoFocus
-                                defaultValue={row.trackingUrl}
-                                placeholder="https://..."
-                                onBlur={(e) => {
-                                  void saveCargo(row, { trackingUrl: e.target.value });
-                                  patchLocal(row.id, { trackingUrl: e.target.value });
-                                  setLinkId(null);
-                                }}
-                                className="mt-1 h-8 w-[170px] rounded-lg border border-[#dbe3ee] px-2 text-[11px] outline-none"
-                              />
+                              <div className="mt-1 space-y-1">
+                                <input
+                                  value={row.trackingUrl}
+                                  placeholder="https://..."
+                                  onChange={(e) => patchLocal(row.id, { trackingUrl: e.target.value })}
+                                  onBlur={(e) => void saveCargo(row, { trackingUrl: e.target.value })}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                      e.currentTarget.blur();
+                                      setLinkId(null);
+                                    }
+                                    if (e.key === "Escape") setLinkId(null);
+                                  }}
+                                  className="h-8 w-[170px] rounded-lg border border-[#dbe3ee] px-2 text-[11px] outline-none"
+                                />
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    className="text-[11px] font-bold text-[#64748b] hover:text-[#334155]"
+                                    onMouseDown={(e) => e.preventDefault()}
+                                    onClick={() => setLinkId(null)}
+                                  >
+                                    Kapat
+                                  </button>
+                                  {trackHref ? (
+                                    <a
+                                      href={trackHref}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1 text-[11px] font-bold text-[#2f6bff]"
+                                    >
+                                      <ExternalLink className="size-3" />
+                                      Takibi aç
+                                    </a>
+                                  ) : null}
+                                </div>
+                              </div>
                             ) : (
                               <button
                                 type="button"
                                 className="mt-1 inline-flex items-center gap-1 text-[11px] font-bold text-[#2f6bff]"
-                                onClick={() => {
-                                  if (trackHref) window.open(trackHref, "_blank", "noopener,noreferrer");
-                                  else setLinkId(row.id);
-                                }}
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => setLinkId(row.id)}
                               >
                                 <Link2 className="size-3" />
                                 Kargo takip linki (opsiyonel)
@@ -521,8 +555,8 @@ export function CargoPageView({ orders, kpis }: { orders: CargoRow[]; kpis: Carg
                           <td className="px-3 py-4">
                             <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold ${TAB_TONE[row.tab]}`}>{CARGO_STATUS_LABEL[row.tab]}</span>
                           </td>
-                          <td className="relative px-3 py-4">
-                            <div className="flex items-center justify-end gap-1">
+                          <td className="relative overflow-visible px-3 py-4 align-top">
+                            <div ref={menuId === row.id ? menuRef : undefined} className="relative flex items-center justify-end gap-1">
                               {row.tab === "waiting" ? (
                                 <button type="button" onClick={() => void shipOne(row)} className="inline-flex h-8 items-center gap-1 rounded-lg bg-[#2f6bff] px-2.5 text-[11px] font-bold text-white">
                                   <Package className="size-3.5" />
@@ -533,20 +567,34 @@ export function CargoPageView({ orders, kpis }: { orders: CargoRow[]; kpis: Carg
                                   Teslim
                                 </button>
                               ) : null}
-                              <button type="button" className="grid size-8 place-items-center rounded-lg text-[#94a3b8] hover:bg-[#f8fafc]" onClick={() => setMenuId(menuId === row.id ? null : row.id)}>
+                              <button
+                                type="button"
+                                className="grid size-8 place-items-center rounded-lg text-[#94a3b8] hover:bg-[#f8fafc]"
+                                onClick={() => setMenuId(menuId === row.id ? null : row.id)}
+                              >
                                 <MoreVertical className="size-4" />
                               </button>
+                              {menuId === row.id ? (
+                                <div className="absolute right-0 bottom-full z-30 mb-1 w-44 overflow-hidden rounded-xl border border-[#e8edf3] bg-white py-1 shadow-lg">
+                                  <Link href={`/admin/siparisler/${row.publicNumber}/`} className="block px-3 py-2 text-[12px] hover:bg-[#f8fafc]" onClick={() => setMenuId(null)}>
+                                    Siparişi aç
+                                  </Link>
+                                  {row.tab !== "returned" ? (
+                                    <button
+                                      type="button"
+                                      className="flex w-full px-3 py-2 text-left text-[12px] text-[#dc2626] hover:bg-[#fef2f2]"
+                                      onClick={() => {
+                                        setMenuId(null);
+                                        setSelected(new Set([row.id]));
+                                        void bulk("return");
+                                      }}
+                                    >
+                                      İade olarak işaretle
+                                    </button>
+                                  ) : null}
+                                </div>
+                              ) : null}
                             </div>
-                            {menuId === row.id ? (
-                              <div className="absolute right-3 top-12 z-20 w-44 overflow-hidden rounded-xl border border-[#e8edf3] bg-white py-1 shadow-lg">
-                                <Link href={`/admin/siparisler/${row.publicNumber}/`} className="block px-3 py-2 text-[12px] hover:bg-[#f8fafc]">Siparişi aç</Link>
-                                {row.tab !== "returned" ? (
-                                  <button type="button" className="flex w-full px-3 py-2 text-left text-[12px] text-[#dc2626] hover:bg-[#fef2f2]" onClick={() => { setMenuId(null); setSelected(new Set([row.id])); void bulk("return"); }}>
-                                    İade olarak işaretle
-                                  </button>
-                                ) : null}
-                              </div>
-                            ) : null}
                           </td>
                         </tr>
                       );
