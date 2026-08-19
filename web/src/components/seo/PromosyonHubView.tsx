@@ -135,9 +135,9 @@ export function PromosyonHubView({ categories }: { categories: CategoryLink[] })
           </p>
           <ul className="mt-3 flex flex-wrap gap-2">
             {LOCAL_AREA_LINKS.map((area) => (
-              <li key={area.slug}>
+              <li key={area.href}>
                 <Link
-                  href={`/bolgeler/${area.slug}/`}
+                  href={area.href}
                   className="inline-block rounded-md border border-line bg-soft px-3 py-1.5 text-[13px] font-semibold text-navy hover:border-navy"
                 >
                   {area.label}
