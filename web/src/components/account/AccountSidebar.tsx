@@ -60,12 +60,12 @@ export function AccountSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-2.5 px-4 py-2.5 text-[13px] ${
+              className={`flex min-w-0 items-center gap-2.5 px-4 py-2.5 text-[13px] ${
                 active ? "bg-[#fff8f0] font-extrabold text-orange" : "font-medium text-[#555] hover:bg-soft"
               }`}
             >
               <Icon className={`size-4 shrink-0 ${active ? "text-orange" : "text-[#8b919a]"}`} />
-              {item.label}
+              <span className="break-words">{item.label}</span>
             </Link>
           );
         })}

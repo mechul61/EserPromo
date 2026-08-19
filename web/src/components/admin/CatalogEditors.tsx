@@ -356,8 +356,8 @@ function EditorShell({ title, onClose, children }: { title: string; onClose: () 
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-3 sm:items-center">
-      <div className="max-h-[90dvh] w-full max-w-2xl overflow-auto rounded-md border border-line bg-white p-5 shadow-xl">
+    <div className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-black/40 p-2 sm:items-center sm:p-3">
+      <div className="my-auto max-h-[92dvh] w-full max-w-2xl overflow-y-auto rounded-md border border-line bg-white p-4 shadow-xl sm:p-5">
         <div className="mb-4 flex items-start justify-between gap-3">
           <h2 className="text-[16px] font-extrabold tracking-wide text-navy uppercase">{title}</h2>
           <button

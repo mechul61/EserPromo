@@ -509,7 +509,7 @@ export function CustomersPageView({
               ))}
             </div>
             <div className="overflow-x-auto">
-              <table className="min-w-[1100px] w-full text-left text-[13px]">
+              <table className="w-full min-w-[1100px] text-left text-[13px]">
                 <thead className="border-b border-[#eef2f7] bg-[#fafbfc] text-[11px] font-bold tracking-wide text-[#94a3b8] uppercase">
                   <tr>
                     <th className="w-10 px-4 py-3">
@@ -572,7 +572,7 @@ export function CustomersPageView({
                           </div>
                         </td>
                         <td className="px-3 py-4">
-                          <p className="text-[#0f172a]">{row.email}</p>
+                          <p className="break-all text-[#0f172a]">{row.email}</p>
                           <p className="mt-0.5 text-[12px] text-[#94a3b8]">{row.phone}</p>
                         </td>
                         <td className="px-3 py-4">

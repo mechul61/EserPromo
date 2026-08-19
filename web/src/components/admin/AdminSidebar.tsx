@@ -99,6 +99,12 @@ export function AdminSidebar({
       <div className="border-b border-white/10 px-5 py-4">
         <div className="relative mx-auto h-12 w-[148px]">
           <Image src="/brand/logo.png" alt="Eser Promo" fill className="object-contain" sizes="148px" />
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute left-[86px] top-[14px] text-[28px] font-semibold italic leading-none text-white"
+          >
+            Promo
+          </span>
         </div>
         <p className="mt-1 text-center text-[10px] font-semibold tracking-[0.22em] text-white/70 uppercase">
           Kontrol Paneli

@@ -124,8 +124,8 @@ export function SitePopup() {
   }
 
   return (
-    <div className="fixed inset-0 z-[80] grid place-items-center bg-black/50 p-4">
-      <div className="relative w-full max-w-md overflow-hidden rounded-2xl bg-white p-6 text-center shadow-2xl">
+    <div className="fixed inset-0 z-[80] grid place-items-center overflow-y-auto bg-black/50 p-3 sm:p-4">
+      <div className="relative my-auto max-h-[92dvh] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-4 text-center shadow-2xl sm:p-6">
         <button
           type="button"
           onClick={() => setOpen(false)}
@@ -134,9 +134,9 @@ export function SitePopup() {
         >
           <X className="size-4" />
         </button>
-        <p className="text-[26px] font-black tracking-wide text-[#7c3aed]">{popup.heading}</p>
-        <p className="mt-2 text-[14px] text-[#475569]">{popup.body}</p>
-        {popup.couponCode ? <p className="mt-3 text-[12px] font-bold text-[#0f172a]">Kod: {popup.couponCode}</p> : null}
+        <p className="break-words text-[24px] font-black tracking-wide text-[#7c3aed] sm:text-[26px]">{popup.heading}</p>
+        <p className="mt-2 break-words text-[14px] text-[#475569]">{popup.body}</p>
+        {popup.couponCode ? <p className="mt-3 break-all text-[12px] font-bold text-[#0f172a]">Kod: {popup.couponCode}</p> : null}
         {popup.kind === "subscribe" ? (
           done ? (
             <p className="mt-5 text-[14px] font-semibold text-[#16a34a]">Kaydınız alındı. Teşekkürler.</p>

@@ -63,7 +63,7 @@ export function ProductTabs({
                 key={item.id}
                 type="button"
                 onClick={() => setTab(item.id)}
-                className={`px-2.5 py-2.5 text-[12px] font-extrabold tracking-wide sm:px-3 sm:text-[13px] ${
+                className={`px-2.5 py-2.5 text-left text-[12px] font-extrabold tracking-wide break-words sm:px-3 sm:text-[13px] ${
                   tab === item.id
                     ? "border-b-[3px] border-brand-red text-brand-red"
                     : "border-b-[3px] border-transparent text-[#111] hover:text-brand-red"

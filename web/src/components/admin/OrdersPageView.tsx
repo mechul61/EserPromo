@@ -539,7 +539,7 @@ export function OrdersPageView({
         </div>
 
         <div className="overflow-x-auto">
-          <table className="min-w-[1100px] w-full text-left text-[13px]">
+          <table className="w-full min-w-[1100px] text-left text-[13px]">
             <thead className="border-b border-[#eef2f7] bg-[#fafbfc] text-[11px] font-bold tracking-wide text-[#94a3b8] uppercase">
               <tr>
                 <th className="w-10 px-4 py-3">
@@ -601,7 +601,7 @@ export function OrdersPageView({
                         </span>
                         <div className="min-w-0">
                           <p className="truncate font-semibold text-[#0f172a]">{row.customer}</p>
-                          <p className="truncate text-[12px] text-[#94a3b8]">{row.email}</p>
+                          <p className="truncate break-all text-[12px] text-[#94a3b8]">{row.email}</p>
                         </div>
                       </div>
                     </td>

@@ -60,7 +60,7 @@ export function ProductStage({
       </div>
 
       <div>
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-start justify-between gap-3">
           <h1 className="text-[22px] leading-tight font-extrabold tracking-wide text-navy uppercase sm:text-[24px]">
             {heading}
           </h1>
@@ -72,7 +72,7 @@ export function ProductStage({
             <Check className="size-4" strokeWidth={3} />
             {inStock ? `Stokta · ${formatStock(stock)}` : "Stok yok"}
           </span>
-          <span className="text-[#6b7280]">
+          <span className="min-w-0 break-all text-[#6b7280]">
             Stok Kodu: <span className="font-semibold text-[#111]">{sku}</span>
           </span>
         </div>
@@ -135,7 +135,7 @@ export function ProductStage({
                           setPickedPrintTier(false);
                         }
                       }}
-                      className={`h-9 min-w-[108px] rounded-md bg-white px-3 text-[12px] font-bold ${
+                      className={`h-9 min-w-0 flex-1 rounded-md bg-white px-2.5 text-[12px] font-bold sm:min-w-[108px] sm:flex-none sm:px-3 ${
                         selected
                           ? "border-2 border-orange text-orange"
                           : "border border-[#d5d8de] text-[#111]"

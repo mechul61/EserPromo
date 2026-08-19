@@ -298,7 +298,7 @@ export function CartView({ items, coupon }: { items: CartLineView[]; coupon: App
                     </div>
                     <div className="min-w-0">
                       <p className="truncate text-[14px] font-bold text-[#1a1a1a]">{item.name}</p>
-                      <p className="mt-0.5 text-[12px] text-[#8b919a]">
+                      <p className="mt-0.5 break-words text-[12px] text-[#8b919a]">
                         {item.color ? `Renk: ${item.color}` : `Stok kodu: ${item.sku}`}
                         {item.size ? ` · Ebat: ${item.size}` : ""}
                       </p>
@@ -449,7 +449,7 @@ export function CartView({ items, coupon }: { items: CartLineView[]; coupon: App
                 <dt className="text-[12px] font-extrabold tracking-wide text-[#111] uppercase">
                   Genel Toplam
                 </dt>
-                <dd className="text-[20px] leading-none font-extrabold text-navy">
+                <dd className="break-words text-right text-[20px] leading-none font-extrabold text-navy">
                   {money(Math.max(0, totals.grand - (applied?.amount ?? 0)))}
                 </dd>
               </div>

@@ -22,8 +22,8 @@ export function MainNav() {
 
   return (
     <nav className="border-b border-line bg-white">
-      <div className="flex h-12 items-center justify-between gap-3">
-        <ul className="flex items-center gap-0.5 overflow-x-auto text-[13px] font-bold tracking-wide text-navy">
+      <div className="flex h-12 items-center justify-between gap-2">
+        <ul className="flex min-w-0 items-center gap-0.5 overflow-x-auto pb-1 text-[13px] font-bold tracking-wide text-navy [-webkit-overflow-scrolling:touch]">
           <li className="lg:hidden">
             <a
               href="#kategoriler"

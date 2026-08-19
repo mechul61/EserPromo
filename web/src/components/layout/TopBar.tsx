@@ -32,10 +32,10 @@ const socials = [
 
 export function TopBar() {
   return (
-    <div className="bg-navy text-[12px] text-white">
+    <div className="overflow-x-clip bg-navy text-[12px] text-white">
       <div className="container-ep flex h-9 items-center justify-between gap-4">
-        <p className="flex items-center gap-2.5 whitespace-nowrap font-semibold tracking-wide">
-          <span>Promosyon Ürünlerinde Doğru Adres!</span>
+        <p className="flex min-w-0 items-center gap-2.5 font-semibold tracking-wide">
+          <span className="truncate">Promosyon Ürünlerinde Doğru Adres!</span>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/brand/slogan-heart.png?v=4"

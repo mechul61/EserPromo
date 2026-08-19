@@ -17,7 +17,7 @@ export async function SiteHeader() {
 
   return (
     <header className="border-b border-line bg-white">
-      <div className="container-ep grid grid-cols-1 items-center gap-4 py-4 lg:grid-cols-[220px_minmax(0,1fr)_auto]">
+      <div className="container-ep grid grid-cols-1 items-center gap-3 py-4 lg:grid-cols-[220px_minmax(0,1fr)_auto]">
         <div className="flex justify-center lg:justify-start">
           <Logo size="md" />
         </div>
@@ -43,7 +43,7 @@ export async function SiteHeader() {
           </button>
         </form>
 
-        <div className="flex flex-wrap items-center justify-center gap-4 lg:justify-end lg:gap-5">
+        <div className="flex min-w-0 flex-wrap items-center justify-center gap-3 sm:gap-4 lg:justify-end lg:gap-5">
           <div className="hidden items-start gap-2 xl:flex">
             <Phone className="mt-0.5 size-5 text-navy" />
             <div className="text-[12px] leading-tight">
@@ -66,11 +66,11 @@ export async function SiteHeader() {
             </span>
           </a>
 
-          <Link href={user ? "/hesabim" : "/giris"} className="flex items-start gap-2">
+          <Link href={user ? "/hesabim" : "/giris"} className="flex min-w-0 items-start gap-2">
             <UserRound className="mt-0.5 size-5 text-navy" />
-            <span className="text-[12px] leading-tight">
+            <span className="min-w-0 text-[12px] leading-tight">
               <span className="block font-semibold text-navy">Hesabım</span>
-              <span className="text-muted">{user ? user.name : "Giriş / Üye Ol"}</span>
+              <span className="block truncate text-muted">{user ? user.name : "Giriş / Üye Ol"}</span>
             </span>
           </Link>
 

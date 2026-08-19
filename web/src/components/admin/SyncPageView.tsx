@@ -226,8 +226,8 @@ export function SyncPageView({ initialRuns }: { initialRuns: SyncRun[] }) {
         <p className="mb-3 text-[12px] text-[#6b7280]">
           Etkin&apos;deki ürün ID&apos;sini girerek tek bir ürünü varyantlarıyla ve görselleriyle çekebilirsiniz.
         </p>
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1 max-w-[300px]">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative w-full min-w-0 flex-1 sm:max-w-[300px]">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#94a3b8]" />
             <input
               type="number"
@@ -243,7 +243,7 @@ export function SyncPageView({ initialRuns }: { initialRuns: SyncRun[] }) {
             type="button"
             disabled={singleLoading || !singleId.trim() || hasRunning}
             onClick={() => void fetchSingle()}
-            className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#0f172a] px-4 text-[12px] font-bold text-white disabled:opacity-50"
+            className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-[#0f172a] px-4 text-[12px] font-bold text-white disabled:opacity-50 sm:w-auto"
           >
             {singleLoading ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
             Çek
@@ -299,7 +299,7 @@ export function SyncPageView({ initialRuns }: { initialRuns: SyncRun[] }) {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="min-w-[900px] w-full text-left text-[13px]">
+          <table className="w-full min-w-[900px] text-left text-[13px]">
             <thead className="border-b border-[#eef2f7] bg-[#fafbfc] text-[11px] font-bold tracking-wide text-[#94a3b8] uppercase">
               <tr>
                 <th className="px-4 py-3">ID</th>

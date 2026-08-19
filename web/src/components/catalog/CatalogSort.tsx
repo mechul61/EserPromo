@@ -16,7 +16,7 @@ export function CatalogSort({ value }: { value: string }) {
   const searchParams = useSearchParams();
 
   return (
-    <label className="inline-flex items-center gap-2 text-[13px] text-[#333]">
+    <label className="inline-flex w-full flex-wrap items-center gap-2 text-[13px] text-[#333] sm:w-auto sm:flex-nowrap">
       <span>Sıralama:</span>
       <select
         value={value || "populer"}
@@ -29,7 +29,7 @@ export function CatalogSort({ value }: { value: string }) {
           const qs = next.toString();
           router.push(qs ? `${pathname}?${qs}` : pathname);
         }}
-        className="h-9 min-w-[148px] rounded-md border border-[#d5d8de] bg-white px-2.5 text-[13px] outline-none"
+        className="h-9 w-full min-w-0 rounded-md border border-[#d5d8de] bg-white px-2.5 text-[13px] outline-none sm:min-w-[148px]"
       >
         {OPTIONS.map((option) => (
           <option key={option.value} value={option.value}>

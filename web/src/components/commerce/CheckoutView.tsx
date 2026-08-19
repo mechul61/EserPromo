@@ -436,13 +436,13 @@ export function CheckoutView({
                 );
                 if (item.id === "cart") {
                   return (
-                    <Link key={item.id} href="/sepet" className="flex w-[18%] min-w-0 flex-col items-center text-center">
+                    <Link key={item.id} href="/sepet" className="flex flex-1 min-w-0 flex-col items-center text-center">
                       {inner}
                     </Link>
                   );
                 }
                 return (
-                  <div key={item.id} className="flex w-[18%] min-w-0 flex-col items-center text-center">
+                  <div key={item.id} className="flex flex-1 min-w-0 flex-col items-center text-center">
                     {inner}
                   </div>
                 );
@@ -851,7 +851,7 @@ export function CheckoutView({
                   <dt className="text-[#6b7280]">Teslimat</dt>
                   <dd className="text-right font-semibold">
                     {office ? "Ofisten teslim al" : "Adrese gönderim"}
-                    <span className="mt-1 block font-normal text-[#555]">
+                    <span className="mt-1 block break-words font-normal text-[#555]">
                       {office ? SITE_CONTACT.address : `${form.line}, ${form.district} / ${form.city}`}
                     </span>
                   </dd>
@@ -862,12 +862,12 @@ export function CheckoutView({
                     {billingDifferent ? (
                       <>
                         {invoice === "corporate" ? "Kurumsal" : "Bireysel"}
-                        <span className="mt-1 block font-normal text-[#555]">
+                        <span className="mt-1 block break-words font-normal text-[#555]">
                           {invoice === "corporate"
                             ? `${billing.companyName} · VD: ${billing.taxOffice} · VN: ${billing.taxNumber}`
                             : `TCKN: ${billing.tcKimlik}`}
                         </span>
-                        <span className="mt-1 block font-normal text-[#555]">
+                        <span className="mt-1 block break-words font-normal text-[#555]">
                           {billing.line}, {billing.district} / {billing.city}
                         </span>
                       </>

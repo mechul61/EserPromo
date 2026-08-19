@@ -14,8 +14,8 @@ export function AdminChrome({
   ordersWaiting?: number;
 }) {
   return (
-    <div className="h-dvh overflow-hidden bg-[#171b22] p-3">
-      <div className="grid h-[calc(100dvh-24px)] max-h-[calc(100dvh-24px)] overflow-hidden rounded-[18px] bg-[#f5f7fb] grid-cols-1 grid-rows-[auto_minmax(0,1fr)] lg:grid-cols-[250px_minmax(0,1fr)] lg:grid-rows-none">
+    <div className="min-h-dvh overflow-x-hidden bg-[#171b22] p-2 sm:p-3">
+      <div className="grid min-h-[calc(100dvh-16px)] overflow-hidden rounded-[18px] bg-[#f5f7fb] grid-cols-1 grid-rows-[auto_minmax(0,1fr)] sm:min-h-[calc(100dvh-24px)] lg:grid-cols-[250px_minmax(0,1fr)] lg:grid-rows-none">
         <div className="min-h-0 overflow-hidden lg:h-full">
           <Suspense fallback={<aside className="h-full bg-[#0b1524]" />}>
             <AdminSidebar name={user.name} supportWaiting={supportWaiting} ordersWaiting={ordersWaiting} />
