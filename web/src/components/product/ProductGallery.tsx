@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight, Search, X, ZoomIn, ZoomOut } from "lucide-react";
 
+const THUMB_VISIBLE = 4;
+
 export function ProductGallery({
   images,
   alt,
@@ -16,27 +18,52 @@ export function ProductGallery({
   const source = images.length > 0 ? images : ["/brand/logo.png"];
   const thumbs = [...new Set(source)];
   const [index, setIndex] = useState(0);
+  const [thumbStart, setThumbStart] = useState(0);
   const [hoverZoom, setHoverZoom] = useState(false);
   const [origin, setOrigin] = useState({ x: 50, y: 50 });
   const [lightbox, setLightbox] = useState(false);
   const [lbZoom, setLbZoom] = useState(1);
   const current = thumbs[index] ?? thumbs[0];
   const hasMany = thumbs.length > 1;
+  const thumbOverflow = thumbs.length > THUMB_VISIBLE;
+  const maxThumbStart = Math.max(0, thumbs.length - THUMB_VISIBLE);
 
   function selectIndex(next: number) {
     setIndex(next);
     setLbZoom(1);
+    if (thumbOverflow) {
+      if (next < thumbStart) setThumbStart(next);
+      else if (next >= thumbStart + THUMB_VISIBLE) setThumbStart(next - THUMB_VISIBLE + 1);
+    }
   }
 
   const goPrev = useCallback(() => {
-    setIndex((i) => (i - 1 + thumbs.length) % thumbs.length);
+    setIndex((i) => {
+      const next = (i - 1 + thumbs.length) % thumbs.length;
+      setThumbStart((start) => {
+        if (thumbs.length <= THUMB_VISIBLE) return 0;
+        if (next < start) return next;
+        if (next >= start + THUMB_VISIBLE) return Math.min(maxThumbStart, next);
+        return start;
+      });
+      return next;
+    });
     setLbZoom(1);
-  }, [thumbs.length]);
+  }, [maxThumbStart, thumbs.length]);
 
   const goNext = useCallback(() => {
-    setIndex((i) => (i + 1) % thumbs.length);
+    setIndex((i) => {
+      const next = (i + 1) % thumbs.length;
+      setThumbStart((start) => {
+        if (thumbs.length <= THUMB_VISIBLE) return 0;
+        if (next < start) return 0;
+        if (next >= start + THUMB_VISIBLE) return Math.min(maxThumbStart, next - THUMB_VISIBLE + 1);
+        return start;
+      });
+      return next;
+    });
     setLbZoom(1);
-  }, [thumbs.length]);
+  }, [maxThumbStart, thumbs.length]);
 
   function openLightbox() {
     setLbZoom(1);
@@ -140,19 +167,48 @@ export function ProductGallery({
           }
         />
       </div>
-      <div className="mt-2 grid shrink-0 grid-cols-4 gap-2">
-        {thumbs.map((src, i) => (
+      <div className="relative mt-2 h-[72px] shrink-0 sm:h-[80px]">
+        {thumbOverflow ? (
           <button
-            key={`${src}-${i}`}
             type="button"
-            onClick={() => selectIndex(i)}
-            className={`relative aspect-square bg-white ${
-              i === index ? "border-2 border-orange" : "border border-[#e6e8ec]"
-            }`}
+            aria-label="Önceki küçük görseller"
+            disabled={thumbStart <= 0}
+            onClick={() => setThumbStart((s) => Math.max(0, s - 1))}
+            className="absolute top-1/2 left-0 z-10 flex size-7 -translate-y-1/2 items-center justify-center rounded-full bg-[#eceff3] text-[#5b616a] disabled:opacity-35"
           >
-            <Image src={src} alt="" fill unoptimized className="object-contain p-1.5" />
+            <ChevronLeft className="size-3.5" />
           </button>
-        ))}
+        ) : null}
+        <div
+          className={`grid h-full grid-cols-4 gap-2 ${thumbOverflow ? "mx-8" : ""}`}
+        >
+          {thumbs.slice(thumbStart, thumbStart + THUMB_VISIBLE).map((src, offset) => {
+            const i = thumbStart + offset;
+            return (
+              <button
+                key={`${src}-${i}`}
+                type="button"
+                onClick={() => selectIndex(i)}
+                className={`relative h-full min-h-0 bg-white ${
+                  i === index ? "border-2 border-orange" : "border border-[#e6e8ec]"
+                }`}
+              >
+                <Image src={src} alt="" fill unoptimized className="object-contain p-1.5" />
+              </button>
+            );
+          })}
+        </div>
+        {thumbOverflow ? (
+          <button
+            type="button"
+            aria-label="Sonraki küçük görseller"
+            disabled={thumbStart >= maxThumbStart}
+            onClick={() => setThumbStart((s) => Math.min(maxThumbStart, s + 1))}
+            className="absolute top-1/2 right-0 z-10 flex size-7 -translate-y-1/2 items-center justify-center rounded-full bg-[#eceff3] text-[#5b616a] disabled:opacity-35"
+          >
+            <ChevronRight className="size-3.5" />
+          </button>
+        ) : null}
       </div>
 
       {lightbox ? (
