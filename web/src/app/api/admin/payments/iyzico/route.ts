@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { requireAdminApi } from "@/lib/auth/admin";
-import { getIyzicoConfig, iyzicoConfigReady, maskSecret, setIyzicoConfig } from "@/lib/commerce/payments";
+import { getIyzicoConfig, iyzicoConfigReady, setIyzicoConfig } from "@/lib/commerce/payments";
 import { assertSameOrigin, jsonError } from "@/lib/security/origin";
 
 const schema = z.object({
@@ -17,8 +17,8 @@ export async function GET() {
   const config = await getIyzicoConfig();
   return Response.json({
     uri: config.uri || "https://sandbox-api.iyzipay.com",
-    apiKey: maskSecret(config.apiKey),
-    secretKey: maskSecret(config.secretKey),
+    apiKey: config.apiKey,
+    secretKey: config.secretKey,
     apiKeySet: Boolean(config.apiKey),
     secretSet: Boolean(config.secretKey),
     ready: iyzicoConfigReady(config),

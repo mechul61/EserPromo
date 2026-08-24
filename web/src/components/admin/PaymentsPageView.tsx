@@ -563,6 +563,10 @@ function IyzicoPanel({ initialUri, ready, onSaved }: { initialUri: string; ready
         Callback URL (Iyzico panelinde tanımlı olmalı):{" "}
         <span className="font-semibold text-[#334155]">https://eserpromo.com/api/payments/iyzico/callback/</span>
       </p>
+      <p className="mt-2 rounded-lg bg-[#fff7ed] px-3 py-2 text-[11px] leading-relaxed text-[#9a3412]">
+        Bu alanda değerler geçici olarak maskesiz gösterilir. Test bilgisini tamamen silip canlı anahtarları
+        tekrar kaydedebilirsiniz.
+      </p>
       <label className="mt-4 block text-[12px] font-bold">
         API adresi
         <select value={form.uri} onChange={(e) => setForm({ ...form, uri: e.target.value })} className="mt-1 h-11 w-full rounded-lg border border-[#dbe3ee] px-3 text-[13px] outline-none">
@@ -575,11 +579,11 @@ function IyzicoPanel({ initialUri, ready, onSaved }: { initialUri: string; ready
       </label>
       <label className="mt-3 block text-[12px] font-bold">
         API Key
-        <input value={form.apiKey} onChange={(e) => setForm({ ...form, apiKey: e.target.value })} placeholder="IYZICO_API_KEY" className="mt-1 h-11 w-full rounded-lg border border-[#dbe3ee] px-3 text-[13px] outline-none" />
+        <input value={form.apiKey} onChange={(e) => setForm({ ...form, apiKey: e.target.value })} placeholder="IYZICO_API_KEY" spellCheck={false} autoCapitalize="off" autoCorrect="off" className="mt-1 h-11 w-full rounded-lg border border-[#dbe3ee] px-3 text-[13px] outline-none" />
       </label>
       <label className="mt-3 block text-[12px] font-bold">
         Secret Key
-        <input value={form.secretKey} onChange={(e) => setForm({ ...form, secretKey: e.target.value })} placeholder="IYZICO_SECRET_KEY" className="mt-1 h-11 w-full rounded-lg border border-[#dbe3ee] px-3 text-[13px] outline-none" />
+        <input value={form.secretKey} onChange={(e) => setForm({ ...form, secretKey: e.target.value })} placeholder="IYZICO_SECRET_KEY" spellCheck={false} autoCapitalize="off" autoCorrect="off" className="mt-1 h-11 w-full rounded-lg border border-[#dbe3ee] px-3 text-[13px] outline-none" />
       </label>
       {error ? <p className="mt-3 text-[13px] font-semibold text-[#dc2626]">{error}</p> : null}
       {message ? <p className="mt-3 text-[13px] font-semibold text-[#16a34a]">{message}</p> : null}

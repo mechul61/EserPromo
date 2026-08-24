@@ -166,8 +166,14 @@ export async function setIyzicoConfig(input: { uri?: string; apiKey?: string; se
   const current = await getIyzicoConfig();
   const next = {
     iyzicoUri: (input.uri ?? current.uri).trim(),
-    iyzicoApiKey: input.apiKey && !input.apiKey.includes("•") ? input.apiKey.trim() : current.apiKey,
-    iyzicoSecretKey: input.secretKey && !input.secretKey.includes("•") ? input.secretKey.trim() : current.secretKey,
+    iyzicoApiKey:
+      input.apiKey !== undefined
+        ? (input.apiKey.includes("•") ? current.apiKey : input.apiKey.trim())
+        : current.apiKey,
+    iyzicoSecretKey:
+      input.secretKey !== undefined
+        ? (input.secretKey.includes("•") ? current.secretKey : input.secretKey.trim())
+        : current.secretKey,
   };
   await Promise.all(
     Object.entries(next).map(([key, value]) =>
