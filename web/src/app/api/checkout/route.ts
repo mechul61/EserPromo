@@ -61,11 +61,12 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { order, iyzicoReady } = await createOrderFromCart(user, body.data);
+    const { order, iyzicoReady, paymentMethod } = await createOrderFromCart(user, body.data);
     return Response.json({
       ok: true,
       orderNumber: order.publicNumber,
       iyzicoReady,
+      requiresIyzico: paymentMethod === "card" && iyzicoReady,
     });
   } catch (error) {
     return jsonError(error instanceof Error ? error.message : "Sipariş oluşturulamadı");

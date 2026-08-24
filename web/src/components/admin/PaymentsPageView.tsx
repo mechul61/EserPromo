@@ -559,6 +559,10 @@ function IyzicoPanel({ initialUri, ready, onSaved }: { initialUri: string; ready
         </span>
       </div>
       <p className="mt-1 text-[12px] text-[#94a3b8]">Kart verisi bu sunucuya gelmez. Anahtarları Iyzico panelinden alın.</p>
+      <p className="mt-2 rounded-lg bg-[#f8fafc] px-3 py-2 text-[11px] leading-relaxed text-[#64748b]">
+        Callback URL (Iyzico panelinde tanımlı olmalı):{" "}
+        <span className="font-semibold text-[#334155]">https://eserpromo.com/api/payments/iyzico/callback/</span>
+      </p>
       <label className="mt-4 block text-[12px] font-bold">
         API adresi
         <select value={form.uri} onChange={(e) => setForm({ ...form, uri: e.target.value })} className="mt-1 h-11 w-full rounded-lg border border-[#dbe3ee] px-3 text-[13px] outline-none">

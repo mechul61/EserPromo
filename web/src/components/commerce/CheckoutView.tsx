@@ -378,12 +378,20 @@ export function CheckoutView({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      const data = (await res.json()) as { error?: string; orderNumber?: string };
+      const data = (await res.json()) as {
+        error?: string;
+        orderNumber?: string;
+        requiresIyzico?: boolean;
+      };
       if (!res.ok || !data.orderNumber) {
         setError(data.error || "Sipariş oluşturulamadı");
         return;
       }
-      router.push(`/siparislerim/${data.orderNumber}`);
+      if (payment === "card" && data.requiresIyzico) {
+        router.push(`/siparislerim/${data.orderNumber}/odeme/`);
+        return;
+      }
+      router.push(`/siparislerim/${data.orderNumber}/`);
     } catch {
       setError("Bağlantı hatası");
     } finally {

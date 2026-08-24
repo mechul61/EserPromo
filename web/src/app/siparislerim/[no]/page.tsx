@@ -7,6 +7,7 @@ import { ShippingTracker } from "@/components/account/ShippingTracker";
 import { getCurrentUser } from "@/lib/auth/session";
 import { formatDateTr } from "@/lib/account";
 import { customerShippingCopy, getUserOrder, isOfficePickup } from "@/lib/commerce/orders";
+import { iyzicoIsReady } from "@/lib/commerce/payments";
 import { formatPriceTry, mediaUrl } from "@/lib/media";
 import { formatPhoneTR } from "@/lib/phone";
 
@@ -15,7 +16,28 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 
-type PageProps = { params: Promise<{ no: string }> };
+type PageProps = {
+  params: Promise<{ no: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
+
+function paymentNotice(query: Record<string, string | string[] | undefined>) {
+  const status = typeof query.odeme === "string" ? query.odeme : "";
+  const message = typeof query.mesaj === "string" ? query.mesaj : "";
+  if (status === "basarili") {
+    return { tone: "success" as const, text: "Ödemeniz alındı. Siparişiniz hazırlık sürecine alınacak." };
+  }
+  if (status === "basarisiz") {
+    return {
+      tone: "error" as const,
+      text: message || "Ödeme tamamlanamadı. Tekrar deneyebilir veya farklı bir yöntem seçebilirsiniz.",
+    };
+  }
+  if (status === "hata") {
+    return { tone: "error" as const, text: message || "Ödeme sonucu işlenemedi." };
+  }
+  return null;
+}
 
 function NoteRow({ label, value }: { label: string; value: string }) {
   if (!value.trim()) return null;
@@ -27,12 +49,20 @@ function NoteRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-export default async function OrderDetailPage({ params }: PageProps) {
+export default async function OrderDetailPage({ params, searchParams }: PageProps) {
   const user = await getCurrentUser();
   if (!user) redirect("/giris");
   const { no } = await params;
+  const query = await searchParams;
   const order = await getUserOrder(user.id, no);
   if (!order) notFound();
+
+  const cardPayment = order.payments.find((row) => row.provider === "iyzico");
+  const canPayByCard =
+    order.status === "pending_payment" &&
+    cardPayment?.status === "pending" &&
+    (await iyzicoIsReady());
+  const notice = paymentNotice(query);
 
   const officePickup = isOfficePickup(order.customerNote);
   const shipping = customerShippingCopy(order.status, officePickup);
@@ -56,6 +86,18 @@ export default async function OrderDetailPage({ params }: PageProps) {
           <ArrowLeft className="size-4" />
           Siparişlerime dön
         </Link>
+
+        {notice ? (
+          <p
+            className={`rounded-md border px-4 py-3 text-[13px] font-semibold ${
+              notice.tone === "success"
+                ? "border-[#bbf7d0] bg-[#f0fdf4] text-[#166534]"
+                : "border-[#fecaca] bg-[#fef2f2] text-[#b91c1c]"
+            }`}
+          >
+            {notice.text}
+          </p>
+        ) : null}
 
         <ShippingTracker
           status={order.status}
@@ -155,11 +197,30 @@ export default async function OrderDetailPage({ params }: PageProps) {
         ) : null}
 
         {order.status === "pending_payment" ? (
-          <p className="text-[13px] text-[#6b7280]">
-            {order.payments[0]?.provider === "transfer"
-              ? "Yukarıdaki hesap bilgilerine ödemeyi yaptıktan sonra dekontu e-posta veya WhatsApp ile gönderin. Ödemeniz görünince sipariş hazırlığa alınır."
-              : "Ödeme Iyzico anahtarları tanımlanınca bu ekranda açılacak. Kart numarası sitemizde saklanmaz."}
-          </p>
+          <div className="space-y-3">
+            {order.payments[0]?.provider === "transfer" ? (
+              <p className="text-[13px] text-[#6b7280]">
+                Yukarıdaki hesap bilgilerine ödemeyi yaptıktan sonra dekontu e-posta veya WhatsApp ile
+                gönderin. Ödemeniz görününce sipariş hazırlığa alınır.
+              </p>
+            ) : canPayByCard ? (
+              <>
+                <p className="text-[13px] text-[#6b7280]">
+                  Kart ödemesi Iyzico güvenli sayfasında tamamlanır. Kart bilgileriniz sitemizde saklanmaz.
+                </p>
+                <Link
+                  href={`/siparislerim/${order.publicNumber}/odeme/`}
+                  className="inline-flex h-11 items-center justify-center rounded-md bg-navy px-5 text-[13px] font-bold text-white hover:bg-orange"
+                >
+                  Kart ile öde
+                </Link>
+              </>
+            ) : (
+              <p className="text-[13px] text-[#6b7280]">
+                Kart ödemesi henüz yapılandırılmadı. Lütfen daha sonra tekrar deneyin veya havale/EFT kullanın.
+              </p>
+            )}
+          </div>
         ) : null}
       </div>
     </AccountChrome>

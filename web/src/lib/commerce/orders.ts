@@ -112,6 +112,9 @@ export async function createOrderFromCart(user: AuthUser, address: CheckoutAddre
   if (!(await isPaymentMethodActive(address.paymentMethod ?? "transfer"))) {
     throw new Error("Bu ödeme yöntemi kapalı");
   }
+  if (address.paymentMethod === "card" && !(await iyzicoIsReady())) {
+    throw new Error("Kart ödemesi şu an kullanılamıyor");
+  }
 
   let subtotal = 0;
   let vatTotal = 0;
@@ -326,7 +329,7 @@ export async function createOrderFromCart(user: AuthUser, address: CheckoutAddre
     console.error("order email", error);
   }
 
-  return { order, iyzicoReady: await iyzicoIsReady() };
+  return { order, iyzicoReady: await iyzicoIsReady(), paymentMethod: address.paymentMethod ?? "transfer" };
 }
 
 export async function getUserOrder(userId: string, publicNumber: string) {
