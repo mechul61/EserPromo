@@ -1,4 +1,4 @@
-import { EmailTemplatesPageView, type EmailKpi, type EmailTemplateRow } from "@/components/admin/EmailTemplatesPageView";
+import { EmailTemplatesPageView, type EmailKpi, type EmailLogRow, type EmailTemplateRow } from "@/components/admin/EmailTemplatesPageView";
 import { ensureEmailTemplates } from "@/lib/commerce/email-templates";
 import { EMAIL_CATEGORY_LABEL, EMAIL_LANGUAGE_LABEL, type EmailCategoryId, type EmailLanguageId } from "@/lib/commerce/email-copy";
 import { prisma } from "@/lib/db";
@@ -18,11 +18,12 @@ export default async function AdminEmailPage() {
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
 
-  const [templates, monthLogs, prevLogs, smtpReady] = await Promise.all([
+  const [templates, monthLogs, prevLogs, smtpReady, recentLogs] = await Promise.all([
     prisma.emailTemplate.findMany({ orderBy: [{ category: "asc" }, { name: "asc" }] }),
     prisma.emailLog.findMany({ where: { createdAt: { gte: monthStart } }, select: { status: true } }),
     prisma.emailLog.findMany({ where: { createdAt: { gte: prevMonthStart, lt: monthStart } }, select: { status: true } }),
     smtpIsReady(),
+    prisma.emailLog.findMany({ orderBy: { createdAt: "desc" }, take: 50 }),
   ]);
 
   const rows: EmailTemplateRow[] = templates.map((row) => ({
@@ -46,6 +47,15 @@ export default async function AdminEmailPage() {
     updatedAt: row.updatedAt.toISOString(),
   }));
 
+  const logs: EmailLogRow[] = recentLogs.map((row) => ({
+    id: row.id,
+    templateKey: row.templateKey,
+    to: row.to,
+    subject: row.subject,
+    status: row.status,
+    createdAt: row.createdAt.toISOString(),
+  }));
+
   const active = rows.filter((row) => row.isActive).length;
   const monthSent = monthLogs.filter((row) => row.status === "success").length;
   const prevSent = prevLogs.filter((row) => row.status === "success").length;
@@ -61,5 +71,5 @@ export default async function AdminEmailPage() {
     { label: "Başarılı Gönderim", value: `%${successRate.toFixed(1).replace(".", ",")}`, color: "bg-[#ec4899]", icon: "success" },
   ];
 
-  return <EmailTemplatesPageView templates={rows} kpis={kpis} smtpReady={smtpReady} />;
+  return <EmailTemplatesPageView templates={rows} kpis={kpis} smtpReady={smtpReady} initialLogs={logs} />;
 }

@@ -75,7 +75,9 @@ export async function sendMail(input: {
   html?: string;
 }) {
   const config = await getSmtpConfig();
-  if (!smtpConfigReady(config)) return { sent: false as const };
+  if (!smtpConfigReady(config)) {
+    return { sent: false as const, error: "SMTP yapılandırılmamış" };
+  }
 
   try {
     const { createTransport } = await import("nodemailer");
@@ -94,8 +96,30 @@ export async function sendMail(input: {
     });
     return { sent: true as const };
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
     console.error("mail send", error);
-    return { sent: false as const };
+    return { sent: false as const, error: message };
+  }
+}
+
+export async function verifySmtpConnection() {
+  const config = await getSmtpConfig();
+  if (!smtpConfigReady(config)) {
+    return { ok: false as const, error: "SMTP yapılandırılmamış" };
+  }
+  try {
+    const { createTransport } = await import("nodemailer");
+    const transporter = createTransport({
+      host: config.host,
+      port: config.port,
+      secure: config.port === 465,
+      auth: { user: config.user, pass: config.pass },
+    });
+    await transporter.verify();
+    return { ok: true as const };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return { ok: false as const, error: message };
   }
 }
 

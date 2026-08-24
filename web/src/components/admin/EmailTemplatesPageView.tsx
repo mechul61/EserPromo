@@ -25,6 +25,7 @@ import {
   Pencil,
   Plus,
   RotateCcw,
+  RefreshCw,
   Search,
   Send,
   ShoppingBag,
@@ -138,14 +139,25 @@ function token(key: string) {
   return `{{${key}}}`;
 }
 
+export type EmailLogRow = {
+  id: string;
+  templateKey: string;
+  to: string;
+  subject: string;
+  status: string;
+  createdAt: string;
+};
+
 export function EmailTemplatesPageView({
   templates,
   kpis,
   smtpReady,
+  initialLogs = [],
 }: {
   templates: EmailTemplateRow[];
   kpis: EmailKpi[];
   smtpReady: boolean;
+  initialLogs?: EmailLogRow[];
 }) {
   const router = useRouter();
   const headerSearchRef = useRef<HTMLInputElement>(null);
@@ -167,6 +179,17 @@ export function EmailTemplatesPageView({
   const [edit, setEdit] = useState<EmailTemplateRow | "new" | null>(null);
   const [menu, setMenu] = useState<{ id: string; el: HTMLElement } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [logs, setLogs] = useState(initialLogs);
+
+  async function refreshLogs() {
+    try {
+      const res = await fetch("/api/admin/emails/logs/");
+      const data = (await res.json()) as { logs?: EmailLogRow[] };
+      if (data.logs) setLogs(data.logs);
+    } catch {
+      /* ignore */
+    }
+  }
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -629,6 +652,67 @@ export function EmailTemplatesPageView({
         </aside>
       </div>
 
+      <section className="mt-5 rounded-[18px] bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.04)] sm:p-5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 className="text-[14px] font-extrabold text-[#0f172a]">Gönderim Geçmişi</h2>
+            <p className="mt-1 text-[12px] text-[#94a3b8]">Son 50 kayıt — başarı, hata ve atlanan gönderimler.</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => void refreshLogs()}
+            className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#e8edf3] px-3 text-[12px] font-semibold text-[#334155]"
+          >
+            <RefreshCw className="size-3.5" />
+            Yenile
+          </button>
+        </div>
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full min-w-[720px] text-left text-[13px]">
+            <thead className="border-b border-[#eef2f7] text-[11px] font-bold tracking-wide text-[#94a3b8] uppercase">
+              <tr>
+                <th className="px-2 py-2">Zaman</th>
+                <th className="px-2 py-2">Şablon</th>
+                <th className="px-2 py-2">Alıcı</th>
+                <th className="px-2 py-2">Konu</th>
+                <th className="px-2 py-2">Durum</th>
+              </tr>
+            </thead>
+            <tbody>
+              {logs.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-2 py-8 text-center text-[#94a3b8]">
+                    Henüz gönderim kaydı yok.
+                  </td>
+                </tr>
+              ) : (
+                logs.map((log) => (
+                  <tr key={log.id} className="border-b border-[#f1f5f9] last:border-0">
+                    <td className="px-2 py-2.5 text-[12px] text-[#64748b]">{fmtDate(log.createdAt)}</td>
+                    <td className="px-2 py-2.5 font-mono text-[11px] text-[#334155]">{log.templateKey}</td>
+                    <td className="px-2 py-2.5">{log.to}</td>
+                    <td className="max-w-[280px] truncate px-2 py-2.5">{log.subject}</td>
+                    <td className="px-2 py-2.5">
+                      <span
+                        className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                          log.status === "success"
+                            ? "bg-[#d1fae5] text-[#059669]"
+                            : log.status === "failure"
+                              ? "bg-[#fee2e2] text-[#dc2626]"
+                              : "bg-[#f1f5f9] text-[#64748b]"
+                        }`}
+                      >
+                        {log.status === "success" ? "Başarılı" : log.status === "failure" ? "Hata" : "Atlandı"}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
       {menu && menuRow ? (
         <FloatingMenu anchor={menu.el} onClose={() => setMenu(null)}>
           <button
@@ -664,7 +748,17 @@ export function EmailTemplatesPageView({
           }}
         />
       ) : null}
-      {smtpOpen ? <SmtpEditor onClose={() => setSmtpOpen(false)} onSaved={() => { setSmtpOpen(false); router.refresh(); }} /> : null}
+      {smtpOpen ? (
+        <SmtpEditor
+          onClose={() => setSmtpOpen(false)}
+          onSaved={() => {
+            setSmtpOpen(false);
+            router.refresh();
+            void refreshLogs();
+          }}
+          onTested={() => void refreshLogs()}
+        />
+      ) : null}
     </div>
   );
 }
@@ -852,9 +946,19 @@ function Field({ label, value, onChange }: { label: string; value: string; onCha
   );
 }
 
-function SmtpEditor({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
+function SmtpEditor({
+  onClose,
+  onSaved,
+  onTested,
+}: {
+  onClose: () => void;
+  onSaved: () => void;
+  onTested?: () => void;
+}) {
   const [pending, setPending] = useState(false);
+  const [testing, setTesting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [form, setForm] = useState({ host: "", port: 587, user: "", pass: "", from: SITE_CONTACT.email as string });
 
   useEffect(() => {
@@ -874,6 +978,7 @@ function SmtpEditor({ onClose, onSaved }: { onClose: () => void; onSaved: () => 
   async function save() {
     setPending(true);
     setError(null);
+    setNotice(null);
     const res = await fetch("/api/admin/emails/smtp/", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -888,6 +993,30 @@ function SmtpEditor({ onClose, onSaved }: { onClose: () => void; onSaved: () => 
     onSaved();
   }
 
+  async function testSend() {
+    setTesting(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const res = await fetch("/api/admin/emails/smtp/test/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const data = (await res.json()) as { error?: string; to?: string };
+      if (!res.ok) {
+        setError(data.error || "Test maili gönderilemedi");
+        return;
+      }
+      setNotice(`Test maili gönderildi: ${data.to}`);
+      onTested?.();
+    } catch {
+      setError("Test maili gönderilemedi");
+    } finally {
+      setTesting(false);
+    }
+  }
+
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
       <div className="w-full max-w-md rounded-2xl bg-white p-5">
@@ -895,7 +1024,9 @@ function SmtpEditor({ onClose, onSaved }: { onClose: () => void; onSaved: () => 
           <h2 className="text-[16px] font-extrabold">SMTP ayarları</h2>
           <button type="button" onClick={onClose} className="grid size-8 place-items-center rounded-lg hover:bg-[#f8fafc]"><X className="size-4" /></button>
         </div>
-        <p className="mt-1 text-[12px] text-[#94a3b8]">Boş bırakılan veya maskeli şifre mevcut değeri korur.</p>
+        <p className="mt-1 text-[12px] text-[#94a3b8]">
+          Brevo SMTP bilgilerini girin. Boş/maskeli şifre mevcut değeri korur. Test, giriş yaptığınız admin e-postasına gider.
+        </p>
         <div className="mt-4 grid gap-3">
           <Field label="Host" value={form.host} onChange={(value) => setForm({ ...form, host: value })} />
           <label className="block text-[12px] font-bold">
@@ -903,12 +1034,21 @@ function SmtpEditor({ onClose, onSaved }: { onClose: () => void; onSaved: () => 
             <input type="number" value={form.port} onChange={(e) => setForm({ ...form, port: Number(e.target.value) || 587 })} className="mt-1 h-11 w-full rounded-lg border border-[#dbe3ee] px-3 text-[13px] outline-none" />
           </label>
           <Field label="Kullanıcı" value={form.user} onChange={(value) => setForm({ ...form, user: value })} />
-          <Field label="Şifre" value={form.pass} onChange={(value) => setForm({ ...form, pass: value })} />
+          <Field label="Şifre / API Key" value={form.pass} onChange={(value) => setForm({ ...form, pass: value })} />
           <Field label="Gönderen" value={form.from} onChange={(value) => setForm({ ...form, from: value })} />
         </div>
         {error ? <p className="mt-3 text-[13px] font-semibold text-[#dc2626]">{error}</p> : null}
-        <div className="mt-5 flex justify-end gap-2">
+        {notice ? <p className="mt-3 text-[13px] font-semibold text-[#059669]">{notice}</p> : null}
+        <div className="mt-5 flex flex-wrap justify-end gap-2">
           <button type="button" onClick={onClose} className="h-10 rounded-lg border border-[#e8edf3] px-4 text-[13px] font-semibold">Vazgeç</button>
+          <button
+            type="button"
+            disabled={testing || pending}
+            onClick={() => void testSend()}
+            className="h-10 rounded-lg border border-[#c7d7fe] bg-[#eef4ff] px-4 text-[13px] font-semibold text-[#1e3a8a] disabled:opacity-60"
+          >
+            {testing ? "Test…" : "Test maili gönder"}
+          </button>
           <button type="button" disabled={pending} onClick={() => void save()} className="h-10 rounded-lg bg-[#2f6bff] px-4 text-[13px] font-semibold text-white disabled:opacity-60">{pending ? "Kaydediliyor…" : "Kaydet"}</button>
         </div>
       </div>
