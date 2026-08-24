@@ -48,21 +48,21 @@ const JOBS: Array<{
   {
     action: "full",
     label: "Tam Senkronizasyon",
-    description: "Kategoriler + tüm ürünler + görseller sıfırdan çekilir",
+    description: "Yeni kategoriler + tüm ürünler (mevcut kategoriler korunur)",
     icon: Database,
     color: "bg-[#2f6bff] text-white",
   },
   {
     action: "categories",
     label: "Sadece Kategoriler",
-    description: "Kategori hiyerarşisi ve görselleri güncellenir",
+    description: "Yalnızca sitede olmayan yeni kategorileri ekler; mevcutları değiştirmez",
     icon: FolderTree,
     color: "bg-[#8b5cf6] text-white",
   },
   {
     action: "products",
     label: "Tüm Ürünler",
-    description: "Tüm ürünler varyantlarıyla ve görselleriyle çekilir",
+    description: "Ürünleri çeker; eksik kategori varsa minimal ekler, mevcut kategorilere dokunmaz",
     icon: ShoppingBag,
     color: "bg-[#059669] text-white",
   },
@@ -263,8 +263,9 @@ export function SyncPageView({
               Otomatik Senkron
             </h2>
             <p className="mt-1 text-[12px] text-[#6b7280]">
-              Saat aralığı ve sıklık buradan yönetilir. Gece sessiz saatlerde çalışmaz. Anasayfa kategori
-              seçimleriniz senkron sırasında korunur.
+              Saat aralığı ve sıklık buradan yönetilir. Gece sessiz saatlerde çalışmaz. Mevcut
+              kategoriler ve anasayfa seçimleriniz senkron sırasında korunur; yalnızca yeni kategoriler
+              eklenir.
             </p>
           </div>
           <label className="inline-flex items-center gap-2 text-[13px] font-semibold text-[#0f172a]">

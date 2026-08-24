@@ -19,9 +19,26 @@ export type UpsertStats = {
 export async function upsertCategory(
   cat: EtkinCategory,
   options?: { storageRoot?: string; siteDomain?: string; downloadImage?: boolean },
-): Promise<void> {
+): Promise<"created" | "skipped" | "ignored"> {
   const id = toInt(cat.kategori_id);
-  if (!id || cat.Hata) return;
+  if (!id || cat.Hata) return "ignored";
+
+  const existing = await prisma.category.findUnique({
+    where: { id },
+    select: { removed: true },
+  });
+  if (existing?.removed) return "ignored";
+
+  // Var olan kategoriye dokunma — admin düzenlemeleri ve anasayfa seçimi korunur.
+  if (existing) {
+    if (cat.md5) {
+      await prisma.category.update({
+        where: { id },
+        data: { sourceMd5: cat.md5 },
+      });
+    }
+    return "skipped";
+  }
 
   const parentRaw = cat.ustkategori_id;
   const parentId =
@@ -29,7 +46,7 @@ export async function upsertCategory(
       ? null
       : toInt(parentRaw);
 
-  let imageLocalPath: string | undefined;
+  let imageLocalPath: string | null = null;
   if (options?.downloadImage && options.storageRoot && cat.resim) {
     const dl = await downloadToStorage({
       url: cat.resim,
@@ -41,42 +58,23 @@ export async function upsertCategory(
     if (dl.ok) imageLocalPath = dl.localPath;
   }
 
-  const existing = await prisma.category.findUnique({
-    where: { id },
-    select: { removed: true, adminLocked: true },
-  });
-  if (existing?.removed) return;
-
-  await prisma.category.upsert({
-    where: { id },
-    create: {
+  await prisma.category.create({
+    data: {
       id,
       parentId,
       name: cat.isim,
       slug: categorySlug(cat.isim, id),
       description: cat.aciklama || null,
       imageUrl: cat.resim || null,
-      imageLocalPath: imageLocalPath ?? null,
+      imageLocalPath,
       iconUrl: cat.kat_icon || null,
       sortOrder: toInt(cat.sira),
-      showOnHomepage: toInt(cat.anasayfa_gosterim) === 1,
-      homepageOrder: toInt(cat.anasayfa_sira),
+      showOnHomepage: false,
+      homepageOrder: 0,
       sourceMd5: cat.md5 || null,
     },
-    // Anasayfa görünürlüğü / sırası admin tercihidir; sync üzerine yazmaz.
-    update: existing?.adminLocked
-      ? { sourceMd5: cat.md5 || null }
-      : {
-          parentId,
-          name: cat.isim,
-          description: cat.aciklama || null,
-          imageUrl: cat.resim || null,
-          ...(imageLocalPath ? { imageLocalPath } : {}),
-          iconUrl: cat.kat_icon || null,
-          sortOrder: toInt(cat.sira),
-          sourceMd5: cat.md5 || null,
-        },
   });
+  return "created";
 }
 
 function pathExt(url: string): string {
@@ -165,20 +163,24 @@ async function upsertSingleProduct(
 
   const categoryState = await prisma.category.findUnique({
     where: { id: categoryId },
-    select: { removed: true, adminLocked: true },
+    select: { removed: true },
   });
   if (categoryState?.removed) return { imagesDownloaded: 0 };
 
-  // Kategori yoksa minimal oluştur (ürün FK için)
-  await prisma.category.upsert({
-    where: { id: categoryId },
-    create: {
-      id: categoryId,
-      name: p.kategori_adi || `Kategori ${categoryId}`,
-      slug: categorySlug(p.kategori_adi || `kategori-${categoryId}`, categoryId),
-    },
-    update: p.kategori_adi && !categoryState?.adminLocked ? { name: p.kategori_adi } : { id: categoryId },
-  });
+  // Kategori yoksa ürün FK için minimal oluştur; varsa hiç dokunma.
+  if (!categoryState) {
+    await prisma.category.upsert({
+      where: { id: categoryId },
+      create: {
+        id: categoryId,
+        name: p.kategori_adi || `Kategori ${categoryId}`,
+        slug: categorySlug(p.kategori_adi || `kategori-${categoryId}`, categoryId),
+        showOnHomepage: false,
+        homepageOrder: 0,
+      },
+      update: {},
+    });
+  }
 
   await prisma.productGroup.upsert({
     where: { skuGroup },
