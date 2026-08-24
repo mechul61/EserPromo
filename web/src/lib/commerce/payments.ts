@@ -130,7 +130,20 @@ export async function isPaymentMethodActive(key: PaymentMethodKey) {
   return row.isActive;
 }
 
-const IYZICO_KEYS = ["iyzicoUri", "iyzicoApiKey", "iyzicoSecretKey"] as const;
+const IYZICO_URI_KEY = "iyzicoUri" as const;
+const IYZICO_ENV_KEYS = {
+  live: {
+    apiKey: "iyzicoApiKeyLive",
+    secretKey: "iyzicoSecretKeyLive",
+  },
+  sandbox: {
+    apiKey: "iyzicoApiKeySandbox",
+    secretKey: "iyzicoSecretKeySandbox",
+  },
+} as const;
+const IYZICO_LEGACY_KEYS = ["iyzicoApiKey", "iyzicoSecretKey"] as const;
+
+export type IyzicoMode = "live" | "sandbox";
 
 export type IyzicoConfig = {
   uri: string;
@@ -138,13 +151,35 @@ export type IyzicoConfig = {
   secretKey: string;
 };
 
-export async function getIyzicoConfig(): Promise<IyzicoConfig> {
-  const rows = await prisma.siteSetting.findMany({ where: { key: { in: [...IYZICO_KEYS] } } });
+function modeFromUri(uri: string): IyzicoMode {
+  return uri.includes("sandbox") ? "sandbox" : "live";
+}
+
+export async function getIyzicoConfig(mode?: IyzicoMode): Promise<IyzicoConfig> {
+  const rows = await prisma.siteSetting.findMany({
+    where: {
+      key: {
+        in: [
+          IYZICO_URI_KEY,
+          IYZICO_ENV_KEYS.live.apiKey,
+          IYZICO_ENV_KEYS.live.secretKey,
+          IYZICO_ENV_KEYS.sandbox.apiKey,
+          IYZICO_ENV_KEYS.sandbox.secretKey,
+          ...IYZICO_LEGACY_KEYS,
+        ],
+      },
+    },
+  });
   const map = Object.fromEntries(rows.map((row) => [row.key, row.value]));
+  const uri = (map[IYZICO_URI_KEY] || process.env.IYZICO_URI || "").trim();
+  const selectedMode = mode ?? modeFromUri(uri || "https://api.iyzipay.com");
+  const keys = IYZICO_ENV_KEYS[selectedMode];
+  const legacyApiKey = (map.iyzicoApiKey || process.env.IYZICO_API_KEY || "").trim();
+  const legacySecretKey = (map.iyzicoSecretKey || process.env.IYZICO_SECRET_KEY || "").trim();
   return {
-    uri: (map.iyzicoUri || process.env.IYZICO_URI || "").trim(),
-    apiKey: (map.iyzicoApiKey || process.env.IYZICO_API_KEY || "").trim(),
-    secretKey: (map.iyzicoSecretKey || process.env.IYZICO_SECRET_KEY || "").trim(),
+    uri,
+    apiKey: (map[keys.apiKey] || (selectedMode === "live" ? legacyApiKey : "")).trim(),
+    secretKey: (map[keys.secretKey] || (selectedMode === "live" ? legacySecretKey : "")).trim(),
   };
 }
 
@@ -164,16 +199,20 @@ export function maskSecret(value: string) {
 
 export async function setIyzicoConfig(input: { uri?: string; apiKey?: string; secretKey?: string }) {
   const current = await getIyzicoConfig();
+  const nextUri = (input.uri ?? current.uri).trim();
+  const mode = modeFromUri(nextUri || "https://api.iyzipay.com");
+  const currentForMode = await getIyzicoConfig(mode);
+  const keys = IYZICO_ENV_KEYS[mode];
   const next = {
-    iyzicoUri: (input.uri ?? current.uri).trim(),
-    iyzicoApiKey:
+    [IYZICO_URI_KEY]: nextUri,
+    [keys.apiKey]:
       input.apiKey !== undefined
-        ? (input.apiKey.includes("•") ? current.apiKey : input.apiKey.trim())
-        : current.apiKey,
-    iyzicoSecretKey:
+        ? (input.apiKey.includes("•") ? currentForMode.apiKey : input.apiKey.trim())
+        : currentForMode.apiKey,
+    [keys.secretKey]:
       input.secretKey !== undefined
-        ? (input.secretKey.includes("•") ? current.secretKey : input.secretKey.trim())
-        : current.secretKey,
+        ? (input.secretKey.includes("•") ? currentForMode.secretKey : input.secretKey.trim())
+        : currentForMode.secretKey,
   };
   await Promise.all(
     Object.entries(next).map(([key, value]) =>

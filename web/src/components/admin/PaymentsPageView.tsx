@@ -519,15 +519,20 @@ function IyzicoPanel({ initialUri, ready, onSaved }: { initialUri: string; ready
   const [message, setMessage] = useState<string | null>(null);
   const [form, setForm] = useState({ uri: initialUri, apiKey: "", secretKey: "" });
 
+  async function loadConfig(uri: string) {
+    const qs = new URLSearchParams({ uri });
+    const res = await fetch(`/api/admin/payments/iyzico/?${qs.toString()}`);
+    const data = (await res.json()) as { uri?: string; apiKey?: string; secretKey?: string };
+    setForm({
+      uri: data.uri || uri,
+      apiKey: data.apiKey || "",
+      secretKey: data.secretKey || "",
+    });
+  }
+
   useEffect(() => {
     void (async () => {
-      const res = await fetch("/api/admin/payments/iyzico/");
-      const data = (await res.json()) as { uri?: string; apiKey?: string; secretKey?: string };
-      setForm({
-        uri: data.uri || initialUri,
-        apiKey: data.apiKey || "",
-        secretKey: data.secretKey || "",
-      });
+      await loadConfig(initialUri);
     })();
   }, [initialUri]);
 
@@ -569,7 +574,16 @@ function IyzicoPanel({ initialUri, ready, onSaved }: { initialUri: string; ready
       </p>
       <label className="mt-4 block text-[12px] font-bold">
         API adresi
-        <select value={form.uri} onChange={(e) => setForm({ ...form, uri: e.target.value })} className="mt-1 h-11 w-full rounded-lg border border-[#dbe3ee] px-3 text-[13px] outline-none">
+        <select
+          value={form.uri}
+          onChange={(e) => {
+            const uri = e.target.value;
+            setError(null);
+            setMessage(null);
+            void loadConfig(uri);
+          }}
+          className="mt-1 h-11 w-full rounded-lg border border-[#dbe3ee] px-3 text-[13px] outline-none"
+        >
           <option value="https://sandbox-api.iyzipay.com">Sandbox (test)</option>
           <option value="https://api.iyzipay.com">Canlı (production)</option>
           {form.uri && form.uri !== "https://sandbox-api.iyzipay.com" && form.uri !== "https://api.iyzipay.com" ? (
