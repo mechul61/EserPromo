@@ -67,3 +67,26 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
   revalidatePath("/hesabim/destek");
   return Response.json({ ok: true });
 }
+
+export async function DELETE(req: NextRequest, ctx: Ctx) {
+  try {
+    assertSameOrigin(req);
+  } catch {
+    return jsonError("Geçersiz istek", 403);
+  }
+  const admin = await requireAdminApi();
+  if (admin instanceof Response) return admin;
+
+  const { id } = await ctx.params;
+  const ticket = await prisma.supportTicket.findUnique({
+    where: { id },
+    select: { id: true, publicNumber: true },
+  });
+  if (!ticket) return jsonError("Talep bulunamadı", 404);
+
+  await prisma.supportTicket.delete({ where: { id } });
+
+  revalidatePath("/admin/destek");
+  revalidatePath("/hesabim/destek");
+  return Response.json({ ok: true, publicNumber: ticket.publicNumber });
+}

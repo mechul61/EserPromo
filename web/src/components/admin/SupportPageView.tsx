@@ -23,6 +23,7 @@ import {
   RotateCcw,
   Search,
   Star,
+  Trash2,
   X,
 } from "lucide-react";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
@@ -224,6 +225,24 @@ export function SupportPageView({ tickets, kpis }: { tickets: SupportTicketRow[]
     const ok = await patch(row.id, { status: "resolved" });
     if (!ok) return;
     setNotice(`${row.publicNumber} çözüldü olarak işaretlendi.`);
+    router.refresh();
+  }
+
+  async function removeTicket(row: SupportTicketRow) {
+    if (!window.confirm(`${row.publicNumber} numaralı destek talebi kalıcı olarak silinsin mi?`)) return;
+    const res = await fetch(`/api/admin/support/${row.id}/`, { method: "DELETE" });
+    const data = (await res.json()) as { error?: string; publicNumber?: string };
+    if (!res.ok) {
+      setNotice(data.error || "Talep silinemedi");
+      return;
+    }
+    if (selectedId === row.id) setSelectedId("");
+    setChecked((prev) => {
+      const next = new Set(prev);
+      next.delete(row.id);
+      return next;
+    });
+    setNotice(`${data.publicNumber || row.publicNumber} silindi.`);
     router.refresh();
   }
 
@@ -560,6 +579,14 @@ export function SupportPageView({ tickets, kpis }: { tickets: SupportTicketRow[]
                   <CheckCircle2 className="size-4" />
                   Talebi Çözüldü Olarak İşaretle
                 </button>
+                <button
+                  type="button"
+                  onClick={() => void removeTicket(selected)}
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-[#fecaca] text-[13px] font-semibold text-[#dc2626] hover:bg-[#fef2f2]"
+                >
+                  <Trash2 className="size-4" />
+                  Talebi Sil
+                </button>
               </div>
             </section>
           ) : (
@@ -604,6 +631,17 @@ export function SupportPageView({ tickets, kpis }: { tickets: SupportTicketRow[]
             }}
           >
             Yüksek öncelik
+          </button>
+          <button
+            type="button"
+            className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] text-[#dc2626] hover:bg-[#fef2f2]"
+            onClick={() => {
+              setMenu(null);
+              void removeTicket(menuRow);
+            }}
+          >
+            <Trash2 className="size-3.5" />
+            Sil
           </button>
         </FloatingMenu>
       ) : null}
