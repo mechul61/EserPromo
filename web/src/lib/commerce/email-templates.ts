@@ -270,7 +270,31 @@ async function orderVars(orderId: string) {
 export async function notifyOrderPlaced(orderId: string) {
   const packed = await orderVars(orderId);
   if (!packed) return { sent: false as const };
-  return sendTemplateMail("order_confirm", packed.order.user.email, packed.vars);
+  const customer = await sendTemplateMail("order_confirm", packed.order.user.email, packed.vars);
+
+  // Yönetici kopyası — Site Ayarları > Bildirim e-postası
+  try {
+    const { getSiteContact } = await import("@/lib/site-settings");
+    const contact = await getSiteContact();
+    const adminTo = contact.notificationEmail.trim();
+    if (adminTo && adminTo.toLowerCase() !== packed.order.user.email.toLowerCase()) {
+      await sendMail({
+        to: adminTo,
+        subject: `Yeni sipariş ${packed.vars.order_number}`,
+        text: [
+          `Yeni sipariş: ${packed.vars.order_number}`,
+          `Müşteri: ${packed.vars.customer_name}`,
+          `Toplam: ${packed.vars.order_total}`,
+          `Tarih: ${packed.vars.order_date}`,
+          `Panel: ${siteUrl()}/admin/siparisler/${packed.vars.order_number}/`,
+        ].join("\n"),
+      });
+    }
+  } catch (error) {
+    console.error("order admin notify", error);
+  }
+
+  return customer;
 }
 
 export async function notifyOrderShipped(orderId: string) {

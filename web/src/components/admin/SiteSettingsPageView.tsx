@@ -104,6 +104,12 @@ export function SiteSettingsPageView({ initial, logoPreview, faviconPreview }: P
     if (next.contact.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(next.contact.email)) {
       return "Geçerli bir e-posta adresi girin.";
     }
+    if (
+      next.contact.notificationEmail &&
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(next.contact.notificationEmail)
+    ) {
+      return "Geçerli bir bildirim e-postası girin.";
+    }
     return null;
   }
 
@@ -258,10 +264,22 @@ export function SiteSettingsPageView({ initial, logoPreview, faviconPreview }: P
           </Card>
 
           <Card icon={Phone} iconClass="bg-[#e9f9ef] text-[#16a34a]" title="İletişim Bilgileri" hint="Müşterilerin size ulaşacağı iletişim kanalları.">
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Telefon" value={form.contact.phone} onChange={(value) => patch("contact", { phone: value })} />
               <Field label="WhatsApp" value={form.contact.whatsapp} onChange={(value) => patch("contact", { whatsapp: value })} />
-              <Field label="E-posta" value={form.contact.email} onChange={(value) => patch("contact", { email: value })} />
+              <Field label="Sitede görünen e-posta" value={form.contact.email} onChange={(value) => patch("contact", { email: value })} />
+              <label className={LABEL}>
+                Bildirim e-postası
+                <input
+                  value={form.contact.notificationEmail}
+                  onChange={(e) => patch("contact", { notificationEmail: e.target.value })}
+                  placeholder="ornek@gmail.com"
+                  className={INPUT}
+                />
+                <span className="mt-1.5 block text-[11px] font-medium text-[#94a3b8]">
+                  Yeni sipariş ve destek talepleri buraya gelir. Boş bırakırsanız üstteki e-posta kullanılır.
+                </span>
+              </label>
             </div>
             <div className="mt-4">
               <Field label="Adres" value={form.contact.address} textarea rows={3} onChange={(value) => patch("contact", { address: value })} />

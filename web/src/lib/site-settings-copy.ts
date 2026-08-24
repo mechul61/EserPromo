@@ -15,6 +15,8 @@ export type SiteSettings = {
     phone: string;
     whatsapp: string;
     email: string;
+    /** Sipariş/destek bildirimlerinin gideceği adres. Boşsa email kullanılır. */
+    notificationEmail: string;
     address: string;
     googleMapsUrl: string;
   };
@@ -75,6 +77,7 @@ export const SITE_SETTING_DEFAULTS: SiteSettings = {
     phone: SITE_CONTACT.phone,
     whatsapp: SITE_CONTACT.whatsapp,
     email: SITE_CONTACT.email,
+    notificationEmail: "",
     address: SITE_CONTACT.address,
     googleMapsUrl: "",
   },

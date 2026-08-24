@@ -48,6 +48,7 @@ function mergeSettings(raw: unknown): SiteSettings {
       phone: String(contact.phone ?? d.contact.phone),
       whatsapp: String(contact.whatsapp ?? d.contact.whatsapp),
       email: String(contact.email ?? d.contact.email),
+      notificationEmail: String(contact.notificationEmail ?? "").trim(),
       address: String(contact.address ?? d.contact.address),
       googleMapsUrl: String(contact.googleMapsUrl ?? ""),
     },
@@ -126,6 +127,8 @@ export async function getSiteContact() {
   const phone = settings.contact.phone.trim() || SITE_CONTACT.phone;
   const whatsapp = settings.contact.whatsapp.trim() || SITE_CONTACT.whatsapp;
   const email = settings.contact.email.trim() || SITE_CONTACT.email;
+  const notificationEmail =
+    settings.contact.notificationEmail.trim() || email || SITE_CONTACT.email;
   const address = settings.contact.address.trim() || SITE_CONTACT.address;
   return {
     phone,
@@ -133,6 +136,7 @@ export async function getSiteContact() {
     whatsapp,
     whatsappHref: whatsappHrefFrom(whatsapp),
     email,
+    notificationEmail,
     address,
     mapsUrl: settings.contact.googleMapsUrl.trim(),
   };

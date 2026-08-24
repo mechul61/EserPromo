@@ -60,7 +60,7 @@ export async function createSupportTicket(input: {
 
   const contact = await getSiteContact();
   await sendMail({
-    to: contact.email,
+    to: contact.notificationEmail,
     subject: `Yeni destek talebi ${ticket.publicNumber}`,
     text: `${ticket.name} <${ticket.email}>\n${ticket.subject}\n\n${input.body.trim()}\n\n${siteUrl()}/admin/destek/`,
   }).catch(() => null);
