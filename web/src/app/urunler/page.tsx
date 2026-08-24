@@ -9,7 +9,7 @@ import { CatalogSort } from "@/components/catalog/CatalogSort";
 import { MainNav } from "@/components/layout/MainNav";
 import { asParamList } from "@/data/catalog-page";
 import { getCatalogListingResult } from "@/lib/catalog-listing-query";
-import { buildPageMetadata } from "@/lib/seo/metadata";
+import { buildPageMetadata, catalogQueryNeedsNoindex } from "@/lib/seo/metadata";
 import { allProductsPath } from "@/lib/seo/urls";
 
 type Query = Record<string, string | string[] | undefined>;
@@ -18,12 +18,16 @@ type PageProps = {
   searchParams: Promise<Query>;
 };
 
-export const metadata = buildPageMetadata({
-  title: "Promosyon Ürünleri",
-  description:
-    "Promosyon ürünleri kataloğu: kalem, ajanda, tekstil, termos, çanta ve teknoloji promosyonları. Logolu baskı ve kurumsal hediyelik için tüm ürünler.",
-  path: allProductsPath(),
-});
+export async function generateMetadata({ searchParams }: PageProps) {
+  const query = await searchParams;
+  return buildPageMetadata({
+    title: "Promosyon Ürünleri",
+    description:
+      "Promosyon ürünleri kataloğu: kalem, ajanda, tekstil, termos, çanta ve teknoloji promosyonları. Logolu baskı ve kurumsal hediyelik için tüm ürünler.",
+    path: allProductsPath(),
+    noindex: catalogQueryNeedsNoindex(query),
+  });
+}
 
 export default async function AllProductsPage({ searchParams }: PageProps) {
   const query = await searchParams;

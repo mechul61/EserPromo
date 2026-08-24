@@ -17,7 +17,7 @@ import {
 import { resolveCategory } from "@/lib/catalog";
 import { getCatalogListingResult } from "@/lib/catalog-listing-query";
 import { prisma } from "@/lib/db";
-import { buildPageMetadata } from "@/lib/seo/metadata";
+import { buildPageMetadata, catalogQueryNeedsNoindex } from "@/lib/seo/metadata";
 import { categoryPath } from "@/lib/seo/urls";
 
 type Query = Record<string, string | string[] | undefined>;
@@ -37,8 +37,9 @@ function isKnownSlug(slug: string) {
   return knownCatalogSlug(slug) || slug in EXTRA_TITLES;
 }
 
-export async function generateMetadata({ params }: PageProps) {
+export async function generateMetadata({ params, searchParams }: PageProps) {
   const { slug } = await params;
+  const query = await searchParams;
   const category = await findCategory(slug);
   const title = category?.name ?? EXTRA_TITLES[slug] ?? catalogTitleForSlug(slug);
   if (!category && !isKnownSlug(slug)) return { title: "Kategori bulunamadı" };
@@ -49,6 +50,7 @@ export async function generateMetadata({ params }: PageProps) {
     title,
     description,
     path: categoryPath(slug),
+    noindex: catalogQueryNeedsNoindex(query),
   });
 }
 
