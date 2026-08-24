@@ -10,6 +10,50 @@ const nextConfig: NextConfig = {
         destination: "/promosyon/",
         permanent: true,
       },
+      // Eski WooCommerce sayfalama → temiz katalog
+      {
+        source: "/urunler/page/:page/",
+        destination: "/urunler/",
+        permanent: true,
+      },
+      {
+        source: "/product-category/:slug/page/:page/",
+        destination: "/product-category/:slug/",
+        permanent: true,
+      },
+      // Eski iç içe kategori URL'leri → yaprak slug
+      {
+        source: "/product-category/:parent/:child/",
+        destination: "/product-category/:child/",
+        permanent: true,
+      },
+      {
+        source: "/product-category/:parent/:child/page/:page/",
+        destination: "/product-category/:child/",
+        permanent: true,
+      },
+      // Eski WooCommerce özellik/filtre sayfaları
+      {
+        source: "/ie-nt-ebat/:path*",
+        destination: "/urunler/",
+        permanent: true,
+      },
+      {
+        source: "/ie-nt-renk/:path*",
+        destination: "/urunler/",
+        permanent: true,
+      },
+      {
+        source: "/product-tag/:path*",
+        destination: "/urunler/",
+        permanent: true,
+      },
+      // Bozuk crawl URL
+      {
+        source: "/$",
+        destination: "/",
+        permanent: true,
+      },
     ];
   },
   images: {
