@@ -20,7 +20,7 @@ export default async function AdminPopupsPage() {
   const plannedStart = new Date("2026-09-01T00:00:00.000Z");
 
   let popups = await prisma.popup.findMany({ orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }] });
-  if (popups.length === 0) {
+  if (popups.length === 0 && process.env.NODE_ENV !== "production") {
     await prisma.popup.createMany({
       data: [
         { title: "%10 İndirim", description: "E-bülten kaydı ile ilk alışverişte geçerli.", kind: "subscribe", placement: "home", audience: "all", isActive: true, heading: "%10 İNDİRİM", body: "E-posta adresinizi bırakın, ilk siparişinize özel kupon kazanın.", ctaLabel: "Abone Ol", couponCode: "HOSGELDIN10", startsAt: start, endsAt: end, views: 18420, clicks: 3120, conversions: 860, sortOrder: 1 },
