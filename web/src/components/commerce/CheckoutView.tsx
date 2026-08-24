@@ -34,6 +34,19 @@ export type CheckoutLine = {
   lineNet: number;
 };
 
+export type CheckoutSavedAddress = {
+  id: string;
+  title: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  city: string;
+  district: string;
+  postalCode: string;
+  line: string;
+  isDefault: boolean;
+};
+
 type Step = "delivery" | "payment" | "confirm";
 type DeliveryMethod = "address" | "office";
 type InvoiceType = "individual" | "corporate";
@@ -106,6 +119,8 @@ export function CheckoutView({
   paymentMethods,
   userName,
   userEmail,
+  userPhone = "",
+  savedAddresses = [],
   items,
   subtotal,
   vat,
@@ -121,6 +136,8 @@ export function CheckoutView({
   paymentMethods: Array<{ key: PaymentMethod; name: string; description: string }>;
   userName?: string;
   userEmail?: string;
+  userPhone?: string;
+  savedAddresses?: CheckoutSavedAddress[];
   items: CheckoutLine[];
   subtotal: number;
   vat: number;
@@ -138,13 +155,24 @@ export function CheckoutView({
   shipping: SiteSettings["shipping"];
 }) {
   const router = useRouter();
+  const deliveryAddresses = useMemo(
+    () => savedAddresses.filter((address) => address.title !== "Fatura"),
+    [savedAddresses],
+  );
+  const billingAddress = useMemo(
+    () => savedAddresses.find((address) => address.title === "Fatura") ?? null,
+    [savedAddresses],
+  );
+  const initialAddress =
+    deliveryAddresses.find((address) => address.isDefault) ?? deliveryAddresses[0] ?? null;
+
   const [step, setStep] = useState<Step>("delivery");
   const [delivery, setDelivery] = useState<DeliveryMethod>("address");
   const [invoice, setInvoice] = useState<InvoiceType>("individual");
   const [payment, setPayment] = useState<PaymentMethod>(() => paymentMethods[0]?.key ?? "card");
   const [transferBank, setTransferBank] = useState(() => (transferBanks.length === 1 ? transferBanks[0].id : ""));
   const selectedAccount = transferBanks.find((bank) => bank.id === transferBank) ?? null;
-  const [billingDifferent, setBillingDifferent] = useState(false);
+  const [billingDifferent, setBillingDifferent] = useState(Boolean(billingAddress));
   const [createAccount, setCreateAccount] = useState(false);
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
@@ -153,28 +181,42 @@ export function CheckoutView({
   const [error, setError] = useState<string | null>(null);
   const [couponCode, setCouponCode] = useState(coupon?.code ?? "");
   const [applied, setApplied] = useState(coupon);
+  const [selectedAddressId, setSelectedAddressId] = useState(initialAddress?.id ?? "");
   const [form, setForm] = useState({
-    fullName: userName ?? "",
-    email: userEmail ?? "",
-    phone: "",
-    city: "İstanbul",
-    district: "",
-    line: "",
-    postalCode: "",
+    fullName: initialAddress?.fullName || userName || "",
+    email: initialAddress?.email || userEmail || "",
+    phone: initialAddress?.phone || userPhone || "",
+    city: initialAddress?.city || "İstanbul",
+    district: initialAddress?.district || "",
+    line: initialAddress?.line || "",
+    postalCode: initialAddress?.postalCode || "",
   });
   const [billing, setBilling] = useState({
-    fullName: userName ?? "",
-    phone: "",
-    city: "İstanbul",
-    district: "",
-    line: "",
-    postalCode: "",
+    fullName: billingAddress?.fullName || userName || "",
+    phone: billingAddress?.phone || userPhone || "",
+    city: billingAddress?.city || "İstanbul",
+    district: billingAddress?.district || "",
+    line: billingAddress?.line || "",
+    postalCode: billingAddress?.postalCode || "",
     tcKimlik: "",
     companyName: "",
     taxOffice: "",
     taxNumber: "",
   });
   const [orderNote, setOrderNote] = useState("");
+
+  function applySavedAddress(address: CheckoutSavedAddress) {
+    setSelectedAddressId(address.id);
+    setForm({
+      fullName: address.fullName || userName || "",
+      email: address.email || userEmail || "",
+      phone: address.phone || userPhone || "",
+      city: address.city || "İstanbul",
+      district: address.district || "",
+      line: address.line || "",
+      postalCode: address.postalCode || "",
+    });
+  }
 
   const goods = subtotal + vat;
   const shippingTotal = Math.max(0, shippingCharge(Math.max(0, goods - (applied?.amount ?? 0)), { shipping }));
@@ -547,6 +589,37 @@ export function CheckoutView({
                 </div>
               ) : (
                 <>
+                  {deliveryAddresses.length > 0 ? (
+                    <div className="mt-4">
+                      <p className="text-[12px] font-extrabold tracking-wide text-[#111]">KAYITLI ADRESLER</p>
+                      <div className="mt-2 grid w-full grid-cols-1 gap-2 sm:grid-cols-2">
+                        {deliveryAddresses.map((address) => {
+                          const active = selectedAddressId === address.id;
+                          return (
+                            <button
+                              key={address.id}
+                              type="button"
+                              onClick={() => applySavedAddress(address)}
+                              className={`rounded-md border p-3 text-left ${
+                                active ? "border-orange bg-[#fff8f0]" : "border-line bg-white hover:border-[#cfd3d8]"
+                              }`}
+                            >
+                              <span className="flex items-center justify-between gap-2">
+                                <span className="text-[13px] font-extrabold text-[#111]">{address.title}</span>
+                                {address.isDefault ? (
+                                  <span className="text-[10px] font-bold tracking-wide text-orange">VARSAYILAN</span>
+                                ) : null}
+                              </span>
+                              <span className="mt-1 block text-[12px] leading-snug text-[#6b7280]">
+                                {address.fullName} · {address.district}/{address.city}
+                              </span>
+                              <span className="mt-0.5 block truncate text-[12px] text-[#555]">{address.line}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : null}
                   <div className="mt-3 grid w-full grid-cols-1 gap-3 md:grid-cols-3">
                     <label className="block min-w-0 text-[12px] font-bold text-[#555]">
                       Ülke

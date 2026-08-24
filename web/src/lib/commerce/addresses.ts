@@ -15,6 +15,7 @@ export type AddressPayload = {
 
 export async function saveUserAddress(userId: string, payload: AddressPayload) {
   const title = payload.title ?? "Teslimat";
+  const isDefault = payload.isDefault ?? title === "Teslimat";
   const data = {
     fullName: payload.fullName.trim(),
     email: payload.email?.trim() ?? "",
@@ -24,8 +25,12 @@ export async function saveUserAddress(userId: string, payload: AddressPayload) {
     district: payload.district.trim(),
     postalCode: payload.postalCode?.trim() ?? "",
     line: payload.line.trim(),
-    isDefault: payload.isDefault ?? title === "Teslimat",
+    isDefault,
   };
+
+  if (isDefault) {
+    await prisma.address.updateMany({ where: { userId }, data: { isDefault: false } });
+  }
 
   const existing = await prisma.address.findFirst({
     where: { userId, title },
