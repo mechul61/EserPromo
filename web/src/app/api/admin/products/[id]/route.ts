@@ -92,7 +92,7 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
 
   const product = await prisma.product.findUnique({
     where: { id },
-    select: { id: true, removed: true, price: true, discountLocked: true, name: true, slug: true },
+    select: { id: true, removed: true, price: true, discountLocked: true, name: true, slug: true, stockTotal: true },
   });
   if (!product || product.removed) return jsonError("Ürün bulunamadı", 404);
 
@@ -155,6 +155,15 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
         wentOnSale: false,
       }).catch((error) => console.error("favorite discount notify", id, error));
     }
+  }
+
+  if (body.data.stockTotal !== undefined && product.stockTotal <= 0 && body.data.stockTotal > 0) {
+    const { notifyStockBackIn } = await import("@/lib/commerce/stock-alerts");
+    void notifyStockBackIn({
+      productId: id,
+      name: body.data.name ?? product.name,
+      slug: product.slug,
+    }).catch((error) => console.error("stock back-in notify", id, error));
   }
 
   revalidateCatalog();

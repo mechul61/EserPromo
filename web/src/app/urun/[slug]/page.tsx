@@ -15,6 +15,7 @@ import { canonicalPath, categoryPath, productPath } from "@/lib/seo/urls";
 import { siteUrl } from "@/lib/env";
 import { getSiteSettings, stockAllowsSale, stockMaxQty } from "@/lib/site-settings";
 import { prisma } from "@/lib/db";
+import { getCurrentUser } from "@/lib/auth/session";
 
 function currentTimestamp() { return Date.now(); }
 
@@ -49,6 +50,7 @@ export default async function ProductPage({ params }: PageProps) {
 
   const product = resolved.product;
   const settings = await getSiteSettings();
+  const user = await getCurrentUser();
   const variants = await getVariantSiblings(product.skuGroup);
   const images = product.images
     .map((img) => mediaUrl(img.localPath))
@@ -161,6 +163,7 @@ export default async function ProductPage({ params }: PageProps) {
               colors={colors}
               sellable={inStock}
               maxQty={stockMaxQty(product.stockTotal, settings)}
+              defaultEmail={user?.email ?? ""}
             />
 
             <ProductTrustBar />

@@ -147,6 +147,20 @@ const DEFAULTS: Array<{
     showOrderBox: false,
     isActive: true,
   },
+  {
+    key: "stock_back_in",
+    name: "Stok Bildirimi",
+    description: "Gelince haber ver abonelerine stok girince gider.",
+    subject: "{{product_name}} stoka girdi",
+    heading: "Takip ettiğiniz ürün stoka girdi",
+    body: "Merhaba,\n\n{{product_name}} yeniden stokta. Stoklar tükenmeden inceleyebilirsiniz.",
+    ctaLabel: "Ürünü Görüntüle",
+    ctaUrl: "{{product_url}}",
+    category: "customer",
+    icon: "package",
+    showOrderBox: false,
+    isActive: true,
+  },
 ];
 
 export async function ensureEmailTemplates() {
@@ -240,6 +254,19 @@ export async function notifyFavoriteDiscountMail(input: {
     product_name: input.productName,
     product_url: input.productUrl,
     price_line: input.priceLine,
+  });
+}
+
+export async function notifyStockBackInMail(input: {
+  to: string;
+  productName: string;
+  productUrl: string;
+}) {
+  return sendTemplateMail("stock_back_in", input.to, {
+    ...baseVars(),
+    customer_name: "Müşterimiz",
+    product_name: input.productName,
+    product_url: input.productUrl,
   });
 }
 

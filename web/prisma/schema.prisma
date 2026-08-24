@@ -145,6 +145,7 @@ model Product {
   orderItems     OrderItem[]
   favorites      Favorite[]
   notifications  UserNotification[]
+  stockNotifies  StockNotifyRequest[]
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -154,6 +155,22 @@ model Product {
   @@index([isActive, sortOrder])
   @@index([isActive, showOnHomepage, isGroupPrimary])
   @@index([removed])
+}
+
+/// Stok yokken “Gelince Haber Ver” abonelikleri.
+model StockNotifyRequest {
+  id         String    @id @default(cuid())
+  productId  Int
+  product    Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  email      String
+  userId     String?
+  notifiedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@unique([productId, email])
+  @@index([productId, notifiedAt])
+  @@index([email])
+  @@index([userId])
 }
 
 model ProductImage {

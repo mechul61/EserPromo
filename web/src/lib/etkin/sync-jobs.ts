@@ -390,22 +390,32 @@ export async function syncStockPrices(onProgress: OnProgress = noop) {
 
       const existing = await prisma.product.findUnique({
         where: { id },
-        select: { removed: true, adminLocked: true },
+        select: { removed: true, adminLocked: true, stockTotal: true, name: true, slug: true },
       });
       if (!existing || existing.removed || existing.adminLocked) continue;
 
+      const nextStock = toInt(item.toplam_stok);
       await prisma.product.update({
         where: { id },
         data: {
           price: parseEtkinPrice(item.urun_fiyat ?? item.urun_fiyat_virgul),
           vatRate: toInt(item.fiyat_kdv, 20),
-          stockTotal: toInt(item.toplam_stok),
+          stockTotal: nextStock,
           stockCenter: toInt(item.mstok),
           stockIstanbul: toInt(item.istok),
           stockTopkapi: toInt(item.tstok),
         },
       });
       updated += 1;
+
+      if (existing.stockTotal <= 0 && nextStock > 0) {
+        const { notifyStockBackIn } = await import("../commerce/stock-alerts");
+        void notifyStockBackIn({
+          productId: id,
+          name: existing.name,
+          slug: existing.slug,
+        }).catch((error) => console.error("stock back-in notify", id, error));
+      }
 
       if (i % 100 === 0) {
         onProgress({ runId: run.id, phase: "Stok/Fiyat", done: i, total: items.length });

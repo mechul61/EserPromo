@@ -29,6 +29,7 @@ export function ProductStage({
   colors,
   sellable,
   maxQty,
+  defaultEmail,
 }: {
   productId: number;
   heading: string;
@@ -42,6 +43,7 @@ export function ProductStage({
   colors: ProductColorOption[];
   sellable?: boolean;
   maxQty?: number;
+  defaultEmail?: string;
 }) {
   const [qty, setQty] = useState(1);
 
@@ -119,6 +121,7 @@ export function ProductStage({
               onQty={setQty}
               sellable={sellable}
               maxQty={maxQty}
+              defaultEmail={defaultEmail}
             />
           </div>
         </div>

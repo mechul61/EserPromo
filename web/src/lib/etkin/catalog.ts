@@ -157,6 +157,7 @@ async function upsertSingleProduct(
       discountLocked: true,
       name: true,
       slug: true,
+      stockTotal: true,
     },
   });
   if (current?.removed) return { imagesDownloaded: 0 };
@@ -262,6 +263,7 @@ async function upsertSingleProduct(
 
   if (current && !current.adminLocked) {
     const newPrice = parseEtkinPrice(p.urun_fiyat ?? p.urun_fiyat_virgul);
+    const newStock = toInt(p.toplam_stok);
     const isDiscounted = toInt(p.kirmiziurun) === 1;
     const { isFavoriteDiscount, notifyFavoriteDiscount } = await import("../commerce/favorite-alerts");
     if (
@@ -280,6 +282,14 @@ async function upsertSingleProduct(
         newPrice,
         wentOnSale: !current.discountLocked && isDiscounted,
       }).catch((error) => console.error("favorite discount notify", id, error));
+    }
+    if (current.stockTotal <= 0 && newStock > 0) {
+      const { notifyStockBackIn } = await import("../commerce/stock-alerts");
+      void notifyStockBackIn({
+        productId: id,
+        name: p.urun_isim || current.name,
+        slug: current.slug,
+      }).catch((error) => console.error("stock back-in notify", id, error));
     }
   }
 
