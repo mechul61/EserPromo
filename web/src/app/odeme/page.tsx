@@ -88,6 +88,7 @@ export default async function CheckoutPage() {
         transferBanks={transferBanks}
         orderNoteEnabled={settings.order.orderNoteEnabled}
         minOrderAmount={settings.order.minimumOrderAmount}
+        shipping={settings.shipping}
       />
     </ShopChrome>
   );

@@ -30,6 +30,11 @@ export type SiteSettings = {
     lowStockThreshold: number;
     outOfStockBehavior: OutOfStockBehavior;
   };
+  shipping: {
+    enabled: boolean;
+    flatFee: number;
+    freeThreshold: number;
+  };
   company: {
     companyName: string;
     taxOffice: string;
@@ -84,6 +89,11 @@ export const SITE_SETTING_DEFAULTS: SiteSettings = {
     productLimitPriority: true,
     lowStockThreshold: 10,
     outOfStockBehavior: "STOP_SALE",
+  },
+  shipping: {
+    enabled: false,
+    flatFee: 0,
+    freeThreshold: 750,
   },
   company: {
     companyName: "",
@@ -140,4 +150,16 @@ export function stockMaxQty(stock: number, settings: Pick<SiteSettings, "order" 
     return Math.max(stock, 99999);
   }
   return Math.max(0, stock);
+}
+
+export function shippingCharge(
+  goodsTotal: number,
+  settings: Pick<SiteSettings, "shipping">,
+) {
+  if (!settings.shipping.enabled) return 0;
+  const fee = Math.max(0, Number(settings.shipping.flatFee) || 0);
+  const threshold = Math.max(0, Number(settings.shipping.freeThreshold) || 0);
+  if (fee <= 0) return 0;
+  if (threshold > 0 && goodsTotal >= threshold) return 0;
+  return fee;
 }

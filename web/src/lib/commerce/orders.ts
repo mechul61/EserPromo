@@ -6,7 +6,7 @@ import { saveUserAddress } from "./addresses";
 import { findTransferAccount, formatIban, getEnabledTransferBanks } from "./transfer-banks";
 import { validateCouponForCart, cartLinesForCoupon } from "./coupons";
 import { notifyOrderPlaced } from "./email-templates";
-import { getSiteSettings, stockAllowsSale } from "@/lib/site-settings";
+import { getSiteSettings, shippingCharge, stockAllowsSale } from "@/lib/site-settings";
 
 export {
   CARGO_STATUS_OPTIONS,
@@ -165,7 +165,9 @@ export async function createOrderFromCart(user: AuthUser, address: CheckoutAddre
     couponId = cart.coupon.id;
     couponCode = cart.coupon.code;
   }
-  const grandTotal = money(Math.max(0, goodsTotal - discountTotal));
+  const discountedGoodsTotal = money(Math.max(0, goodsTotal - discountTotal));
+  const shippingTotal = money(shippingCharge(discountedGoodsTotal, settings));
+  const grandTotal = money(discountedGoodsTotal + shippingTotal);
   if (settings.order.minimumOrderAmount > 0 && grandTotal < settings.order.minimumOrderAmount) {
     throw new Error(`Minimum sipariş tutarı ${settings.order.minimumOrderAmount.toLocaleString("tr-TR", { minimumFractionDigits: 2 })} TL`);
   }
@@ -196,7 +198,7 @@ export async function createOrderFromCart(user: AuthUser, address: CheckoutAddre
         status: "pending_payment",
         subtotal,
         vatTotal,
-        shippingTotal: 0,
+        shippingTotal,
         discountTotal,
         couponId,
         couponCode,

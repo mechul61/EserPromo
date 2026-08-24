@@ -18,6 +18,7 @@ import {
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { SITE_CONTACT } from "@/data/catalog-page";
 import { formatPriceTry } from "@/lib/media";
+import { shippingCharge, type SiteSettings } from "@/lib/site-settings";
 
 export type CartLineView = {
   productId: number;
@@ -52,7 +53,15 @@ export type AppliedCoupon = {
   label: string;
 };
 
-export function CartView({ items, coupon }: { items: CartLineView[]; coupon: AppliedCoupon | null }) {
+export function CartView({
+  items,
+  coupon,
+  shipping,
+}: {
+  items: CartLineView[];
+  coupon: AppliedCoupon | null;
+  shipping: SiteSettings["shipping"];
+}) {
   const router = useRouter();
   const [qty, setQty] = useState<Record<number, number>>(() =>
     Object.fromEntries(items.map((item) => [item.productId, item.quantity])),
@@ -85,6 +94,8 @@ export function CartView({ items, coupon }: { items: CartLineView[]; coupon: App
       count: lines.length,
     };
   }, [lines, qty]);
+  const shippingTotal = Math.max(0, shippingCharge(Math.max(0, totals.grand - (applied?.amount ?? 0)), { shipping }));
+  const payable = Math.max(0, totals.grand - (applied?.amount ?? 0)) + shippingTotal;
 
   function bump(productId: number, stock: number, delta: number) {
     setQty((prev) => {
@@ -448,7 +459,9 @@ export function CartView({ items, coupon }: { items: CartLineView[]; coupon: App
             </div>
             <div className="flex items-center justify-between border-b border-line pb-3">
               <dt className="text-[#666]">Kargo</dt>
-              <dd className="font-semibold text-brand-green">Ücretsiz</dd>
+              <dd className={`font-semibold ${shippingTotal === 0 ? "text-brand-green" : "text-[#111]"}`}>
+                {shippingTotal === 0 ? "Ücretsiz" : money(shippingTotal)}
+              </dd>
             </div>
             {applied ? (
               <div className="flex items-center justify-between">
@@ -471,7 +484,7 @@ export function CartView({ items, coupon }: { items: CartLineView[]; coupon: App
                   Genel Toplam
                 </dt>
                 <dd className="break-words text-right text-[20px] leading-none font-extrabold text-navy">
-                  {money(Math.max(0, totals.grand - (applied?.amount ?? 0)))}
+                  {money(payable)}
                 </dd>
               </div>
               <p className="mt-1 text-right text-[11px] text-[#8b919a]">KDV ve kargo dahil</p>

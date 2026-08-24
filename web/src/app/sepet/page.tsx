@@ -7,6 +7,7 @@ import { MainNav } from "@/components/layout/MainNav";
 import { getCart, appliedCouponFor } from "@/lib/commerce/cart";
 import { mediaUrl } from "@/lib/media";
 import { productPath } from "@/lib/seo/urls";
+import { getSiteSettings } from "@/lib/site-settings";
 
 export const metadata = {
   title: "Sepetim",
@@ -16,6 +17,7 @@ export const metadata = {
 export default async function CartPage() {
   const cart = await getCart();
   const coupon = await appliedCouponFor(cart);
+  const settings = await getSiteSettings();
 
   const items: CartLineView[] = (cart?.items ?? []).map((item) => ({
     productId: item.productId,
@@ -52,7 +54,7 @@ export default async function CartPage() {
               <span className="text-[#555]">Sepetim</span>
             </nav>
 
-            <CartView items={items} coupon={coupon} />
+            <CartView items={items} coupon={coupon} shipping={settings.shipping} />
           </div>
         </div>
       </div>

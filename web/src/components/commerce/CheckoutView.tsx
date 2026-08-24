@@ -24,6 +24,7 @@ import { PasswordRules } from "@/components/commerce/PasswordRules";
 import { CityDistrictFields } from "@/components/forms/CityDistrictFields";
 import { BankLogo } from "@/components/banks/BankLogo";
 import { formatIban as formatIbanDisplay } from "@/data/turkey-banks";
+import { shippingCharge, type SiteSettings } from "@/lib/site-settings";
 
 export type CheckoutLine = {
   name: string;
@@ -113,6 +114,7 @@ export function CheckoutView({
   transferBanks,
   orderNoteEnabled = false,
   minOrderAmount = 0,
+  shipping,
 }: {
   loggedIn: boolean;
   iyzicoReady: boolean;
@@ -133,6 +135,7 @@ export function CheckoutView({
   }>;
   orderNoteEnabled?: boolean;
   minOrderAmount?: number;
+  shipping: SiteSettings["shipping"];
 }) {
   const router = useRouter();
   const [step, setStep] = useState<Step>("delivery");
@@ -174,7 +177,8 @@ export function CheckoutView({
   const [orderNote, setOrderNote] = useState("");
 
   const goods = subtotal + vat;
-  const grand = Math.max(0, goods - (applied?.amount ?? 0));
+  const shippingTotal = Math.max(0, shippingCharge(Math.max(0, goods - (applied?.amount ?? 0)), { shipping }));
+  const grand = Math.max(0, goods - (applied?.amount ?? 0)) + shippingTotal;
   const office = delivery === "office";
   const selectedMethod = paymentMethods.find((method) => method.key === payment) ?? paymentMethods[0] ?? null;
 
@@ -1026,7 +1030,9 @@ export function CheckoutView({
               </div>
               <div className="flex justify-between gap-3 border-b border-line pb-4">
                 <dt className="text-[#666]">Kargo</dt>
-                <dd className="font-semibold text-brand-green">Ücretsiz</dd>
+                <dd className={`font-semibold ${shippingTotal === 0 ? "text-brand-green" : "text-[#111]"}`}>
+                  {shippingTotal === 0 ? "Ücretsiz" : money(shippingTotal)}
+                </dd>
               </div>
               {applied ? (
                 <div className="flex justify-between gap-3">

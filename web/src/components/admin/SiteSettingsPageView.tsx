@@ -275,7 +275,7 @@ export function SiteSettingsPageView({ initial, logoPreview, faviconPreview }: P
             </div>
           </Card>
 
-          <Card icon={ShoppingBag} iconClass="bg-[#f1e9ff] text-[#7c3aed]" title="Sipariş Ayarları" hint="Sipariş numarası, minimum tutar ve stoksuz satış.">
+          <Card icon={ShoppingBag} iconClass="bg-[#f1e9ff] text-[#7c3aed]" title="Sipariş Ayarları" hint="Sipariş numarası, minimum tutar, kargo ve stoksuz satış.">
             <div className="grid gap-4 sm:grid-cols-2">
               <label className={LABEL}>
                 Sipariş No Ön Eki
@@ -317,6 +317,40 @@ export function SiteSettingsPageView({ initial, logoPreview, faviconPreview }: P
                   <option value="no">İzin Verme</option>
                   <option value="yes">İzin Ver</option>
                 </select>
+              </label>
+              <ToggleRow label="Kargo Ücreti Aktif" on={form.shipping.enabled} onChange={(value) => patch("shipping", { enabled: value })} />
+              <label className={LABEL}>
+                Sabit Kargo Ücreti
+                <span className="relative mt-1.5 block">
+                  <input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={form.shipping.flatFee}
+                    onChange={(e) => patch("shipping", { flatFee: Number(e.target.value) || 0 })}
+                    className={`${CONTROL} pr-12`}
+                  />
+                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[12px] font-semibold text-[#94a3b8]">
+                    TL
+                  </span>
+                </span>
+              </label>
+              <label className={LABEL}>
+                Ücretsiz Kargo Eşiği
+                <span className="relative mt-1.5 block">
+                  <input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={form.shipping.freeThreshold}
+                    onChange={(e) => patch("shipping", { freeThreshold: Number(e.target.value) || 0 })}
+                    className={`${CONTROL} pr-12`}
+                  />
+                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[12px] font-semibold text-[#94a3b8]">
+                    TL
+                  </span>
+                </span>
+                <span className="mt-1.5 block text-[11px] font-medium text-[#94a3b8]">0 girilirse eşik uygulanmaz; sabit ücret her siparişe eklenir.</span>
               </label>
             </div>
           </Card>

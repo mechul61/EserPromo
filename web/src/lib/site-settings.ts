@@ -14,6 +14,7 @@ export {
   SITE_SETTING_DEFAULTS,
   phoneTelFrom,
   whatsappHrefFrom,
+  shippingCharge,
   stockAllowsSale,
   stockMaxQty,
 } from "@/lib/site-settings-copy";
@@ -30,6 +31,7 @@ function mergeSettings(raw: unknown): SiteSettings {
   const contact = isRecord(src.contact) ? src.contact : {};
   const order = isRecord(src.order) ? src.order : {};
   const stock = isRecord(src.stock) ? src.stock : {};
+  const shipping = isRecord(src.shipping) ? src.shipping : {};
   const company = isRecord(src.company) ? src.company : {};
   const social = isRecord(src.socialMedia) ? src.socialMedia : {};
   const seo = isRecord(src.seo) ? src.seo : {};
@@ -64,6 +66,11 @@ function mergeSettings(raw: unknown): SiteSettings {
       productLimitPriority: stock.productLimitPriority !== false,
       lowStockThreshold: Math.max(0, Number(stock.lowStockThreshold ?? 10) || 0),
       outOfStockBehavior: stock.outOfStockBehavior === "CONTINUE_SALE" ? "CONTINUE_SALE" : "STOP_SALE",
+    },
+    shipping: {
+      enabled: shipping.enabled === true,
+      flatFee: Math.max(0, Number(shipping.flatFee ?? d.shipping.flatFee) || 0),
+      freeThreshold: Math.max(0, Number(shipping.freeThreshold ?? d.shipping.freeThreshold) || 0),
     },
     company: {
       companyName: String(company.companyName ?? ""),
