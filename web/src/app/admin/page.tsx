@@ -29,6 +29,7 @@ import { prisma } from "@/lib/db";
 import { formatPriceTry, mediaUrl } from "@/lib/media";
 import { REVENUE_STATUSES } from "@/lib/commerce/revenue";
 import { ORDER_STATUS_LABEL } from "@/lib/commerce/orders";
+import { listAnalyticsDays, sumAnalyticsRange } from "@/lib/analytics";
 
 export const metadata = { title: "Yönetim özeti" };
 export const dynamic = "force-dynamic";
@@ -121,6 +122,12 @@ export default async function AdminHomePage({ searchParams }: { searchParams?: S
     prevWeekUsers,
     thisWeekProducts,
     prevWeekProducts,
+    openSupportCount,
+    weekSupportCount,
+    prevWeekSupportCount,
+    weekTraffic,
+    prevWeekTraffic,
+    trafficDays,
   ] = await Promise.all([
     prisma.order.count(),
     prisma.order.aggregate({
@@ -166,6 +173,12 @@ export default async function AdminHomePage({ searchParams }: { searchParams?: S
     prisma.user.count({ where: { role: "customer", createdAt: { gte: prevFrom, lt: prevToExclusive } } }),
     prisma.product.count({ where: { createdAt: { gte: periodFrom, lt: periodToExclusive } } }),
     prisma.product.count({ where: { createdAt: { gte: prevFrom, lt: prevToExclusive } } }),
+    prisma.supportTicket.count({ where: { status: { in: ["open", "waiting"] } } }),
+    prisma.supportTicket.count({ where: { createdAt: { gte: periodFrom, lt: periodToExclusive } } }),
+    prisma.supportTicket.count({ where: { createdAt: { gte: prevFrom, lt: prevToExclusive } } }),
+    sumAnalyticsRange(toYmd(periodFrom), toYmd(periodToExclusive)),
+    sumAnalyticsRange(toYmd(prevFrom), toYmd(prevToExclusive)),
+    listAnalyticsDays(toYmd(periodFrom), toYmd(periodToExclusive)),
   ]);
 
   const topIds = topGroups.map((row) => row.productId);
@@ -219,20 +232,20 @@ export default async function AdminHomePage({ searchParams }: { searchParams?: S
       delta: pct(thisWeekProducts, prevWeekProducts),
     },
     {
-      label: "Yeni Yorumlar",
-      value: "15",
-      href: "/admin",
+      label: "Açık Destek",
+      value: openSupportCount.toLocaleString("tr-TR"),
+      href: "/admin/destek",
       Icon: MessageSquareText,
       color: "bg-[#ec4899]",
-      delta: 36.4,
+      delta: pct(weekSupportCount, prevWeekSupportCount),
     },
     {
       label: "Site Ziyareti",
-      value: "28.540",
+      value: weekTraffic.pageViews.toLocaleString("tr-TR"),
       href: "/admin",
       Icon: Eye,
       color: "bg-[#14b8a6]",
-      delta: 14.8,
+      delta: pct(weekTraffic.pageViews, prevWeekTraffic.pageViews),
     },
   ] as const;
 
@@ -260,9 +273,25 @@ export default async function AdminHomePage({ searchParams }: { searchParams?: S
   const maxRevenue = Math.max(1, ...last7.map((item) => item.revenue));
   const orderLine = last7.map((item, i) => `${36 + i * 70},${132 - (item.orders / maxOrders) * 92}`).join(" ");
   const revenueLine = last7.map((item, i) => `${36 + i * 70},${132 - (item.revenue / maxRevenue) * 92}`).join(" ");
-  const trafficLine = last7
-    .map((item, i) => `${18 + i * 62},${78 - ((item.orders + 3) / (maxOrders + 3)) * 52}`)
+  const trafficByDay = new Map(trafficDays.map((row) => [row.day, row]));
+  const last7Traffic = Array.from({ length: 7 }, (_, index) => {
+    const day = addDays(periodFrom, index);
+    const key = toYmd(day);
+    const row = trafficByDay.get(key);
+    return {
+      label: day.toLocaleDateString("tr-TR", { day: "2-digit", month: "short" }),
+      views: row?.pageViews ?? 0,
+      visitors: row?.visitors ?? 0,
+    };
+  });
+  const maxTrafficViews = Math.max(1, ...last7Traffic.map((item) => item.views));
+  const trafficLine = last7Traffic
+    .map((item, i) => `${18 + i * 62},${78 - (item.views / maxTrafficViews) * 52}`)
     .join(" ");
+  const conversionRate =
+    weekTraffic.visitors > 0 ? (thisWeekOrders / weekTraffic.visitors) * 100 : 0;
+  const prevConversion =
+    prevWeekTraffic.visitors > 0 ? (prevWeekOrderCount / prevWeekTraffic.visitors) * 100 : 0;
   const stockMax = Math.max(1, ...stockProducts.map((item) => item.stockTotal));
 
   const dateFrom = periodFrom.toLocaleDateString("tr-TR", { day: "2-digit", month: "long", year: "numeric" });
@@ -602,10 +631,12 @@ export default async function AdminHomePage({ searchParams }: { searchParams?: S
             </span>
           </div>
           <div className="flex items-end gap-2">
-            <p className="text-[28px] font-extrabold leading-none text-[#0f172a]">28.540</p>
-            <Delta value={14.8} />
+            <p className="text-[28px] font-extrabold leading-none text-[#0f172a]">
+              {weekTraffic.pageViews.toLocaleString("tr-TR")}
+            </p>
+            <Delta value={pct(weekTraffic.pageViews, prevWeekTraffic.pageViews)} />
           </div>
-          <p className="mt-1 text-[12px] text-[#94a3b8]">Toplam ziyaret</p>
+          <p className="mt-1 text-[12px] text-[#94a3b8]">Seçili dönem sayfa görüntüleme</p>
           <svg viewBox="0 0 400 96" className="mt-3 h-[92px] w-full">
             <polyline fill="rgba(20,184,166,0.14)" stroke="none" points={`18,96 ${trafficLine} 390,96`} />
             <polyline fill="none" stroke="#14b8a6" strokeWidth="3" strokeLinejoin="round" points={trafficLine} />
@@ -613,18 +644,24 @@ export default async function AdminHomePage({ searchParams }: { searchParams?: S
           <div className="mt-3 grid grid-cols-3 gap-2 text-center">
             <div>
               <p className="text-[11px] text-[#94a3b8]">Tekil Ziyaretçi</p>
-              <p className="mt-1 text-[13px] font-extrabold text-[#0f172a]">18.750</p>
-              <Delta value={11.3} />
+              <p className="mt-1 text-[13px] font-extrabold text-[#0f172a]">
+                {weekTraffic.visitors.toLocaleString("tr-TR")}
+              </p>
+              <Delta value={pct(weekTraffic.visitors, prevWeekTraffic.visitors)} />
             </div>
             <div>
               <p className="text-[11px] text-[#94a3b8]">Sayfa Görüntüleme</p>
-              <p className="mt-1 text-[13px] font-extrabold text-[#0f172a]">68.540</p>
-              <Delta value={16.7} />
+              <p className="mt-1 text-[13px] font-extrabold text-[#0f172a]">
+                {weekTraffic.pageViews.toLocaleString("tr-TR")}
+              </p>
+              <Delta value={pct(weekTraffic.pageViews, prevWeekTraffic.pageViews)} />
             </div>
             <div>
-              <p className="text-[11px] text-[#94a3b8]">Hemen Çıkma</p>
-              <p className="mt-1 text-[13px] font-extrabold text-[#0f172a]">%32,6</p>
-              <Delta value={2.1} invert />
+              <p className="text-[11px] text-[#94a3b8]">Sipariş Dönüşümü</p>
+              <p className="mt-1 text-[13px] font-extrabold text-[#0f172a]">
+                %{conversionRate.toFixed(1).replace(".", ",")}
+              </p>
+              <Delta value={pct(conversionRate, prevConversion)} />
             </div>
           </div>
         </article>

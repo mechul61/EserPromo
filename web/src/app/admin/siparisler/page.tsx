@@ -2,6 +2,7 @@ import { OrdersPageView, type AdminOrderRow, type OrdersKpiCard } from "@/compon
 import { prisma } from "@/lib/db";
 import { formatPriceTry } from "@/lib/media";
 import { REVENUE_STATUSES } from "@/lib/commerce/revenue";
+import { sumAnalyticsRange } from "@/lib/analytics";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Siparişler | Yönetim" };
@@ -9,6 +10,13 @@ export const metadata = { title: "Siparişler | Yönetim" };
 function pct(current: number, previous: number) {
   if (previous <= 0) return current > 0 ? 100 : 0;
   return ((current - previous) / previous) * 100;
+}
+
+function toYmd(d: Date) {
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
 }
 
 function paymentStatus(order: { status: string; payments: Array<{ status: string }> }) {
@@ -24,6 +32,7 @@ export default async function AdminOrdersPage() {
   const now = new Date();
   const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const prevStart = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+  const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
   const [
     orders,
@@ -40,6 +49,11 @@ export default async function AdminOrdersPage() {
     thisWeekProducts,
     prevWeekProducts,
     statusRows,
+    openSupportCount,
+    weekSupportCount,
+    prevWeekSupportCount,
+    weekTraffic,
+    prevWeekTraffic,
   ] = await Promise.all([
     prisma.order.findMany({
       orderBy: { createdAt: "desc" },
@@ -71,6 +85,11 @@ export default async function AdminOrdersPage() {
     prisma.product.count({ where: { createdAt: { gte: weekStart } } }),
     prisma.product.count({ where: { createdAt: { gte: prevStart, lt: weekStart } } }),
     prisma.order.groupBy({ by: ["status"], _count: { _all: true } }),
+    prisma.supportTicket.count({ where: { status: { in: ["open", "waiting"] } } }),
+    prisma.supportTicket.count({ where: { createdAt: { gte: weekStart } } }),
+    prisma.supportTicket.count({ where: { createdAt: { gte: prevStart, lt: weekStart } } }),
+    sumAnalyticsRange(toYmd(weekStart), toYmd(tomorrow)),
+    sumAnalyticsRange(toYmd(prevStart), toYmd(weekStart)),
   ]);
 
   const thisWeekRevenue = weekOrders
@@ -121,16 +140,16 @@ export default async function AdminOrdersPage() {
       icon: "products",
     },
     {
-      label: "Yeni Yorumlar",
-      value: "15",
-      delta: 36.4,
+      label: "Açık Destek",
+      value: openSupportCount.toLocaleString("tr-TR"),
+      delta: pct(weekSupportCount, prevWeekSupportCount),
       color: "bg-[#ec4899]",
       icon: "comments",
     },
     {
       label: "Site Ziyareti",
-      value: "28.540",
-      delta: 14.8,
+      value: weekTraffic.pageViews.toLocaleString("tr-TR"),
+      delta: pct(weekTraffic.pageViews, prevWeekTraffic.pageViews),
       color: "bg-[#14b8a6]",
       icon: "visits",
     },

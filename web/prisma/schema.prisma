@@ -780,3 +780,16 @@ model SupportMessage {
 
   @@index([ticketId, createdAt])
 }
+
+model SiteAnalyticsDay {
+  day       String @id
+  pageViews Int    @default(0)
+  visitors  Int    @default(0)
+}
+
+model SiteVisitorDay {
+  id  String @id
+  day String
+
+  @@index([day])
+}

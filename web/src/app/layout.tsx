@@ -4,6 +4,7 @@ import "./globals.css";
 import { siteUrl } from "@/lib/env";
 import { buildLocalBusinessJsonLd, buildWebsiteSearchJsonLd } from "@/lib/seo/local-business";
 import { faviconSrc, getSiteContact, getSiteSettings } from "@/lib/site-settings";
+import { PageViewBeacon } from "@/components/analytics/PageViewBeacon";
 
 const montserrat = Montserrat({
   variable: "--font-montserrat",
@@ -70,6 +71,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessJsonLd) }} />
         {children}
+        <PageViewBeacon />
       </body>
     </html>
   );
