@@ -688,7 +688,7 @@ export function EmailTemplatesPageView({
               ) : (
                 logs.map((log) => (
                   <tr key={log.id} className="border-b border-[#f1f5f9] last:border-0">
-                    <td className="px-2 py-2.5 text-[12px] text-[#64748b]">{fmtDate(log.createdAt)}</td>
+                    <td className="px-2 py-2.5 text-[12px] text-[#64748b]">{fmtWhen(log.createdAt)}</td>
                     <td className="px-2 py-2.5 font-mono text-[11px] text-[#334155]">{log.templateKey}</td>
                     <td className="px-2 py-2.5">{log.to}</td>
                     <td className="max-w-[280px] truncate px-2 py-2.5">{log.subject}</td>
