@@ -26,7 +26,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/site-haritasi/",
     "/teklif/",
     "/logolu-siparis/",
-    "/arama/",
     ...LOCAL_AREAS.map((area) => `/bolgeler/${area.slug}/`),
   ];
   const [categories, products] = await Promise.all([

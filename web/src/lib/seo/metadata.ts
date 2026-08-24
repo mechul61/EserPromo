@@ -62,9 +62,14 @@ const LEGACY_CATALOG_QUERY_KEYS = [
   "orderby",
   "product_count",
   "add-to-cart",
+  "add_to_wishlist",
+  "_wpnonce",
   "removed_item",
   "wc-ajax",
   "query_type",
+  /** Eski WordPress post/page ID (?p=135042, ?page_id=...) */
+  "p",
+  "page_id",
 ] as const;
 
 /** Eski WooCommerce / filtre query parametreleri (middleware ile de temizlenir). */
