@@ -105,6 +105,13 @@ async function finishRun(
   stats: { categories: number; products: number; images: number },
   error?: string,
 ) {
+  const existing = await prisma.syncRun.findUnique({
+    where: { id: runId },
+    select: { errorMessage: true },
+  });
+  const jobType =
+    existing?.errorMessage && !/\s/.test(existing.errorMessage) ? existing.errorMessage : undefined;
+
   await prisma.syncRun.update({
     where: { id: runId },
     data: {
@@ -114,7 +121,7 @@ async function finishRun(
       categoriesUpsert: stats.categories,
       productsUpserted: stats.products,
       imagesDownloaded: stats.images,
-      errorMessage: error || undefined,
+      errorMessage: error || jobType || undefined,
     },
   });
 }

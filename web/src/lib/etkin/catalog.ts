@@ -63,6 +63,7 @@ export async function upsertCategory(
       homepageOrder: toInt(cat.anasayfa_sira),
       sourceMd5: cat.md5 || null,
     },
+    // Anasayfa görünürlüğü / sırası admin tercihidir; sync üzerine yazmaz.
     update: existing?.adminLocked
       ? { sourceMd5: cat.md5 || null }
       : {
@@ -73,8 +74,6 @@ export async function upsertCategory(
           ...(imageLocalPath ? { imageLocalPath } : {}),
           iconUrl: cat.kat_icon || null,
           sortOrder: toInt(cat.sira),
-          showOnHomepage: toInt(cat.anasayfa_gosterim) === 1,
-          homepageOrder: toInt(cat.anasayfa_sira),
           sourceMd5: cat.md5 || null,
         },
   });

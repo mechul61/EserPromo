@@ -14,11 +14,14 @@ import {
   Package,
   Play,
   RefreshCw,
+  Save,
   Search,
   ShoppingBag,
+  Timer,
   TrendingUp,
   X,
 } from "lucide-react";
+import type { ScheduledJobType, SyncSchedule } from "@/lib/etkin/sync-schedule";
 
 type SyncRun = {
   id: number;
@@ -33,6 +36,7 @@ type SyncRun = {
 };
 
 type JobAction = "full" | "categories" | "products" | "single_product" | "stock_prices";
+type ScheduleDecision = { due: true } | { due: false; reason: string };
 
 const JOBS: Array<{
   action: JobAction;
@@ -108,7 +112,15 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-export function SyncPageView({ initialRuns }: { initialRuns: SyncRun[] }) {
+export function SyncPageView({
+  initialRuns,
+  initialSchedule,
+  initialDecision,
+}: {
+  initialRuns: SyncRun[];
+  initialSchedule: SyncSchedule;
+  initialDecision: ScheduleDecision;
+}) {
   const router = useRouter();
   const [runs, setRuns] = useState(initialRuns);
   const [running, setRunning] = useState(false);
@@ -116,7 +128,66 @@ export function SyncPageView({ initialRuns }: { initialRuns: SyncRun[] }) {
   const [singleId, setSingleId] = useState("");
   const [singleLoading, setSingleLoading] = useState(false);
   const [singleResult, setSingleResult] = useState<{ ok: boolean; error?: string } | null>(null);
+  const [schedule, setSchedule] = useState(initialSchedule);
+  const [decision, setDecision] = useState(initialDecision);
+  const [schedulePending, setSchedulePending] = useState(false);
+  const [scheduleNotice, setScheduleNotice] = useState<string | null>(null);
+  const [scheduleError, setScheduleError] = useState<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval>>(undefined);
+
+  function patchSchedule<K extends keyof SyncSchedule>(key: K, value: SyncSchedule[K]) {
+    setScheduleNotice(null);
+    setScheduleError(null);
+    setSchedule((prev) => ({ ...prev, [key]: value }));
+  }
+
+  async function saveSchedule() {
+    setSchedulePending(true);
+    setScheduleNotice(null);
+    setScheduleError(null);
+    try {
+      const res = await fetch("/api/admin/sync/schedule/", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          enabled: schedule.enabled,
+          intervalMinutes: schedule.intervalMinutes,
+          quietStartHour: schedule.quietStartHour,
+          quietEndHour: schedule.quietEndHour,
+          jobType: schedule.jobType,
+        }),
+      });
+      const data = (await res.json()) as {
+        ok?: boolean;
+        error?: string;
+        schedule?: SyncSchedule;
+      };
+      if (!res.ok || !data.schedule) {
+        setScheduleError(data.error || "Zamanlama kaydedilemedi");
+        return;
+      }
+      setSchedule(data.schedule);
+      const check = await fetch("/api/admin/sync/schedule/");
+      const checkData = (await check.json()) as {
+        schedule?: SyncSchedule;
+        nextDecision?: { due: boolean; reason?: string };
+      };
+      if (checkData.schedule) setSchedule(checkData.schedule);
+      if (checkData.nextDecision) {
+        setDecision(
+          checkData.nextDecision.due
+            ? { due: true }
+            : { due: false, reason: checkData.nextDecision.reason || "" },
+        );
+      }
+      setScheduleNotice("Otomatik senkron ayarları kaydedildi.");
+      router.refresh();
+    } catch {
+      setScheduleError("Zamanlama kaydedilemedi");
+    } finally {
+      setSchedulePending(false);
+    }
+  }
 
   const refresh = useCallback(async () => {
     try {
@@ -183,6 +254,106 @@ export function SyncPageView({ initialRuns }: { initialRuns: SyncRun[] }) {
 
   return (
     <div className="space-y-6">
+      {/* OTOMATİK ZAMANLAMA */}
+      <section className="rounded-xl border border-[#e8edf3] bg-white p-4 shadow-sm sm:p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="flex items-center gap-2 text-[14px] font-extrabold tracking-wide text-[#1e293b] uppercase">
+              <Timer className="size-4 text-[#2f6bff]" />
+              Otomatik Senkron
+            </h2>
+            <p className="mt-1 text-[12px] text-[#6b7280]">
+              Saat aralığı ve sıklık buradan yönetilir. Gece sessiz saatlerde çalışmaz. Anasayfa kategori
+              seçimleriniz senkron sırasında korunur.
+            </p>
+          </div>
+          <label className="inline-flex items-center gap-2 text-[13px] font-semibold text-[#0f172a]">
+            <input
+              type="checkbox"
+              checked={schedule.enabled}
+              onChange={(e) => patchSchedule("enabled", e.target.checked)}
+              className="size-4 rounded border-[#cbd5e1]"
+            />
+            Aktif
+          </label>
+        </div>
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <label className="block text-[12px] font-semibold text-[#64748b]">
+            Aralık (dakika)
+            <input
+              type="number"
+              min={15}
+              max={1440}
+              step={15}
+              value={schedule.intervalMinutes}
+              onChange={(e) => patchSchedule("intervalMinutes", Number(e.target.value) || 60)}
+              className="mt-1.5 h-10 w-full rounded-lg border border-[#dbe3ee] bg-[#f8fafc] px-3 text-[13px] outline-none"
+            />
+          </label>
+          <label className="block text-[12px] font-semibold text-[#64748b]">
+            İşlem türü
+            <select
+              value={schedule.jobType}
+              onChange={(e) => patchSchedule("jobType", e.target.value as ScheduledJobType)}
+              className="mt-1.5 h-10 w-full rounded-lg border border-[#dbe3ee] bg-[#f8fafc] px-3 text-[13px] outline-none"
+            >
+              <option value="stock_prices">Stok &amp; Fiyat (önerilen, saatlik)</option>
+              <option value="products">Tüm Ürünler</option>
+              <option value="categories">Kategoriler</option>
+              <option value="full">Tam Senkron</option>
+            </select>
+          </label>
+          <label className="block text-[12px] font-semibold text-[#64748b]">
+            Sessiz başlangıç (saat)
+            <input
+              type="number"
+              min={0}
+              max={23}
+              value={schedule.quietStartHour}
+              onChange={(e) => patchSchedule("quietStartHour", Number(e.target.value) || 0)}
+              className="mt-1.5 h-10 w-full rounded-lg border border-[#dbe3ee] bg-[#f8fafc] px-3 text-[13px] outline-none"
+            />
+          </label>
+          <label className="block text-[12px] font-semibold text-[#64748b]">
+            Sessiz bitiş (saat, hariç)
+            <input
+              type="number"
+              min={0}
+              max={23}
+              value={schedule.quietEndHour}
+              onChange={(e) => patchSchedule("quietEndHour", Number(e.target.value) || 0)}
+              className="mt-1.5 h-10 w-full rounded-lg border border-[#dbe3ee] bg-[#f8fafc] px-3 text-[13px] outline-none"
+            />
+            <span className="mt-1 block text-[11px] font-medium text-[#94a3b8]">
+              Varsayılan 0–8 → 00:00–07:59 çalışmaz
+            </span>
+          </label>
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            disabled={schedulePending}
+            onClick={() => void saveSchedule()}
+            className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#2f6bff] px-4 text-[12px] font-bold text-white disabled:opacity-50"
+          >
+            {schedulePending ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
+            Kaydet
+          </button>
+          <p className="text-[12px] text-[#64748b]">
+            {decision.due
+              ? "Şu an tetiklenmeye hazır."
+              : `Şu an atlanır: ${"reason" in decision ? decision.reason : ""}`}
+            {schedule.lastScheduledAt
+              ? ` · Son otomatik: ${new Date(schedule.lastScheduledAt).toLocaleString("tr-TR")}`
+              : " · Henüz otomatik çalışmadı"}
+          </p>
+        </div>
+        {scheduleNotice ? <p className="mt-2 text-[12px] font-semibold text-[#059669]">{scheduleNotice}</p> : null}
+        {scheduleError ? <p className="mt-2 text-[12px] font-semibold text-[#dc2626]">{scheduleError}</p> : null}
+      </section>
+
       {/* JOB KARTLARI */}
       <section>
         <h2 className="mb-3 text-[14px] font-extrabold tracking-wide text-[#1e293b] uppercase">
