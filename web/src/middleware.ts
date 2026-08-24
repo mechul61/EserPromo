@@ -47,11 +47,14 @@ function stripLegacyCatalogQuery(req: NextRequest) {
 }
 
 function redirectWwwToApex(req: NextRequest) {
-  const host = req.headers.get("host") ?? "";
+  const hostHeader = req.headers.get("x-forwarded-host") || req.headers.get("host") || "";
+  const host = hostHeader.split(",")[0]?.trim().toLowerCase() || "";
   if (!host.startsWith("www.")) return null;
-  const url = req.nextUrl.clone();
-  url.hostname = host.slice(4);
-  return NextResponse.redirect(url, 308);
+  const apex = host.slice(4).split(":")[0];
+  if (!apex) return null;
+  const proto = (req.headers.get("x-forwarded-proto") || "https").split(",")[0]?.trim() || "https";
+  const dest = new URL(`${proto}://${apex}${req.nextUrl.pathname}${req.nextUrl.search}`);
+  return NextResponse.redirect(dest, 308);
 }
 
 function applyRateLimit(req: NextRequest, key: string, max: number, windowMs: number) {
