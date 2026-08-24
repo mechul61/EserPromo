@@ -48,6 +48,22 @@ const nextConfig: NextConfig = {
         destination: "/urunler/",
         permanent: true,
       },
+      // Eski WordPress teknik path'leri
+      {
+        source: "/wp-admin/:path*",
+        destination: "/",
+        permanent: true,
+      },
+      {
+        source: "/wp-includes/:path*",
+        destination: "/",
+        permanent: true,
+      },
+      {
+        source: "/wp-content/:path*",
+        destination: "/",
+        permanent: true,
+      },
       // Bozuk crawl URL
       {
         source: "/$",

@@ -19,6 +19,7 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
         disallow: [
           "/admin",
           "/api/",
+          "/arama/",
           "/hesabim",
           "/giris",
           "/kayit",
@@ -27,6 +28,9 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
           "/sepet",
           "/odeme",
           "/siparislerim",
+          "/wp-admin/",
+          "/wp-includes/",
+          "/wp-content/",
         ],
       },
     ],
