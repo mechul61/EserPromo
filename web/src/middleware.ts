@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { isLegacyCatalogQueryKey } from "@/lib/seo/metadata";
 import { isSameOriginRequest } from "@/lib/security/origin";
 
 const SESSION_COOKIE = "ep_sid";
@@ -32,6 +33,27 @@ function isSupportEndpoint(pathname: string) {
   );
 }
 
+function stripLegacyCatalogQuery(req: NextRequest) {
+  const url = req.nextUrl.clone();
+  let changed = false;
+  for (const key of [...url.searchParams.keys()]) {
+    if (isLegacyCatalogQueryKey(key)) {
+      url.searchParams.delete(key);
+      changed = true;
+    }
+  }
+  if (!changed) return null;
+  return NextResponse.redirect(url, 308);
+}
+
+function redirectWwwToApex(req: NextRequest) {
+  const host = req.headers.get("host") ?? "";
+  if (!host.startsWith("www.")) return null;
+  const url = req.nextUrl.clone();
+  url.hostname = host.slice(4);
+  return NextResponse.redirect(url, 308);
+}
+
 function applyRateLimit(req: NextRequest, key: string, max: number, windowMs: number) {
   const now = Date.now();
   if (ipHits.size > 5000) {
@@ -57,6 +79,13 @@ function applyRateLimit(req: NextRequest, key: string, max: number, windowMs: nu
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const method = req.method.toUpperCase();
+
+  const wwwRedirect = redirectWwwToApex(req);
+  if (wwwRedirect) return wwwRedirect;
+
+  const legacyQueryRedirect = stripLegacyCatalogQuery(req);
+  if (legacyQueryRedirect) return legacyQueryRedirect;
+
   const isAdminPage = pathname === "/admin" || pathname.startsWith("/admin/");
   const isAdminApi = pathname === "/api/admin" || pathname.startsWith("/api/admin/");
 
@@ -109,5 +138,9 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/api/:path*"],
+  matcher: [
+    "/admin/:path*",
+    "/api/:path*",
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff2?|txt|xml)$).*)",
+  ],
 };

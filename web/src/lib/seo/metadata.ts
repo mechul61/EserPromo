@@ -57,6 +57,25 @@ export function buildPageMetadata({
   };
 }
 
+const LEGACY_CATALOG_QUERY_KEYS = [
+  "product_per_page",
+  "orderby",
+  "product_count",
+  "add-to-cart",
+  "removed_item",
+  "wc-ajax",
+  "query_type",
+] as const;
+
+/** Eski WooCommerce / filtre query parametreleri (middleware ile de temizlenir). */
+export function isLegacyCatalogQueryKey(key: string) {
+  return (
+    (LEGACY_CATALOG_QUERY_KEYS as readonly string[]).includes(key) ||
+    key.startsWith("filter_") ||
+    key.startsWith("pa_")
+  );
+}
+
 /** Filtre / sıralama query’li katalog URL’leri indekslenmemeli (canonical temiz path’te kalır). */
 export function catalogQueryNeedsNoindex(query: Record<string, string | string[] | undefined>) {
   const has = (key: string) => {
@@ -65,5 +84,6 @@ export function catalogQueryNeedsNoindex(query: Record<string, string | string[]
     if (Array.isArray(value)) return value.some((item) => String(item).trim() !== "");
     return String(value).trim() !== "";
   };
-  return has("renk") || has("ebat") || has("sira") || has("page") || has("q");
+  if (has("renk") || has("ebat") || has("sira") || has("page") || has("q")) return true;
+  return Object.keys(query).some(isLegacyCatalogQueryKey);
 }
