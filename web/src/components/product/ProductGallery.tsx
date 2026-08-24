@@ -167,20 +167,20 @@ export function ProductGallery({
           }
         />
       </div>
-      <div className="relative mt-2 h-[72px] shrink-0 sm:h-[80px]">
+      <div className="relative mt-2 h-[96px] shrink-0 sm:h-[110px]">
         {thumbOverflow ? (
           <button
             type="button"
             aria-label="Önceki küçük görseller"
             disabled={thumbStart <= 0}
             onClick={() => setThumbStart((s) => Math.max(0, s - 1))}
-            className="absolute top-1/2 left-0 z-10 flex size-7 -translate-y-1/2 items-center justify-center rounded-full bg-[#eceff3] text-[#5b616a] disabled:opacity-35"
+            className="absolute top-1/2 left-0 z-10 flex size-8 -translate-y-1/2 items-center justify-center rounded-full bg-[#eceff3] text-[#5b616a] disabled:opacity-35"
           >
-            <ChevronLeft className="size-3.5" />
+            <ChevronLeft className="size-4" />
           </button>
         ) : null}
         <div
-          className={`grid h-full grid-cols-4 gap-2 ${thumbOverflow ? "mx-8" : ""}`}
+          className={`grid h-full grid-cols-4 gap-2.5 ${thumbOverflow ? "mx-9" : ""}`}
         >
           {thumbs.slice(thumbStart, thumbStart + THUMB_VISIBLE).map((src, offset) => {
             const i = thumbStart + offset;
@@ -204,9 +204,9 @@ export function ProductGallery({
             aria-label="Sonraki küçük görseller"
             disabled={thumbStart >= maxThumbStart}
             onClick={() => setThumbStart((s) => Math.min(maxThumbStart, s + 1))}
-            className="absolute top-1/2 right-0 z-10 flex size-7 -translate-y-1/2 items-center justify-center rounded-full bg-[#eceff3] text-[#5b616a] disabled:opacity-35"
+            className="absolute top-1/2 right-0 z-10 flex size-8 -translate-y-1/2 items-center justify-center rounded-full bg-[#eceff3] text-[#5b616a] disabled:opacity-35"
           >
-            <ChevronRight className="size-3.5" />
+            <ChevronRight className="size-4" />
           </button>
         ) : null}
       </div>
