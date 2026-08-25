@@ -29,12 +29,14 @@ function writeCheckoutHtml(popup: Window, html: string) {
   });
 }
 
-function isPopupClosed(win: Window | null) {
-  if (!win) return true;
+function tryOpenPopup() {
   try {
-    return Boolean(win.closed);
+    const popup = window.open("", IYZICO_POPUP_NAME, iyzicoPopupFeatures());
+    if (!popup) return null;
+    // Cross-origin sonrası .closed güvenilmez; sadece null/engeli kontrol et.
+    return popup;
   } catch {
-    return false;
+    return null;
   }
 }
 
@@ -43,23 +45,22 @@ export function IyzicoCheckout({ orderNumber }: { orderNumber: string }) {
   const popupRef = useRef<Window | null>(null);
   const settledRef = useRef(false);
   const aliveRef = useRef(true);
-  const timersRef = useRef<{ poll?: number; watch?: number }>({});
+  const pollTimerRef = useRef<number | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
   const [waiting, setWaiting] = useState(false);
   const [needsClick, setNeedsClick] = useState(false);
   const [phase, setPhase] = useState("Ödeme hazırlanıyor…");
 
-  const clearTimers = useCallback(() => {
-    if (timersRef.current.poll) window.clearInterval(timersRef.current.poll);
-    if (timersRef.current.watch) window.clearInterval(timersRef.current.watch);
-    timersRef.current = {};
+  const clearPoll = useCallback(() => {
+    if (pollTimerRef.current) window.clearInterval(pollTimerRef.current);
+    pollTimerRef.current = undefined;
   }, []);
 
   const finish = useCallback(
     (input: { ok: boolean; message?: string; orderNumber?: string }) => {
       if (settledRef.current || !aliveRef.current) return;
       settledRef.current = true;
-      clearTimers();
+      clearPoll();
       setWaiting(false);
       setNeedsClick(false);
       try {
@@ -78,13 +79,14 @@ export function IyzicoCheckout({ orderNumber }: { orderNumber: string }) {
 
       setError(input.message || "Ödeme tamamlanamadı");
       setPhase("Ödeme sonucu alındı");
+      setNeedsClick(true);
     },
-    [clearTimers, orderNumber, router],
+    [clearPoll, orderNumber, router],
   );
 
   const startPayment = useCallback(
     async (popup: Window) => {
-      clearTimers();
+      clearPoll();
       settledRef.current = false;
       setError(null);
       setNeedsClick(false);
@@ -136,76 +138,35 @@ export function IyzicoCheckout({ orderNumber }: { orderNumber: string }) {
         if (!aliveRef.current) return;
 
         if (!res.ok) {
-          try {
-            popup.close();
-          } catch {
-            /* ignore */
-          }
           setWaiting(false);
           setNeedsClick(true);
           setError(data.error || "Ödeme formu yüklenemedi");
           return;
         }
 
-        if (isPopupClosed(popup)) {
-          setWaiting(false);
-          setNeedsClick(true);
-          setError("Ödeme penceresi kapandı. Aşağıdaki butonla tekrar açın.");
-          return;
-        }
-
-        if (data.paymentPageUrl) {
-          popup.location.replace(data.paymentPageUrl);
-        } else if (data.checkoutFormContent) {
-          writeCheckoutHtml(popup, data.checkoutFormContent);
-        } else {
-          try {
-            popup.close();
-          } catch {
-            /* ignore */
+        try {
+          if (data.paymentPageUrl) {
+            popup.location.replace(data.paymentPageUrl);
+          } else if (data.checkoutFormContent) {
+            writeCheckoutHtml(popup, data.checkoutFormContent);
+          } else {
+            setWaiting(false);
+            setNeedsClick(true);
+            setError("Iyzico ödeme formu alınamadı");
+            return;
           }
-          setWaiting(false);
-          setNeedsClick(true);
-          setError("Iyzico ödeme formu alınamadı");
-          return;
+        } catch {
+          // Cross-origin / kapalı referans: yine de durum yoklamaya devam et; popup zaten açık olabilir.
         }
 
         setPhase("Ödeme penceresinde işlemi tamamlayın…");
-        const readyAt = Date.now();
 
-        timersRef.current.poll = window.setInterval(() => {
+        // Kapanma algısı YOK — iyzico cross-origin iken window.closed yanlış pozitif veriyor.
+        // Sonuç yalnızca callback postMessage veya ödeme status API'sinden gelir.
+        pollTimerRef.current = window.setInterval(() => {
           void pollStatus();
         }, 2000);
-
-        let closedSince: number | null = null;
-        timersRef.current.watch = window.setInterval(() => {
-          if (settledRef.current || !aliveRef.current) return;
-          const closed = isPopupClosed(popupRef.current);
-          if (!closed) {
-            closedSince = null;
-            return;
-          }
-          // Yönlendirme sırasında false positive olmasın.
-          if (Date.now() - readyAt < 12000) return;
-          if (closedSince == null) closedSince = Date.now();
-          if (Date.now() - closedSince < 2500) return;
-
-          clearTimers();
-          setPhase("Ödeme sonucu kontrol ediliyor…");
-          void (async () => {
-            for (let i = 0; i < 10 && !settledRef.current && aliveRef.current; i++) {
-              await pollStatus();
-              if (settledRef.current) return;
-              await new Promise((resolve) => window.setTimeout(resolve, 1000));
-            }
-            if (!settledRef.current && aliveRef.current) {
-              finish({
-                ok: false,
-                message: "Ödeme penceresi kapatıldı. Ödeme tamamlanmadıysa tekrar deneyebilirsiniz.",
-              });
-            }
-          })();
-        }, 1000);
+        void pollStatus();
       } catch {
         if (aliveRef.current) {
           setWaiting(false);
@@ -214,7 +175,7 @@ export function IyzicoCheckout({ orderNumber }: { orderNumber: string }) {
         }
       }
     },
-    [clearTimers, finish, orderNumber],
+    [clearPoll, finish, orderNumber],
   );
 
   useEffect(() => {
@@ -243,8 +204,8 @@ export function IyzicoCheckout({ orderNumber }: { orderNumber: string }) {
     }
 
     if (pending === orderNumber) {
-      const existing = window.open("", IYZICO_POPUP_NAME, iyzicoPopupFeatures());
-      if (existing && !isPopupClosed(existing)) {
+      const existing = tryOpenPopup();
+      if (existing) {
         void startPayment(existing);
       } else {
         setNeedsClick(true);
@@ -252,7 +213,6 @@ export function IyzicoCheckout({ orderNumber }: { orderNumber: string }) {
         setPhase("Ödeme penceresini açın");
       }
     } else {
-      // Doğrudan /odeme sayfasına gelindi — jest için buton göster.
       setNeedsClick(true);
       setWaiting(false);
       setPhase("Ödeme penceresini açın");
@@ -261,13 +221,13 @@ export function IyzicoCheckout({ orderNumber }: { orderNumber: string }) {
     return () => {
       aliveRef.current = false;
       window.removeEventListener("message", onMessage);
-      clearTimers();
+      clearPoll();
     };
-  }, [clearTimers, finish, orderNumber, startPayment]);
+  }, [clearPoll, finish, orderNumber, startPayment]);
 
   function openByClick() {
-    const popup = window.open("", IYZICO_POPUP_NAME, iyzicoPopupFeatures());
-    if (!popup || isPopupClosed(popup)) {
+    const popup = tryOpenPopup();
+    if (!popup) {
       setError("Tarayıcı ödeme penceresini engelledi. Lütfen popup iznine izin verin.");
       setNeedsClick(true);
       setWaiting(false);
