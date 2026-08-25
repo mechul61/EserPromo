@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
@@ -15,6 +15,7 @@ type IyzicoMessage = {
 const POPUP_NAME = "eserpromo_iyzico_pay";
 const POPUP_FEATURES =
   "width=520,height=760,menubar=no,toolbar=no,location=yes,status=yes,resizable=yes,scrollbars=yes";
+const PENDING_KEY = "iyzico_popup_pending";
 
 function writeCheckoutHtml(popup: Window, html: string) {
   popup.document.open();
@@ -30,30 +31,39 @@ function writeCheckoutHtml(popup: Window, html: string) {
   });
 }
 
+function isPopupClosed(win: Window | null) {
+  if (!win) return true;
+  try {
+    return Boolean(win.closed);
+  } catch {
+    return false;
+  }
+}
+
 export function IyzicoCheckout({ orderNumber }: { orderNumber: string }) {
   const router = useRouter();
   const popupRef = useRef<Window | null>(null);
   const settledRef = useRef(false);
-  const [attempt, setAttempt] = useState(0);
+  const aliveRef = useRef(true);
+  const timersRef = useRef<{ poll?: number; watch?: number }>({});
   const [error, setError] = useState<string | null>(null);
-  const [waiting, setWaiting] = useState(true);
-  const [phase, setPhase] = useState("Ödeme penceresi açılıyor…");
+  const [waiting, setWaiting] = useState(false);
+  const [needsClick, setNeedsClick] = useState(false);
+  const [phase, setPhase] = useState("Ödeme hazırlanıyor…");
 
-  useEffect(() => {
-    let cancelled = false;
-    let pollTimer: number | undefined;
-    let closeTimer: number | undefined;
-    settledRef.current = false;
-    setError(null);
-    setWaiting(true);
-    setPhase("Ödeme penceresi açılıyor…");
+  const clearTimers = useCallback(() => {
+    if (timersRef.current.poll) window.clearInterval(timersRef.current.poll);
+    if (timersRef.current.watch) window.clearInterval(timersRef.current.watch);
+    timersRef.current = {};
+  }, []);
 
-    function finish(input: { ok: boolean; message?: string; orderNumber?: string }) {
-      if (settledRef.current || cancelled) return;
+  const finish = useCallback(
+    (input: { ok: boolean; message?: string; orderNumber?: string }) => {
+      if (settledRef.current || !aliveRef.current) return;
       settledRef.current = true;
+      clearTimers();
       setWaiting(false);
-      if (pollTimer) window.clearInterval(pollTimer);
-      if (closeTimer) window.clearInterval(closeTimer);
+      setNeedsClick(false);
       try {
         popupRef.current?.close();
       } catch {
@@ -70,35 +80,147 @@ export function IyzicoCheckout({ orderNumber }: { orderNumber: string }) {
 
       setError(input.message || "Ödeme tamamlanamadı");
       setPhase("Ödeme sonucu alındı");
-    }
+    },
+    [clearTimers, orderNumber, router],
+  );
 
-    async function pollStatus() {
+  const startPayment = useCallback(
+    async (popup: Window) => {
+      clearTimers();
+      settledRef.current = false;
+      setError(null);
+      setNeedsClick(false);
+      setWaiting(true);
+      setPhase("Iyzico güvenli ödeme hazırlanıyor…");
+      popupRef.current = popup;
+
+      const pollStatus = async () => {
+        try {
+          const res = await fetch(`/api/payments/iyzico/status/?orderNumber=${encodeURIComponent(orderNumber)}`, {
+            credentials: "same-origin",
+            cache: "no-store",
+          });
+          const data = (await res.json()) as {
+            paymentStatus?: string;
+            message?: string;
+            orderNumber?: string;
+          };
+          if (!res.ok) return;
+          if (data.paymentStatus === "success") {
+            finish({ ok: true, orderNumber: data.orderNumber || orderNumber });
+            return;
+          }
+          if (data.paymentStatus === "failure") {
+            finish({
+              ok: false,
+              message: data.message || "Ödeme tamamlanamadı",
+              orderNumber: data.orderNumber,
+            });
+          }
+        } catch {
+          /* retry */
+        }
+      };
+
       try {
-        const res = await fetch(`/api/payments/iyzico/status/?orderNumber=${encodeURIComponent(orderNumber)}`, {
+        const res = await fetch("/api/payments/iyzico/start/", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           credentials: "same-origin",
-          cache: "no-store",
+          body: JSON.stringify({ orderNumber }),
         });
         const data = (await res.json()) as {
-          paymentStatus?: string;
-          message?: string;
-          orderNumber?: string;
+          error?: string;
+          paymentPageUrl?: string;
+          checkoutFormContent?: string;
         };
-        if (!res.ok) return;
-        if (data.paymentStatus === "success") {
-          finish({ ok: true, orderNumber: data.orderNumber || orderNumber });
+
+        if (!aliveRef.current) return;
+
+        if (!res.ok) {
+          try {
+            popup.close();
+          } catch {
+            /* ignore */
+          }
+          setWaiting(false);
+          setNeedsClick(true);
+          setError(data.error || "Ödeme formu yüklenemedi");
           return;
         }
-        if (data.paymentStatus === "failure") {
-          finish({
-            ok: false,
-            message: data.message || "Ödeme tamamlanamadı",
-            orderNumber: data.orderNumber,
-          });
+
+        if (isPopupClosed(popup)) {
+          setWaiting(false);
+          setNeedsClick(true);
+          setError("Ödeme penceresi kapandı. Aşağıdaki butonla tekrar açın.");
+          return;
         }
+
+        if (data.paymentPageUrl) {
+          popup.location.replace(data.paymentPageUrl);
+        } else if (data.checkoutFormContent) {
+          writeCheckoutHtml(popup, data.checkoutFormContent);
+        } else {
+          try {
+            popup.close();
+          } catch {
+            /* ignore */
+          }
+          setWaiting(false);
+          setNeedsClick(true);
+          setError("Iyzico ödeme formu alınamadı");
+          return;
+        }
+
+        setPhase("Ödeme penceresinde işlemi tamamlayın…");
+        const readyAt = Date.now();
+
+        timersRef.current.poll = window.setInterval(() => {
+          void pollStatus();
+        }, 2000);
+
+        let closedSince: number | null = null;
+        timersRef.current.watch = window.setInterval(() => {
+          if (settledRef.current || !aliveRef.current) return;
+          const closed = isPopupClosed(popupRef.current);
+          if (!closed) {
+            closedSince = null;
+            return;
+          }
+          // Yönlendirme sırasında false positive olmasın.
+          if (Date.now() - readyAt < 12000) return;
+          if (closedSince == null) closedSince = Date.now();
+          if (Date.now() - closedSince < 2500) return;
+
+          clearTimers();
+          setPhase("Ödeme sonucu kontrol ediliyor…");
+          void (async () => {
+            for (let i = 0; i < 10 && !settledRef.current && aliveRef.current; i++) {
+              await pollStatus();
+              if (settledRef.current) return;
+              await new Promise((resolve) => window.setTimeout(resolve, 1000));
+            }
+            if (!settledRef.current && aliveRef.current) {
+              finish({
+                ok: false,
+                message: "Ödeme penceresi kapatıldı. Ödeme tamamlanmadıysa tekrar deneyebilirsiniz.",
+              });
+            }
+          })();
+        }, 1000);
       } catch {
-        /* retry */
+        if (aliveRef.current) {
+          setWaiting(false);
+          setNeedsClick(true);
+          setError("Bağlantı hatası");
+        }
       }
-    }
+    },
+    [clearTimers, finish, orderNumber],
+  );
+
+  useEffect(() => {
+    aliveRef.current = true;
 
     function onMessage(event: MessageEvent<IyzicoMessage>) {
       if (event.origin !== window.location.origin) return;
@@ -114,98 +236,47 @@ export function IyzicoCheckout({ orderNumber }: { orderNumber: string }) {
 
     window.addEventListener("message", onMessage);
 
-    void (async () => {
-      try {
-        const popup = window.open("about:blank", POPUP_NAME, POPUP_FEATURES);
-        popupRef.current = popup;
-        if (!popup) {
-          setError("Tarayıcı ödeme penceresini engelledi. Lütfen popup izni verip tekrar deneyin.");
-          setWaiting(false);
-          return;
-        }
-        popup.document.write(
-          "<!DOCTYPE html><html><head><meta charset='utf-8'><title>Ödeme</title></head><body style='font-family:system-ui;padding:24px;text-align:center;color:#555'>Iyzico ödeme sayfası yükleniyor…</body></html>",
-        );
-        popup.document.close();
+    let pending = "";
+    try {
+      pending = sessionStorage.getItem(PENDING_KEY) || "";
+      if (pending === orderNumber) sessionStorage.removeItem(PENDING_KEY);
+    } catch {
+      pending = "";
+    }
 
-        setPhase("Iyzico güvenli ödeme hazırlanıyor…");
-        const res = await fetch("/api/payments/iyzico/start/", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "same-origin",
-          body: JSON.stringify({ orderNumber }),
-        });
-        const data = (await res.json()) as {
-          error?: string;
-          paymentPageUrl?: string;
-          checkoutFormContent?: string;
-        };
-        if (cancelled) return;
-        if (!res.ok) {
-          try {
-            popup.close();
-          } catch {
-            /* ignore */
-          }
-          setError(data.error || "Ödeme formu yüklenemedi");
-          setWaiting(false);
-          return;
-        }
-
-        if (data.paymentPageUrl) {
-          popup.location.href = data.paymentPageUrl;
-        } else if (data.checkoutFormContent) {
-          writeCheckoutHtml(popup, data.checkoutFormContent);
-        } else {
-          try {
-            popup.close();
-          } catch {
-            /* ignore */
-          }
-          setError("Iyzico ödeme formu alınamadı");
-          setWaiting(false);
-          return;
-        }
-
-        setPhase("Ödeme penceresinde işlemi tamamlayın…");
-        pollTimer = window.setInterval(() => {
-          void pollStatus();
-        }, 2500);
-
-        closeTimer = window.setInterval(() => {
-          const win = popupRef.current;
-          if (!win || !win.closed) return;
-          if (closeTimer) window.clearInterval(closeTimer);
-          closeTimer = undefined;
-          void (async () => {
-            for (let i = 0; i < 6 && !settledRef.current && !cancelled; i++) {
-              await pollStatus();
-              if (settledRef.current) return;
-              await new Promise((resolve) => window.setTimeout(resolve, 700));
-            }
-            if (!settledRef.current) {
-              finish({
-                ok: false,
-                message: "Ödeme penceresi kapatıldı. Ödeme tamamlanmadıysa tekrar deneyebilirsiniz.",
-              });
-            }
-          })();
-        }, 800);
-      } catch {
-        if (!cancelled) {
-          setError("Bağlantı hatası");
-          setWaiting(false);
-        }
+    if (pending === orderNumber) {
+      const existing = window.open("", POPUP_NAME, POPUP_FEATURES);
+      if (existing && !isPopupClosed(existing)) {
+        void startPayment(existing);
+      } else {
+        setNeedsClick(true);
+        setWaiting(false);
+        setPhase("Ödeme penceresini açın");
       }
-    })();
+    } else {
+      // Doğrudan /odeme sayfasına gelindi — jest için buton göster.
+      setNeedsClick(true);
+      setWaiting(false);
+      setPhase("Ödeme penceresini açın");
+    }
 
     return () => {
-      cancelled = true;
+      aliveRef.current = false;
       window.removeEventListener("message", onMessage);
-      if (pollTimer) window.clearInterval(pollTimer);
-      if (closeTimer) window.clearInterval(closeTimer);
+      clearTimers();
     };
-  }, [orderNumber, router, attempt]);
+  }, [clearTimers, finish, orderNumber, startPayment]);
+
+  function openByClick() {
+    const popup = window.open("", POPUP_NAME, POPUP_FEATURES);
+    if (!popup || isPopupClosed(popup)) {
+      setError("Tarayıcı ödeme penceresini engelledi. Lütfen popup iznine izin verin.");
+      setNeedsClick(true);
+      setWaiting(false);
+      return;
+    }
+    void startPayment(popup);
+  }
 
   return (
     <div className="relative min-h-[280px] overflow-hidden rounded-md border border-line bg-white p-5">
@@ -214,21 +285,25 @@ export function IyzicoCheckout({ orderNumber }: { orderNumber: string }) {
         Kart bilgileriniz Iyzico güvenli ödeme penceresinde işlenir; sitemizde saklanmaz.
       </p>
 
-      {error ? (
+      {error ? <p className="mt-4 text-[13px] font-semibold text-[#dc2626]">{error}</p> : null}
+
+      {needsClick && !waiting ? (
         <div className="mt-4 space-y-3">
-          <p className="text-[13px] font-semibold text-[#dc2626]">{error}</p>
+          <p className="text-[13px] text-[#6b7280]">
+            Güvenli ödeme ayrı bir pencerede açılır. Devam etmek için butona tıklayın.
+          </p>
           <button
             type="button"
-            onClick={() => setAttempt((n) => n + 1)}
+            onClick={openByClick}
             className="h-11 rounded-md bg-navy px-4 text-[13px] font-extrabold tracking-wide text-white hover:bg-navy-deep"
             style={{ color: "#ffffff" }}
           >
-            Tekrar dene
+            Ödeme penceresini aç
           </button>
         </div>
-      ) : (
-        <p className="mt-4 text-[13px] text-[#6b7280]">{phase}</p>
-      )}
+      ) : null}
+
+      {!needsClick && !waiting && !error ? <p className="mt-4 text-[13px] text-[#6b7280]">{phase}</p> : null}
 
       {waiting ? (
         <div

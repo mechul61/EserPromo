@@ -434,6 +434,17 @@ export function CheckoutView({
         return;
       }
       if (payment === "card" && data.requiresIyzico) {
+        // Kullanıcı jestiyle popup aç — sayfa yüklenince açmak tarayıcıda engellenir/kapanır.
+        try {
+          sessionStorage.setItem("iyzico_popup_pending", data.orderNumber);
+        } catch {
+          /* ignore */
+        }
+        window.open(
+          "",
+          "eserpromo_iyzico_pay",
+          "width=520,height=760,menubar=no,toolbar=no,location=yes,status=yes,resizable=yes,scrollbars=yes",
+        );
         router.push(`/siparislerim/${data.orderNumber}/odeme/`);
         return;
       }
