@@ -73,6 +73,13 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async rewrites() {
+    return [
+      // Iyzico / harici paneller sıkça /logo.png bekler
+      { source: "/logo.png", destination: "/brand/logo.png" },
+      { source: "/logo.png/", destination: "/brand/logo.png" },
+    ];
+  },
   images: {
     remotePatterns: [
       {
@@ -100,25 +107,27 @@ const nextConfig: NextConfig = {
       "frame-src https:",
       ...(isHttps ? ["upgrade-insecure-requests"] : []),
     ].join("; ");
+    const securityHeaders = [
+      { key: "X-Content-Type-Options", value: "nosniff" },
+      { key: "X-Frame-Options", value: "DENY" },
+      { key: "X-DNS-Prefetch-Control", value: "off" },
+      { key: "X-Permitted-Cross-Domain-Policies", value: "none" },
+      { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+      // Iyzico vb. harici sitelerin merchant logosunu yükleyebilmesi için
+      { key: "Cross-Origin-Resource-Policy", value: "cross-origin" },
+      { key: "Origin-Agent-Cluster", value: "?1" },
+      { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains; preload" },
+      { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+      {
+        key: "Permissions-Policy",
+        value: "camera=(), microphone=(), geolocation=(), payment=()",
+      },
+      { key: "Content-Security-Policy", value: csp },
+    ];
     return [
       {
         source: "/:path*",
-        headers: [
-          { key: "X-Content-Type-Options", value: "nosniff" },
-          { key: "X-Frame-Options", value: "DENY" },
-          { key: "X-DNS-Prefetch-Control", value: "off" },
-          { key: "X-Permitted-Cross-Domain-Policies", value: "none" },
-          { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
-          { key: "Cross-Origin-Resource-Policy", value: "same-site" },
-          { key: "Origin-Agent-Cluster", value: "?1" },
-          { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains; preload" },
-          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-          {
-            key: "Permissions-Policy",
-            value: "camera=(), microphone=(), geolocation=(), payment=()",
-          },
-          { key: "Content-Security-Policy", value: csp },
-        ],
+        headers: securityHeaders,
       },
     ];
   },
