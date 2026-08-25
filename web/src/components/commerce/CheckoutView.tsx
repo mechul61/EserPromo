@@ -25,6 +25,7 @@ import { CityDistrictFields } from "@/components/forms/CityDistrictFields";
 import { BankLogo } from "@/components/banks/BankLogo";
 import { formatIban as formatIbanDisplay } from "@/data/turkey-banks";
 import { shippingCharge, type SiteSettings } from "@/lib/site-settings";
+import { IYZICO_POPUP_NAME, iyzicoPopupFeatures } from "@/lib/payments/iyzico-popup";
 
 export type CheckoutLine = {
   name: string;
@@ -440,11 +441,7 @@ export function CheckoutView({
         } catch {
           /* ignore */
         }
-        window.open(
-          "",
-          "eserpromo_iyzico_pay",
-          "width=520,height=760,menubar=no,toolbar=no,location=yes,status=yes,resizable=yes,scrollbars=yes",
-        );
+        window.open("", IYZICO_POPUP_NAME, iyzicoPopupFeatures());
         router.push(`/siparislerim/${data.orderNumber}/odeme/`);
         return;
       }

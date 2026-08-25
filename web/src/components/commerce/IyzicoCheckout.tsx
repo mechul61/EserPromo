@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
+import { IYZICO_POPUP_NAME, iyzicoPopupFeatures } from "@/lib/payments/iyzico-popup";
 
 type IyzicoMessage = {
   source?: string;
@@ -12,9 +13,6 @@ type IyzicoMessage = {
   message?: string;
 };
 
-const POPUP_NAME = "eserpromo_iyzico_pay";
-const POPUP_FEATURES =
-  "width=520,height=760,menubar=no,toolbar=no,location=yes,status=yes,resizable=yes,scrollbars=yes";
 const PENDING_KEY = "iyzico_popup_pending";
 
 function writeCheckoutHtml(popup: Window, html: string) {
@@ -245,7 +243,7 @@ export function IyzicoCheckout({ orderNumber }: { orderNumber: string }) {
     }
 
     if (pending === orderNumber) {
-      const existing = window.open("", POPUP_NAME, POPUP_FEATURES);
+      const existing = window.open("", IYZICO_POPUP_NAME, iyzicoPopupFeatures());
       if (existing && !isPopupClosed(existing)) {
         void startPayment(existing);
       } else {
@@ -268,7 +266,7 @@ export function IyzicoCheckout({ orderNumber }: { orderNumber: string }) {
   }, [clearTimers, finish, orderNumber, startPayment]);
 
   function openByClick() {
-    const popup = window.open("", POPUP_NAME, POPUP_FEATURES);
+    const popup = window.open("", IYZICO_POPUP_NAME, iyzicoPopupFeatures());
     if (!popup || isPopupClosed(popup)) {
       setError("Tarayıcı ödeme penceresini engelledi. Lütfen popup iznine izin verin.");
       setNeedsClick(true);
