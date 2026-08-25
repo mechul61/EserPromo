@@ -1,19 +1,20 @@
-/** Iyzico checkout popup — masaüstü iki sütun formuna uygun geniş pencere. */
+/** Iyzico checkout popup. */
 export const IYZICO_POPUP_NAME = "eserpromo_iyzico_pay";
+
+const POPUP_WIDTH = 840;
+const POPUP_HEIGHT = 750;
 
 export function iyzicoPopupFeatures() {
   if (typeof window === "undefined") {
-    return "width=1100,height=820,menubar=no,toolbar=no,location=yes,status=yes,resizable=yes,scrollbars=yes";
+    return `width=${POPUP_WIDTH},height=${POPUP_HEIGHT},menubar=no,toolbar=no,location=yes,status=yes,resizable=yes,scrollbars=yes`;
   }
 
-  const width = Math.min(1100, Math.max(960, window.screen.availWidth - 100));
-  const height = Math.min(860, Math.max(740, window.screen.availHeight - 100));
-  const left = Math.max(0, Math.round((window.screen.availWidth - width) / 2));
-  const top = Math.max(0, Math.round((window.screen.availHeight - height) / 2));
+  const left = Math.max(0, Math.round((window.screen.availWidth - POPUP_WIDTH) / 2));
+  const top = Math.max(0, Math.round((window.screen.availHeight - POPUP_HEIGHT) / 2));
 
   return [
-    `width=${width}`,
-    `height=${height}`,
+    `width=${POPUP_WIDTH}`,
+    `height=${POPUP_HEIGHT}`,
     `left=${left}`,
     `top=${top}`,
     "menubar=no",
