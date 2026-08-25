@@ -31,10 +31,7 @@ function writeCheckoutHtml(popup: Window, html: string) {
 
 function tryOpenPopup() {
   try {
-    const popup = window.open("", IYZICO_POPUP_NAME, iyzicoPopupFeatures());
-    if (!popup) return null;
-    // Cross-origin sonrası .closed güvenilmez; sadece null/engeli kontrol et.
-    return popup;
+    return window.open("", IYZICO_POPUP_NAME, iyzicoPopupFeatures());
   } catch {
     return null;
   }
@@ -83,6 +80,21 @@ export function IyzicoCheckout({ orderNumber }: { orderNumber: string }) {
     },
     [clearPoll, orderNumber, router],
   );
+
+  const cancelWaiting = useCallback(() => {
+    if (settledRef.current) return;
+    clearPoll();
+    setWaiting(false);
+    setNeedsClick(true);
+    setPhase("Ödeme penceresini açın");
+    setError(null);
+    try {
+      popupRef.current?.close();
+    } catch {
+      /* ignore */
+    }
+    popupRef.current = null;
+  }, [clearPoll]);
 
   const startPayment = useCallback(
     async (popup: Window) => {
@@ -156,13 +168,10 @@ export function IyzicoCheckout({ orderNumber }: { orderNumber: string }) {
             return;
           }
         } catch {
-          // Cross-origin / kapalı referans: yine de durum yoklamaya devam et; popup zaten açık olabilir.
+          /* popup referansı cross-origin olabilir; yoklama devam eder */
         }
 
         setPhase("Ödeme penceresinde işlemi tamamlayın…");
-
-        // Kapanma algısı YOK — iyzico cross-origin iken window.closed yanlış pozitif veriyor.
-        // Sonuç yalnızca callback postMessage veya ödeme status API'sinden gelir.
         pollTimerRef.current = window.setInterval(() => {
           void pollStatus();
         }, 2000);
@@ -258,6 +267,13 @@ export function IyzicoCheckout({ orderNumber }: { orderNumber: string }) {
           >
             Ödeme penceresini aç
           </button>
+          <button
+            type="button"
+            onClick={() => router.push(`/siparislerim/${orderNumber}/`)}
+            className="block text-[13px] font-semibold text-[#6b7280] hover:text-navy"
+          >
+            Siparişe dön
+          </button>
         </div>
       ) : null}
 
@@ -272,6 +288,23 @@ export function IyzicoCheckout({ orderNumber }: { orderNumber: string }) {
           <Loader2 className="size-10 animate-spin text-navy" />
           <p className="px-6 text-center text-[14px] font-semibold text-navy">{phase}</p>
           <p className="px-6 text-center text-[12px] text-[#6b7280]">Sonuç dönene kadar bu sayfayı kapatmayın.</p>
+          <div className="mt-2 flex flex-col items-center gap-2 sm:flex-row">
+            <button
+              type="button"
+              onClick={openByClick}
+              className="h-10 rounded-md bg-navy px-4 text-[12px] font-extrabold tracking-wide text-white hover:bg-navy-deep"
+              style={{ color: "#ffffff" }}
+            >
+              Ödeme penceresini tekrar aç
+            </button>
+            <button
+              type="button"
+              onClick={cancelWaiting}
+              className="h-10 rounded-md border border-line bg-white px-4 text-[12px] font-bold text-[#555] hover:border-navy hover:text-navy"
+            >
+              Vazgeç
+            </button>
+          </div>
         </div>
       ) : null}
     </div>
