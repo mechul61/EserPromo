@@ -1,3 +1,4 @@
+import { unstable_noStore as noStore } from "next/cache";
 import { prisma } from "@/lib/db";
 import { mediaUrl } from "@/lib/media";
 import { SITE_CONTACT } from "@/data/catalog-page";
@@ -103,6 +104,7 @@ function mergeSettings(raw: unknown): SiteSettings {
 }
 
 export async function getSiteSettings(): Promise<SiteSettings> {
+  noStore();
   const row = await prisma.siteSetting.findUnique({ where: { key: SITE_SETTINGS_KEY } });
   if (!row?.value) return SITE_SETTING_DEFAULTS;
   try {

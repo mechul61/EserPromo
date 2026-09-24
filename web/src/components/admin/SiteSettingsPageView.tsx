@@ -46,6 +46,8 @@ export function SiteSettingsPageView({ initial, logoPreview, faviconPreview }: P
   const router = useRouter();
   const headerSearchRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState(() => initial);
+  const formRef = useRef(form);
+  formRef.current = form;
   const [logo, setLogo] = useState(() => logoPreview);
   const [favicon, setFavicon] = useState(() => faviconPreview);
   const [pending, setPending] = useState(false);
@@ -113,7 +115,8 @@ export function SiteSettingsPageView({ initial, logoPreview, faviconPreview }: P
     return null;
   }
 
-  async function save(next = form) {
+  async function save() {
+    const next = formRef.current;
     const invalid = validate(next);
     if (invalid) {
       setError(invalid);
@@ -126,13 +129,17 @@ export function SiteSettingsPageView({ initial, logoPreview, faviconPreview }: P
       const res = await fetch("/api/admin/settings/", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        cache: "no-store",
         body: JSON.stringify(next),
       });
-      const data = (await res.json()) as { error?: string };
-      if (!res.ok) {
-        setError(data.error || "Site ayarları güncellenemedi. Lütfen tekrar deneyin.");
+      const data = (await res.json().catch(() => null)) as { error?: string; settings?: SiteSettings } | null;
+      if (!res.ok || !data?.settings) {
+        setError(data?.error || "Site ayarları güncellenemedi. Lütfen tekrar deneyin.");
         return false;
       }
+      formRef.current = data.settings;
+      setForm(data.settings);
       dirty.current = false;
       setNotice("Site ayarları başarıyla güncellendi.");
       router.refresh();
@@ -468,6 +475,8 @@ export function SiteSettingsPageView({ initial, logoPreview, faviconPreview }: P
               <Save className="size-4" />
               {pending ? "Kaydediliyor…" : "Değişiklikleri Kaydet"}
             </button>
+            {notice ? <p className="mt-3 text-[13px] font-semibold text-[#16a34a]">{notice}</p> : null}
+            {error ? <p className="mt-3 text-[13px] font-semibold text-[#dc2626]">{error}</p> : null}
             <button
               type="button"
               onClick={resetDefaults}

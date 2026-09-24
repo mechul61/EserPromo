@@ -19,10 +19,21 @@ export async function PUT(req: NextRequest) {
   const admin = await requireAdminApi();
   if (admin instanceof Response) return admin;
   const body = await req.json().catch(() => null);
-  const settings = await saveSiteSettings(body);
-  revalidatePath("/", "layout");
-  revalidatePath("/admin/ayarlar");
-  revalidatePath("/iletisim");
-  revalidatePath("/robots.txt");
-  return Response.json({ ok: true, settings });
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return jsonError("Ayar verisi okunamadı. Sayfayı yenileyip tekrar kaydedin.");
+  }
+  try {
+    const settings = await saveSiteSettings(body);
+    for (const path of ["/", "/admin/ayarlar/", "/iletisim/", "/robots.txt"]) {
+      try {
+        revalidatePath(path, path === "/" ? "layout" : "page");
+      } catch (error) {
+        console.error("settings revalidate", path, error);
+      }
+    }
+    return Response.json({ ok: true, settings });
+  } catch (error) {
+    console.error("save site settings", error);
+    return jsonError("Site ayarları kaydedilemedi. Lütfen tekrar deneyin.", 500);
+  }
 }
