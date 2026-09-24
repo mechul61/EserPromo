@@ -3,7 +3,7 @@ import { Montserrat } from "next/font/google";
 import "./globals.css";
 import { siteUrl } from "@/lib/env";
 import { buildLocalBusinessJsonLd, buildWebsiteSearchJsonLd } from "@/lib/seo/local-business";
-import { faviconSrc, getSiteContact, getSiteSettings } from "@/lib/site-settings";
+import { getSiteContact, getSiteSettings } from "@/lib/site-settings";
 import { PageViewBeacon } from "@/components/analytics/PageViewBeacon";
 
 const montserrat = Montserrat({
@@ -14,7 +14,8 @@ const montserrat = Montserrat({
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSiteSettings();
-  const icon = faviconSrc(settings);
+  const iconVersion = encodeURIComponent(settings.general.faviconUrl || "default");
+  const icon = `/favicon.ico?v=${iconVersion}`;
   const title = settings.general.siteTitle.trim() || settings.seo.title.trim() || "Eser Promo";
   const description = settings.seo.description.trim() || settings.general.description.trim();
   const image = `${siteUrl()}/brand/logo.png`;
@@ -27,7 +28,10 @@ export async function generateMetadata(): Promise<Metadata> {
     description,
     keywords: settings.seo.keywords || undefined,
     robots: settings.seo.allowIndexing ? { index: true, follow: true } : { index: false, follow: false },
-    icons: icon ? [{ url: icon }] : undefined,
+    icons: {
+      icon: [{ url: icon }],
+      shortcut: [{ url: icon }],
+    },
     alternates: { canonical: "/" },
     openGraph: {
       type: "website",
