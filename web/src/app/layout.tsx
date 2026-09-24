@@ -15,8 +15,8 @@ const montserrat = Montserrat({
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSiteSettings();
   const icon = faviconSrc(settings);
-  const title = settings.seo.title || settings.general.siteTitle || "Eser Promo";
-  const description = settings.seo.description || settings.general.description;
+  const title = settings.general.siteTitle.trim() || settings.seo.title.trim() || "Eser Promo";
+  const description = settings.seo.description.trim() || settings.general.description.trim();
   const image = `${siteUrl()}/brand/logo.png`;
   return {
     metadataBase: new URL(siteUrl()),

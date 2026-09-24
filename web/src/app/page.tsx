@@ -10,17 +10,25 @@ import { ProductSection, type HomeProduct } from "@/components/home/ProductSecti
 import { prisma } from "@/lib/db";
 import { formatPriceTry, mediaUrl } from "@/lib/media";
 import { buildPageMetadata } from "@/lib/seo/metadata";
+import { getSiteSettings } from "@/lib/site-settings";
 import { productPath } from "@/lib/seo/urls";
 
 function currentTimestamp() { return Date.now(); }
 
 export const dynamic = "force-dynamic";
-export const metadata = buildPageMetadata({
-  title: "Promosyon Ürünleri | Logolu Kurumsal Hediyelik",
-  description:
-    "Promosyon ürünleri, logolu kurumsal hediyelik ve toplu alım tedariki. Kalem, ajanda, tekstil ve teknoloji promosyonlarında hızlı üretim. Türkiye geneli kargo; Tuzla, Pendik, Gebze hattına hızlı sevkiyat.",
-  path: "/",
-});
+
+export async function generateMetadata() {
+  const settings = await getSiteSettings();
+  const title = settings.general.siteTitle.trim() || settings.seo.title.trim() || "Eser Promo";
+  const description =
+    settings.seo.description.trim() ||
+    settings.general.description.trim() ||
+    "Promosyon ürünleri, logolu kurumsal hediyelik ve toplu alım tedariki.";
+  return {
+    ...buildPageMetadata({ title, description, path: "/" }),
+    title: { absolute: title },
+  };
+}
 
 export default async function HomePage() {
   const rows = await prisma.product.findMany({

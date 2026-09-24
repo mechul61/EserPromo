@@ -232,7 +232,12 @@ export function SiteSettingsPageView({ initial, logoPreview, faviconPreview }: P
           <Card icon={Globe} iconClass="bg-[#e8f0ff] text-[#2563eb]" title="Genel Bilgiler" hint="Site adı, başlık, logo ve favicon bilgilerini düzenleyin.">
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Site Adı" value={form.general.siteName} onChange={(value) => patch("general", { siteName: value })} />
-              <Field label="Site Başlığı" value={form.general.siteTitle} onChange={(value) => patch("general", { siteTitle: value })} />
+              <div>
+                <Field label="Site Başlığı" value={form.general.siteTitle} onChange={(value) => patch("general", { siteTitle: value })} />
+                <span className="mt-1.5 block text-[11px] font-medium text-[#94a3b8]">
+                  Tarayıcı sekmesi ve ana sayfa başlığı buradan gelir.
+                </span>
+              </div>
             </div>
             <div className="mt-4">
               <Field
