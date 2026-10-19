@@ -318,6 +318,7 @@ export async function syncFull(onProgress: OnProgress = noop) {
           storageRoot: env.STORAGE_PATH,
           siteDomain: env.SITE_DOMAIN,
           downloadImages: true,
+          replaceImages: true,
         });
         productsUpserted += stats.products;
         imagesDownloaded += stats.imagesDownloaded;

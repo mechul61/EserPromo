@@ -1,3 +1,4 @@
+import { unlink } from "node:fs/promises";
 import path from "node:path";
 import { prisma } from "../db";
 import { categorySlug, productGroupSlug, productSlug } from "../slug";
@@ -92,6 +93,8 @@ export async function upsertProductTree(
     storageRoot: string;
     siteDomain: string;
     downloadImages?: boolean;
+    /** Tam senkron: mevcut görseli yeniden indirip eskisinin yerine koyar. */
+    replaceImages?: boolean;
     /** Bu sync turunda primary seçimi için */
     markPrimaryIfFirstInGroup?: boolean;
   },
@@ -141,6 +144,7 @@ async function upsertSingleProduct(
     storageRoot: string;
     siteDomain: string;
     downloadImages?: boolean;
+    replaceImages?: boolean;
   },
 ): Promise<{ imagesDownloaded: number }> {
   const id = toInt(p.urun_id);
@@ -299,15 +303,18 @@ async function upsertSingleProduct(
     for (const { sortOrder, url } of urls) {
       const existingImage = await prisma.productImage.findUnique({
         where: { productId_sortOrder: { productId: id, sortOrder } },
-        select: { sourceUrl: true },
+        select: { sourceUrl: true, localPath: true },
       });
       const dl = await downloadToStorage({
         url,
         storageRoot: options.storageRoot,
         relativeDir: path.join("products", String(id)),
         fileName: imageFileName(sortOrder, url),
+        existingRelativePath: existingImage?.localPath,
         userAgent: options.siteDomain,
         refresh: true,
+        force: options.replaceImages === true,
+        versioned: true,
         urlChanged: existingImage?.sourceUrl !== url,
       });
       if (dl.ok) {
@@ -332,6 +339,17 @@ async function upsertSingleProduct(
       }
     }
     if (urls.length > 0) {
+      const stale = await prisma.productImage.findMany({
+        where: { productId: id, sortOrder: { notIn: urls.map((item) => item.sortOrder) } },
+        select: { localPath: true },
+      });
+      const root = path.resolve(options.storageRoot);
+      for (const row of stale) {
+        const absolute = path.resolve(root, row.localPath);
+        if (!absolute.startsWith(root + path.sep)) continue;
+        await unlink(absolute).catch(() => undefined);
+        await unlink(`${absolute}.sig`).catch(() => undefined);
+      }
       await prisma.productImage.deleteMany({
         where: { productId: id, sortOrder: { notIn: urls.map((item) => item.sortOrder) } },
       });
