@@ -297,15 +297,21 @@ async function upsertSingleProduct(
   if (options.downloadImages !== false) {
     const urls = etkinImageUrls(p);
     for (const { sortOrder, url } of urls) {
+      const existingImage = await prisma.productImage.findUnique({
+        where: { productId_sortOrder: { productId: id, sortOrder } },
+        select: { sourceUrl: true },
+      });
       const dl = await downloadToStorage({
         url,
         storageRoot: options.storageRoot,
         relativeDir: path.join("products", String(id)),
         fileName: imageFileName(sortOrder, url),
         userAgent: options.siteDomain,
+        refresh: true,
+        urlChanged: existingImage?.sourceUrl !== url,
       });
       if (dl.ok) {
-        imagesDownloaded += 1;
+        if (dl.updated) imagesDownloaded += 1;
         await prisma.productImage.upsert({
           where: {
             productId_sortOrder: { productId: id, sortOrder },
@@ -324,6 +330,11 @@ async function upsertSingleProduct(
           },
         });
       }
+    }
+    if (urls.length > 0) {
+      await prisma.productImage.deleteMany({
+        where: { productId: id, sortOrder: { notIn: urls.map((item) => item.sortOrder) } },
+      });
     }
   }
 
