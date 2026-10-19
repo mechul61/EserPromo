@@ -99,6 +99,22 @@ async function cleanStaleRuns() {
   });
 }
 
+async function touchRun(
+  runId: number,
+  client: EtkinApiClient,
+  stats: { categories: number; products: number; images: number },
+) {
+  await prisma.syncRun.update({
+    where: { id: runId },
+    data: {
+      requestCount: client.getRequestCount(),
+      categoriesUpsert: stats.categories,
+      productsUpserted: stats.products,
+      imagesDownloaded: stats.images,
+    },
+  });
+}
+
 async function finishRun(
   runId: number,
   client: EtkinApiClient,
@@ -209,6 +225,11 @@ export async function syncAllProducts(onProgress: OnProgress = noop) {
         productsUpserted += stats.products;
         imagesDownloaded += stats.imagesDownloaded;
       }
+      await touchRun(run.id, client, {
+        categories: 0,
+        products: productsUpserted,
+        images: imagesDownloaded,
+      });
     }
 
     await finishRun(run.id, client, {
@@ -258,6 +279,11 @@ export async function syncFull(onProgress: OnProgress = noop) {
       categoriesUpserted += 1;
       onProgress({ runId: run.id, phase: "Kategoriler", done: i + 1, total: flat.length });
     }
+    await touchRun(run.id, client, {
+      categories: categoriesUpserted,
+      products: 0,
+      images: imagesDownloaded,
+    });
 
     // 2. Ürünler
     onProgress({ runId: run.id, phase: "İndeks çekiliyor…", done: 0, total: 0 });
@@ -296,6 +322,11 @@ export async function syncFull(onProgress: OnProgress = noop) {
         productsUpserted += stats.products;
         imagesDownloaded += stats.imagesDownloaded;
       }
+      await touchRun(run.id, client, {
+        categories: categoriesUpserted,
+        products: productsUpserted,
+        images: imagesDownloaded,
+      });
     }
 
     await finishRun(run.id, client, {

@@ -123,7 +123,7 @@ export function SyncPageView({
 }) {
   const router = useRouter();
   const [runs, setRuns] = useState(initialRuns);
-  const [running, setRunning] = useState(false);
+  const [running, setRunning] = useState(() => initialRuns.some((run) => run.status === "running"));
   const [result, setResult] = useState<{ ok: boolean; error?: string; runId?: number } | null>(null);
   const [singleId, setSingleId] = useState("");
   const [singleLoading, setSingleLoading] = useState(false);
@@ -196,6 +196,16 @@ export function SyncPageView({
       setRuns(data.runs);
       if (!data.isRunning && running) {
         setRunning(false);
+        const latest = data.runs[0];
+        if (latest) {
+          setResult({
+            ok: latest.status === "success",
+            error:
+              latest.status === "failed"
+                ? latest.errorMessage || "Senkron tamamlanamadı"
+                : undefined,
+          });
+        }
         if (pollRef.current) clearInterval(pollRef.current);
       }
     } catch { /* ignore */ }
@@ -217,8 +227,29 @@ export function SyncPageView({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action }),
       });
-      const data = (await res.json()) as { ok: boolean; error?: string; runId?: number };
-      setResult(data);
+      const text = await res.text();
+      let data: { ok?: boolean; error?: string; started?: boolean } = {};
+      try {
+        data = JSON.parse(text) as { ok?: boolean; error?: string; started?: boolean };
+      } catch {
+        setResult({
+          ok: false,
+          error: "Sunucu zaman aşımı sayfası döndü. Senkron arka planda sürebilir; geçmişi yenileyin.",
+        });
+        void refresh();
+        return;
+      }
+      if (!res.ok || data.ok === false) {
+        setResult({ ok: false, error: data.error || "Başlatılamadı" });
+        setRunning(false);
+        void refresh();
+        return;
+      }
+      if (data.started) {
+        void refresh();
+        return;
+      }
+      setResult({ ok: true });
       setRunning(false);
       void refresh();
       router.refresh();
@@ -448,8 +479,10 @@ export function SyncPageView({
         <div className="flex items-center gap-3 rounded-xl border border-[#fde68a] bg-[#fffbeb] p-4">
           <Loader2 className="size-5 animate-spin text-[#d97706]" />
           <div>
-            <p className="text-[13px] font-bold text-[#92400e]">Senkronizasyon çalışıyor…</p>
-            <p className="text-[11px] text-[#92400e]/70">Sayfa otomatik yenilenecek.</p>
+            <p className="text-[13px] font-bold text-[#92400e]">Senkronizasyon sunucuda sürüyor…</p>
+            <p className="text-[11px] text-[#92400e]/70">
+              Sayfayı kapatabilirsiniz. Sonuç geçmişte ve burada görünür.
+            </p>
           </div>
         </div>
       ) : null}

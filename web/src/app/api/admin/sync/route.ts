@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
 export const maxDuration = 300;
@@ -36,34 +36,46 @@ export async function POST(req: Request) {
     syncStockPrices,
   } = await import("@/lib/etkin/sync-jobs");
 
-  try {
-    let result: Record<string, unknown>;
+  if (body.action === "single_product" && !body.productId) {
+    return NextResponse.json({ error: "productId gerekli." }, { status: 400 });
+  }
+
+  const runJob = async () => {
     switch (body.action) {
       case "full":
-        result = await syncFull();
-        break;
+        return syncFull();
       case "categories":
-        result = await syncCategories();
-        break;
+        return syncCategories();
       case "products":
-        result = await syncAllProducts();
-        break;
-      case "single_product": {
-        if (!body.productId) {
-          return NextResponse.json({ error: "productId gerekli." }, { status: 400 });
-        }
-        result = await syncSingleProduct(body.productId);
-        break;
-      }
+        return syncAllProducts();
+      case "single_product":
+        return syncSingleProduct(body.productId!);
       case "stock_prices":
-        result = await syncStockPrices();
-        break;
+        return syncStockPrices();
       default:
-        return NextResponse.json({ error: "Geçersiz action." }, { status: 400 });
+        return null;
     }
-    return NextResponse.json({ ok: true, ...result });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    return NextResponse.json({ ok: false, error: message }, { status: 500 });
+  };
+
+  if (body.action !== "full" && body.action !== "categories" && body.action !== "products" && body.action !== "single_product" && body.action !== "stock_prices") {
+    return NextResponse.json({ error: "Geçersiz action." }, { status: 400 });
   }
+
+  if (body.action === "single_product") {
+    try {
+      const result = await syncSingleProduct(body.productId!);
+      return NextResponse.json({ ok: true, ...result });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return NextResponse.json({ ok: false, error: message }, { status: 500 });
+    }
+  }
+
+  after(() => {
+    runJob().catch((error) => {
+      console.error("[sync] background", error);
+    });
+  });
+
+  return NextResponse.json({ ok: true, started: true });
 }
