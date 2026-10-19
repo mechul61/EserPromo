@@ -1,5 +1,6 @@
-import { createWriteStream } from "node:fs";
-import { mkdir, rename, stat, unlink } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { createReadStream, createWriteStream } from "node:fs";
+import { mkdir, readFile, rename, stat, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { pipeline } from "node:stream/promises";
 import { Readable } from "node:stream";
@@ -13,6 +14,18 @@ export type DownloadResult = {
   error?: string;
 };
 
+type RemoteStamp = {
+  etag: string | null;
+  lastModified: string | null;
+  contentLength: number | null;
+};
+
+type StoredStamp = {
+  etag: string | null;
+  lastModified: string | null;
+  sha256: string;
+};
+
 function extFromUrl(url: string): string {
   try {
     const p = new URL(url).pathname;
@@ -24,7 +37,36 @@ function extFromUrl(url: string): string {
   return ".jpg";
 }
 
-async function remoteContentLength(url: string, userAgent: string) {
+function stampPath(absolute: string) {
+  return `${absolute}.sig`;
+}
+
+async function fileSha256(filePath: string) {
+  const hash = createHash("sha256");
+  await pipeline(createReadStream(filePath), hash);
+  return hash.digest("hex");
+}
+
+async function readStamp(absolute: string): Promise<StoredStamp | null> {
+  try {
+    const raw = await readFile(stampPath(absolute), "utf8");
+    const parsed = JSON.parse(raw) as Partial<StoredStamp>;
+    if (!parsed.sha256) return null;
+    return {
+      etag: parsed.etag ?? null,
+      lastModified: parsed.lastModified ?? null,
+      sha256: parsed.sha256,
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function writeStamp(absolute: string, stamp: StoredStamp) {
+  await writeFile(stampPath(absolute), JSON.stringify(stamp));
+}
+
+async function remoteStamp(url: string, userAgent: string): Promise<RemoteStamp | null> {
   try {
     const res = await fetch(url, {
       method: "HEAD",
@@ -34,7 +76,11 @@ async function remoteContentLength(url: string, userAgent: string) {
     });
     if (!res.ok) return null;
     const length = Number(res.headers.get("content-length"));
-    return Number.isFinite(length) && length > 0 ? length : null;
+    return {
+      etag: res.headers.get("etag"),
+      lastModified: res.headers.get("last-modified"),
+      contentLength: Number.isFinite(length) && length > 0 ? length : null,
+    };
   } catch {
     return null;
   }
@@ -42,7 +88,8 @@ async function remoteContentLength(url: string, userAgent: string) {
 
 /**
  * Görseli yerel storage'a indirir (hotlink yok).
- * refresh açıksa adres değiştiyse veya uzak dosya boyutu farklıysa üzerine yazar.
+ * refresh açıksa karar dosya adına bakmaz: uzak ETag / Last-Modified
+ * değişmişse indirir, içerik özeti farklıysa üzerine yazar.
  */
 export async function downloadToStorage(options: {
   url: string;
@@ -72,9 +119,20 @@ export async function downloadToStorage(options: {
     return { ok: true, localPath, byteSize: localSize, updated: false };
   }
 
-  if (localSize > 0 && options.refresh && !options.urlChanged) {
-    const remoteSize = await remoteContentLength(options.url, options.userAgent);
-    if (remoteSize != null && remoteSize === localSize) {
+  const remote = localSize > 0 && options.refresh ? await remoteStamp(options.url, options.userAgent) : null;
+  if (localSize > 0 && options.refresh && !options.urlChanged && remote) {
+    const stored = await readStamp(absolute);
+    const etagSame = Boolean(remote.etag && stored?.etag && remote.etag === stored.etag);
+    const dateSame =
+      !remote.etag &&
+      Boolean(
+        remote.lastModified &&
+          stored?.lastModified &&
+          remote.lastModified === stored.lastModified &&
+          remote.contentLength != null &&
+          remote.contentLength === localSize,
+      );
+    if (etagSame || dateSame) {
       return { ok: true, localPath, byteSize: localSize, updated: false };
     }
   }
@@ -101,12 +159,26 @@ export async function downloadToStorage(options: {
       await unlink(tempPath).catch(() => undefined);
       return { ok: false, localPath, error: "Boş dosya" };
     }
-    if (localSize > 0 && info.size === localSize && !options.urlChanged) {
-      await unlink(tempPath).catch(() => undefined);
-      return { ok: true, localPath, byteSize: localSize, updated: false };
+
+    const nextHash = await fileSha256(tempPath);
+    const stamp: StoredStamp = {
+      etag: res.headers.get("etag") || remote?.etag || null,
+      lastModified: res.headers.get("last-modified") || remote?.lastModified || null,
+      sha256: nextHash,
+    };
+
+    if (localSize > 0 && !options.urlChanged) {
+      const previousHash = await fileSha256(absolute);
+      if (previousHash === nextHash) {
+        await unlink(tempPath).catch(() => undefined);
+        await writeStamp(absolute, stamp);
+        return { ok: true, localPath, byteSize: localSize, updated: false };
+      }
     }
+
     await unlink(absolute).catch(() => undefined);
     await rename(tempPath, absolute);
+    await writeStamp(absolute, stamp);
     return { ok: true, localPath, byteSize: info.size, updated: true };
   } catch (error) {
     await unlink(tempPath).catch(() => undefined);

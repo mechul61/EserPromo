@@ -22,7 +22,7 @@ function storageRoot() {
 }
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   context: { params: Promise<{ path: string[] }> },
 ) {
   const parts = (await context.params).path ?? [];
@@ -49,13 +49,21 @@ export async function GET(
 
     const ext = path.extname(absolute).toLowerCase();
     const type = MIME[ext] || "application/octet-stream";
+    const etag = `"${Math.trunc(info.mtimeMs).toString(16)}-${info.size.toString(16)}"`;
+    const headers = {
+      ETag: etag,
+      "Cache-Control": "public, max-age=300, must-revalidate",
+    };
+    if (req.headers.get("if-none-match") === etag) {
+      return new Response(null, { status: 304, headers });
+    }
     const stream = Readable.toWeb(createReadStream(absolute));
 
     return new Response(stream as BodyInit, {
       headers: {
+        ...headers,
         "Content-Type": type,
         "Content-Length": String(info.size),
-        "Cache-Control": "public, max-age=86400",
       },
     });
   } catch {
